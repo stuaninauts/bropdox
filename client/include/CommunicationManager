@@ -1,0 +1,13 @@
+#ifndef COMMUNICATIONMANAGER_HPP
+#define COMMUNICATIONMANAGER_HPP
+
+using namespace std;
+class CommunicationManager {
+private:
+    // Push: Envia atualizações locais (chamado pelo file manager)
+    // SyncOut: Recebe atualizaçöes do servidor (loop)
+public:
+
+};
+
+#endif // COMMUNICATIONMANAGER_HPP
