@@ -1,5 +1,5 @@
 # -------------------------------
-# Dropbox-like Project (Modular)
+# bropdox Project (Modular)
 # -------------------------------
 # Directory Structure:
 # .
