@@ -1,7 +1,7 @@
 CLIENTE:
 * 1 thread lidando com comandos no terminal. Caso comando for upload, vai mandar o comando e logo depois os dados. Cuidar com os chunks.
 
-* 1 thread com o watcher para propagar mudanças do dir local para outros clientes usando inotify. Ter cuidado para não ficar propagando mudanças vindas do servidor. Se o hash do arquivo não mudar, não propaga. (envia dados)
+* 1 thintaread com o watcher para propagar mudanças do dir local para outros clientes usando inotify. Ter cuidado para não ficar propagando mudanças vindas do servidor. Se o hash do arquivo não mudar, não propaga. (envia dados)
 
 * 1 thread para receber os pushs do servidor nos arquivos (recebe dados)
 
@@ -35,3 +35,19 @@ propaga essa mudança para todos os diretórios daquele user
 
 NÂO UTILIZAR TIME_STAMP PARA VERIFICAR ARQUIVOS
 
+
+Discussao inicial
+PASSOS:
+- cliente run
+    - verifica se tem sync_dir_usuario e cria se não tiver (cuidado lock)
+    - se conecta com o servidor criando duas threads no connect 
+        - send-to-server (write) 
+            - configurar INOTIFY (testar mudanças no sync_dir)
+        - upload-from-server (read)
+        - thread atual sera do cmd
+
+- server
+    - cria socket e da bind e listen
+    - loop
+        - accept, retorna socket e cria thread
+            - essa thread cria outros 2 outros sockets (totalizando um pra cada thread no cliente) 
