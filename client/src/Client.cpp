@@ -9,9 +9,20 @@ using namespace std;
 Client::Client(string username, string server_ip, int port)
     : username(username), server_ip(server_ip), port(port), fileManager(username) {} 
 
+void start_watcher(const std::string& path) {
+    try {
+        Watcher watcher(path);
+        watcher.start();
+    } catch (const std::exception& e) {
+        std::cerr << "Erro na thread: " << e.what() << std::endl;
+    }
+}
+
 
 void Client::run() {
-    connect_to_server(this->server_ip, this->port);
+    connect_to_server(this->server_ip, this->port);    
+    std::thread thread_inotify(start_watcher, "client/sync_dir_" + this->username);
+
     while (true) {
         string input;
         cout << "> ";
@@ -22,6 +33,7 @@ void Client::run() {
             processCommand(tokens);
         }
     }
+    thread_inotify.join();
 }
 
 void Client::connect_to_server(string server_ip, int porta){
@@ -90,6 +102,8 @@ vector<string> Client::splitCommand(const string &command) {
 }
 
 void Client::processCommand(const vector<string> &tokens) {
+    Utils utils;
+
     if (tokens.empty()) return;
     
     string command = tokens[0];
@@ -115,8 +129,7 @@ void Client::processCommand(const vector<string> &tokens) {
         // Implement server listing functionality here
     }
     else if (command == "list_client") {
-        cout << "Listing files in sync_dir:" << endl;
-        // Implement client listing functionality here
+        utils.list_files_in_directory("client/sync_dir_" + this->username);
     }
     else if (command == "get_sync_dir") {
         cout << "Creating sync_dir and starting synchronization" << endl;

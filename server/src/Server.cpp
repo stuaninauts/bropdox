@@ -54,8 +54,6 @@ void Server::run() {
 	n = write(newsockfd,"I got your message", 18);
 	if (n < 0) 
 		printf("ERROR writing to socket");
-
-	close(newsockfd);
 	// close(newsockfd);
 	// close(sockfd);
    /* while (true) {
@@ -63,6 +61,9 @@ void Server::run() {
         // pthread create
     }   
 */
+	
+	close(newsockfd);
+
 }
 
 void Server::log(const sockaddr_in& serv_addr){

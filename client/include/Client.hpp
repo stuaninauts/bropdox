@@ -13,6 +13,11 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 #include "FileManager.hpp"
+#include "Watcher.hpp"
+#include "Utils.hpp"
+#include <thread> 
+#include <iostream>
+#include <unistd.h>
 
 using namespace std;
 class Client {
