@@ -14,7 +14,6 @@
 #include <netdb.h> 
 #include "FileManager.hpp"
 #include "Watcher.hpp"
-#include "Utils.hpp"
 #include <thread> 
 #include <iostream>
 #include <unistd.h>
@@ -25,7 +24,6 @@ private:
     string username; // Nome do usuário
     string server_ip; // Endereço IP do servidor
     int port; // Porta do servidor
-    FileManager fileManager; // File Manager (inotify) -> modificações locais
     // Communication Manager (pushes) -> modificações externas
 
     // Push:
@@ -38,6 +36,8 @@ private:
     void processCommand(const vector<string> &tokens);
 
 public:
+    FileManager fileManager; // File Manager (inotify) -> modificações locais
+
     // Construtor
     Client(string username, string server_ip, int port);
 

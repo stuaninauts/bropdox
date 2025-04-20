@@ -1,5 +1,7 @@
-#include "Utils.hpp"
-#include <iostream>
+#include "FileManager.hpp"
+#include <sys/stat.h>
+#include <sys/types.h> 
+#include <cstring>      
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -7,7 +9,24 @@
 #include <ctime>
 #include <iomanip>
 
-void Utils::list_files_in_directory(const std::string& path) {
+FileManager::FileManager(string username) {
+    this->username = username;
+}
+
+
+void FileManager::create_sync_dir() {
+    string folder_name = "client/sync_dir_" + username;
+
+    int status = mkdir(folder_name.c_str(), 0777);
+    if(status !=0) {
+        if (errno != EEXIST) {
+             cerr << "[ERRO] Falha ao criar pasta: " << strerror(errno) << endl;
+        } 
+    }
+}
+
+
+void FileManager::list_files_in_directory(const std::string& path) {
     DIR* dir;
     struct dirent* entry;
 

@@ -8,13 +8,15 @@
 using namespace std;
 class FileManager {
 private:
-    string username; // Nome do usuário
     // SyncIn: Detecta modificações locais (loop)
     // Pull: Recebe modificações do servidor (chamado pelo communication manager)
 public:
+    string username; // Nome do usuário
+
     // Construtor
     FileManager(string username);
     void create_sync_dir();
+    static void list_files_in_directory(const std::string& path);
 };
 
 #endif // FILEMANAGER_HPP

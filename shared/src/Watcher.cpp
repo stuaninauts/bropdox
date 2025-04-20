@@ -5,7 +5,7 @@
 #include <limits.h>
 #include <cstring>
 
-Watcher::Watcher(const std::string& path) : path(path) {}
+Watcher::Watcher(const std::string& path, FileManager& fileManager) : path(path), fileManager(fileManager) {}
 
 void Watcher::start() {
     int fd = inotify_init();
@@ -35,7 +35,7 @@ void Watcher::start() {
         int i = 0;
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
-
+            // TODO -> Possivelmente necessario utilizacao de lock
             if (event->len) {
                 if (event->mask & IN_CREATE) {
                     std::cout << "[INOTIFY] Arquivo criado: " << event->name << std::endl;
