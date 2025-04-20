@@ -4,6 +4,15 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h> 
+#include "FileManager.hpp"
 
 using namespace std;
 class Client {
@@ -11,8 +20,7 @@ private:
     string username; // Nome do usuário
     string server_ip; // Endereço IP do servidor
     int port; // Porta do servidor
-
-    // File Manager (inotify) -> modificações locais
+    FileManager fileManager; // File Manager (inotify) -> modificações locais
     // Communication Manager (pushes) -> modificações externas
 
     // Push:
@@ -29,6 +37,7 @@ public:
     Client(string username, string server_ip, int port);
 
     void run();
+    void connect_to_server(string server_ip, int porta);
 };
 
 #endif // CLIENT_HPP

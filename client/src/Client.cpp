@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include "FileManager.hpp"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -6,10 +7,11 @@
 using namespace std;
 
 Client::Client(string username, string server_ip, int port)
-    : username(username), server_ip(server_ip), port(port) {};
+    : username(username), server_ip(server_ip), port(port), fileManager(username) {} 
 
 
 void Client::run() {
+    connect_to_server(this->server_ip, this->port);
     while (true) {
         string input;
         cout << "> ";
@@ -20,6 +22,58 @@ void Client::run() {
             processCommand(tokens);
         }
     }
+}
+
+void Client::connect_to_server(string server_ip, int porta){
+    int sockfd, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+    char buffer[256];
+    server = gethostbyname(server_ip.c_str());
+
+	if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
+    }
+    
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        printf("ERROR opening socket\n");
+        exit(0);
+    }   
+
+	serv_addr.sin_family = AF_INET;     
+	serv_addr.sin_port = htons(porta);    
+	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+	
+    bzero(&(serv_addr.sin_zero), 8);     
+	
+    
+	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+        printf("ERROR connecting\n");
+    else {
+        // Cria o sync_dir no client
+        this->fileManager.create_sync_dir();
+        cout << "Conexão com servidor estabelecida" << endl;
+    };
+    
+    printf("Enter the message: ");
+    bzero(buffer, 256);
+    fgets(buffer, 256, stdin);
+    
+	/* write in the socket */
+	n = write(sockfd, buffer, strlen(buffer));
+    if (n < 0) 
+		printf("ERROR writing to socket\n");
+
+    bzero(buffer,256);
+	
+	/* read from the socket */
+    n = read(sockfd, buffer, 256);
+    if (n < 0) 
+		printf("ERROR reading from socket\n");
+
+    printf("%s\n",buffer);
+    
 }
 
 
