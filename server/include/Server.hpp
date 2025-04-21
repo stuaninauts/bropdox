@@ -12,6 +12,7 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <thread> 
 
 using namespace std;
 class Server {

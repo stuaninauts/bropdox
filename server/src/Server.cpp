@@ -9,8 +9,22 @@ using namespace std;
 
 Server::Server() {}
 
-void Server::run() {
 
+void handle_client(int client_sockfd) {
+    char buffer[256];
+    bzero(buffer, 256);
+
+    int n = read(client_sockfd, buffer, 255);
+    if (n > 0) {
+        printf("Mensagem do cliente: %s\n", buffer);
+        write(client_sockfd, "Recebido", 8);
+    }
+
+    close(client_sockfd);
+}
+
+void Server::run() {
+   cout << "Iniciando servidor..." << endl;
    // Criação do socket principal
    int sockfd, newsockfd, n;
    socklen_t clilen;
@@ -30,40 +44,25 @@ void Server::run() {
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) 
 		printf("ERROR on binding");
 	
-    // Log informações iniciais do servidor
-    log(serv_addr);
+  	cout << "Servidor esperando conexões..." << endl;
 	listen(sockfd, 5);
 	
 	clilen = sizeof(struct sockaddr_in);
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-	if ( newsockfd == -1) 
-		printf("ERROR on accept");
+	while (true) {
+        socklen_t clilen = sizeof(cli_addr);
+        int newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clilen);
+			
+		if ( newsockfd == -1) 
+			printf("ERROR on accept");
+        
+		if (newsockfd >= 0) {
+            std::thread(handle_client, newsockfd).detach();
+        }
+    }
 
 
-    // buffer onde o socket principal irá ler
-	bzero(buffer, 256);
 	
-	/* read from the socket */
-	n = read(newsockfd, buffer, 256);
-	if (n < 0) 
-		printf("ERROR reading from socket");
-	printf("Here is the message: %s\n", buffer);
-	
-	/* write in the socket */ 
-	n = write(newsockfd,"I got your message", 18);
-	if (n < 0) 
-		printf("ERROR writing to socket");
-	// close(newsockfd);
-	// close(sockfd);
-   /* while (true) {
-        accept(); // returns socket
-        // pthread create
-    }   
-*/
-	
-	close(newsockfd);
-
 }
 
 void Server::log(const sockaddr_in& serv_addr){

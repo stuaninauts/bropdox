@@ -22,7 +22,7 @@ void start_watcher(FileManager& fileManager) {
 
 void Client::run() {
     connect_to_server(this->server_ip, this->port);    
-    std::thread thread_inotify(start_watcher, std::ref(this->fileManager));
+    std::thread(start_watcher, std::ref(this->fileManager)).detach();
 
     while (true) {
         string input;
@@ -34,7 +34,6 @@ void Client::run() {
             processCommand(tokens);
         }
     }
-    thread_inotify.join();
 }
 
 void Client::connect_to_server(string server_ip, int porta){
