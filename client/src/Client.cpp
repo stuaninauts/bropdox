@@ -68,12 +68,10 @@ void Client::connect_to_server(string server_ip, int porta){
         cout << "Conexão com servidor estabelecida" << endl;
     };
     
-    printf("Enter the message: ");
     bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
     
-	/* write in the socket */
-	n = write(sockfd, buffer, strlen(buffer));
+    // Client envia para o socket o nome do cliente que quer se conectar
+	n = write(sockfd, this->username.c_str(), strlen(this->username.c_str()));
     if (n < 0) 
 		printf("ERROR writing to socket\n");
 

@@ -16,7 +16,9 @@ void handle_client(int client_sockfd) {
 
     int n = read(client_sockfd, buffer, 255);
     if (n > 0) {
-        printf("Mensagem do cliente: %s\n", buffer);
+        printf("Conexão realizada, cliente: %s\n", buffer);
+		// Criar fileManager para o eduardo
+		// threads leitura e escrita ( INOTIFY)
         write(client_sockfd, "Recebido", 8);
     }
 
