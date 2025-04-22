@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 2424
+#define PORT 2222
 
 using namespace std;
 
@@ -16,31 +16,18 @@ void handle_client_pushes (FileManager& fileManager, int client_server_socket){
         bzero(buffer, 256);
         int n = read(client_server_socket, buffer, 255);
         if(n > 0) {
-            printf("Socket client_server diz: %s", buffer);
+            std::string str(buffer);
+            // So para testar a comunicacao
+            fileManager.create_sync_dir("dump/"+str);
         }
     }
 };
 
-void start_watcher(FileManager& fileManager, int client_sockfd) {
+void start_watcher(FileManager& fileManager, int server_client_socket) {
     try {
+        string msg_teste = "Sou o servidor e estou mandando um socket via server_client (write)";
+        int n = write(server_client_socket, msg_teste.c_str(), strlen(msg_teste.c_str()));
         string path = "server/sync_dir_" + fileManager.username;
-        // Cria socket de escrita server-client
-        auto [socket, ip, port] = Utils::create_and_listen_socket(client_sockfd);
-
-        struct sockaddr_in cli_addr;
-        socklen_t clilen = sizeof(cli_addr);
-        int server_client_socket = accept(socket, (struct sockaddr*)&cli_addr, &clilen);
-        
-        if (server_client_socket < 0) {
-            perror("Erro no accept");
-            return;
-        }
-        else {
-            cout << "Socket server_client ativo" << endl;
-            string msg_teste = "Sou o servidor e estou mandando um socket via server_client (write)";
-            int n = write(server_client_socket, msg_teste.c_str(), strlen(msg_teste.c_str()));
-        };
-
         // Passa o socket para o watcher
         Watcher watcher(path, fileManager);
         watcher.start();
@@ -60,14 +47,27 @@ void handle_client(int client_sockfd) {
         FileManager fileManager(client_name);
         fileManager.create_sync_dir("server/");
 
-        // Inicia a thread so watcher INOTIFY
-        std::thread(start_watcher, std::ref(fileManager), client_sockfd).detach();
+        // Cria socket de escrita server-client
+        auto [socket_sc, ip_sc, port_sc] = Utils::create_and_listen_socket(client_sockfd);
 
-        auto [socket, ip, port] = Utils::create_and_listen_socket(client_sockfd);
+        struct sockaddr_in cli_addr_sc;
+        socklen_t clilen_sc = sizeof(cli_addr_sc);
+        int server_client_socket = accept(socket_sc, (struct sockaddr*)&cli_addr_sc, &clilen_sc);
+        
+        if (server_client_socket < 0) {
+            perror("Erro no accept");
+            return;
+        }
+        else {
+            cout << "Socket server_client ativo" << endl;
+        };
 
-        struct sockaddr_in cli_addr;
-        socklen_t clilen = sizeof(cli_addr);
-        int client_server_socket = accept(socket, (struct sockaddr*)&cli_addr, &clilen);
+
+        auto [socket_cs, ip_cs, port_cs] = Utils::create_and_listen_socket(client_sockfd);
+
+        struct sockaddr_in cli_addr_cs;
+        socklen_t clilen_cs = sizeof(cli_addr_cs);
+        int client_server_socket = accept(socket_cs, (struct sockaddr*)&cli_addr_cs, &clilen_cs);
         
         if (client_server_socket < 0) {
             perror("Erro no accept");
@@ -77,6 +77,8 @@ void handle_client(int client_sockfd) {
             cout << "Socket client_server ativo" << endl;
         };
 
+
+        std::thread(start_watcher, std::ref(fileManager), server_client_socket).detach();
         std::thread(handle_client_pushes, std::ref(fileManager), client_server_socket).detach();
     }
      

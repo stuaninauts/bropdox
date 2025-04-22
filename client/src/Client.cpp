@@ -21,23 +21,23 @@ void start_watcher(FileManager& fileManager, int client_server_socket) {
     }
 }
 
-void handle_server_pushes(int server_client_socket){
-    while (true)
-    {
-        // substituir por pacotes
+void handle_server_pushes(FileManager& fileManager, int server_client_socket){
+    while(true){
         char buffer[256];
         bzero(buffer, 256);
         int n = read(server_client_socket, buffer, 255);
+        std::string str(buffer);
         if(n > 0){ 
-            printf("Server_client_socket disse: %s", buffer);
+            // Apenas testes para ver que funciona
+            fileManager.create_sync_dir("dump/" + str);
         }
     }
-    
 }
 
 void Client::run() {
     int socketPrincipal = connect_to_server(this->server_ip, this->port);  
-
+    int client_server_socket = -1;
+    int server_client_socket = -1;
     // Le ip e porta do socket criado server-client
     char buffer[256];
     bzero(buffer, 256);
@@ -47,15 +47,13 @@ void Client::run() {
         std::string msg(buffer, n);
         int porta = stoi(msg);
         // Conecta com o socket server-client
-        int server_client_socket = Utils::connect_to_socket("localhost", porta);
-        std::thread(handle_server_pushes, server_client_socket).detach();
+        server_client_socket = Utils::connect_to_socket("localhost", porta);
         
     } else {
         perror("Erro ao ler do socket");
     }
 
     // Conecta com o socket client_server
-    int client_server_socket = -1;
     bzero(buffer, 256);
     n = read(socketPrincipal, buffer, 255);
         if (n > 0) {
@@ -68,7 +66,7 @@ void Client::run() {
         perror("Erro ao ler do socket");
     }
     
-        
+    std::thread(handle_server_pushes, std::ref(this->fileManager), server_client_socket).detach();
     std::thread(start_watcher, std::ref(this->fileManager), client_server_socket).detach();
 
     while (true) {
