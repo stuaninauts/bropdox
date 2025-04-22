@@ -15,7 +15,7 @@ public:
 
     // Construtor
     FileManager(string username);
-    void create_sync_dir();
+    void create_sync_dir(string path);
     static void list_files_in_directory(const std::string& path);
 };
 

@@ -9,8 +9,10 @@ using namespace std;
 Client::Client(string username, string server_ip, int port)
     : username(username), server_ip(server_ip), port(port), fileManager(username) {} 
 
-void start_watcher(FileManager& fileManager) {
+void start_watcher(FileManager& fileManager, int client_server_socket) {
     try {
+        string msg_teste = "Sou o client e estou mandando um socket via client_server (write)";
+        int n = write(client_server_socket, msg_teste.c_str(), strlen(msg_teste.c_str()));
         string path = "client/sync_dir_" + fileManager.username;
         Watcher watcher(path, fileManager);
         watcher.start();
@@ -19,10 +21,55 @@ void start_watcher(FileManager& fileManager) {
     }
 }
 
+void handle_server_pushes(int server_client_socket){
+    while (true)
+    {
+        // substituir por pacotes
+        char buffer[256];
+        bzero(buffer, 256);
+        int n = read(server_client_socket, buffer, 255);
+        if(n > 0){ 
+            printf("Server_client_socket disse: %s", buffer);
+        }
+    }
+    
+}
 
 void Client::run() {
-    connect_to_server(this->server_ip, this->port);    
-    std::thread(start_watcher, std::ref(this->fileManager)).detach();
+    int socketPrincipal = connect_to_server(this->server_ip, this->port);  
+
+    // Le ip e porta do socket criado server-client
+    char buffer[256];
+    bzero(buffer, 256);
+    int n = read(socketPrincipal, buffer, 255);
+    if (n > 0) {
+        // Porta do socket server_client que o servidor criou
+        std::string msg(buffer, n);
+        int porta = stoi(msg);
+        // Conecta com o socket server-client
+        int server_client_socket = Utils::connect_to_socket("localhost", porta);
+        std::thread(handle_server_pushes, server_client_socket).detach();
+        
+    } else {
+        perror("Erro ao ler do socket");
+    }
+
+    // Conecta com o socket client_server
+    int client_server_socket = -1;
+    bzero(buffer, 256);
+    n = read(socketPrincipal, buffer, 255);
+        if (n > 0) {
+        // Porta do socket clinet_server que o servidor criou
+        std::string msg(buffer, n);
+        int porta = stoi(msg);
+        // Conecta com o socket client_server
+        client_server_socket = Utils::connect_to_socket("localhost", porta);        
+    } else {
+        perror("Erro ao ler do socket");
+    }
+    
+        
+    std::thread(start_watcher, std::ref(this->fileManager), client_server_socket).detach();
 
     while (true) {
         string input;
@@ -36,7 +83,7 @@ void Client::run() {
     }
 }
 
-void Client::connect_to_server(string server_ip, int porta){
+int Client::connect_to_server(string server_ip, int porta){
     int sockfd, n;
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -64,7 +111,7 @@ void Client::connect_to_server(string server_ip, int porta){
         printf("ERROR connecting\n");
     else {
         // Cria o sync_dir no client
-        this->fileManager.create_sync_dir();
+        this->fileManager.create_sync_dir("client/");
         cout << "Conexão com servidor estabelecida" << endl;
     };
     
@@ -75,15 +122,7 @@ void Client::connect_to_server(string server_ip, int porta){
     if (n < 0) 
 		printf("ERROR writing to socket\n");
 
-    bzero(buffer,256);
-	
-	/* read from the socket */
-    n = read(sockfd, buffer, 256);
-    if (n < 0) 
-		printf("ERROR reading from socket\n");
-
-    printf("%s\n",buffer);
-    
+    return sockfd;
 }
 
 

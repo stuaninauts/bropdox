@@ -13,6 +13,9 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <thread> 
+#include "FileManager.hpp"
+#include "Watcher.hpp"
+#include "Utils.hpp"
 
 using namespace std;
 class Server {

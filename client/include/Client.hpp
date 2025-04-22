@@ -17,6 +17,7 @@
 #include <thread> 
 #include <iostream>
 #include <unistd.h>
+#include "Utils.hpp"
 
 using namespace std;
 class Client {
@@ -42,7 +43,7 @@ public:
     Client(string username, string server_ip, int port);
 
     void run();
-    void connect_to_server(string server_ip, int porta);
+    int connect_to_server(string server_ip, int porta);
 };
 
 #endif // CLIENT_HPP
