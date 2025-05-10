@@ -1,74 +1,20 @@
-#include "Client.hpp"
-#include "FileManager.hpp"
-#include <sstream>
-#include <iostream>
-#include <algorithm>
+#include <Client.hpp>
 
 using namespace std;
 
-Client::Client(string username, string server_ip, int port)
-    : username(username), server_ip(server_ip), port(port), fileManager(username) {} 
-
-void start_watcher(FileManager& fileManager, int client_server_socket) {
-    try {
-        string msg_teste = "Sou o client e estou mandando um socket via client_server (write)";
-        int n = write(client_server_socket, msg_teste.c_str(), strlen(msg_teste.c_str()));
-        string path = "client/sync_dir_" + fileManager.username;
-        Watcher watcher(path, fileManager);
-        watcher.start();
-    } catch (const std::exception& e) {
-        std::cerr << "Erro na thread: " << e.what() << std::endl;
-    }
-}
-
-void handle_server_pushes(FileManager& fileManager, int server_client_socket){
-    while(true){
-        char buffer[256];
-        bzero(buffer, 256);
-        int n = read(server_client_socket, buffer, 255);
-        std::string str(buffer);
-        if(n > 0){ 
-            // Apenas testes para ver que funciona
-            fileManager.create_sync_dir("dump/" + str);
-        }
-    }
-}
+// ======================================== //
+// ================ PUBLIC ================ //
+// ======================================== //
 
 void Client::run() {
-    int socketPrincipal = connect_to_server(this->server_ip, this->port);  
-    int client_server_socket = -1;
-    int server_client_socket = -1;
-    // Le ip e porta do socket criado server-client
+    fileManager.create_sync_dir();
+    socketfd = commManager.connect_to_server();
+    if (socketfd == -1)
+        exit(1);
+
     char buffer[256];
-    bzero(buffer, 256);
-    int n = read(socketPrincipal, buffer, 255);
-    if (n > 0) {
-        // Porta do socket server_client que o servidor criou
-        std::string msg(buffer, n);
-        int porta = stoi(msg);
-        // Conecta com o socket server-client
-        server_client_socket = Utils::connect_to_socket("localhost", porta);
-        
-    } else {
-        perror("Erro ao ler do socket");
-    }
-
-    // Conecta com o socket client_server
-    bzero(buffer, 256);
-    n = read(socketPrincipal, buffer, 255);
-        if (n > 0) {
-        // Porta do socket clinet_server que o servidor criou
-        std::string msg(buffer, n);
-        int porta = stoi(msg);
-        // Conecta com o socket client_server
-        client_server_socket = Utils::connect_to_socket("localhost", porta);        
-    } else {
-        perror("Erro ao ler do socket");
-    }
+    int n;
     
-    std::thread(handle_server_pushes, std::ref(this->fileManager), server_client_socket).detach();
-    std::thread(start_watcher, std::ref(this->fileManager), client_server_socket).detach();
-
     while (true) {
         string input;
         cout << "> ";
@@ -78,51 +24,20 @@ void Client::run() {
         if (!tokens.empty()) {
             processCommand(tokens);
         }
+
+        bzero(buffer,256);
+        /* read from the socket */
+        n = read(socketfd, buffer, 256);
+        if (n < 0) 
+            printf("ERROR reading from socket\n");
+        else if (n > 0)
+            printf("server: %s", buffer);
     }
 }
 
-int Client::connect_to_server(string server_ip, int porta){
-    int sockfd, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-    char buffer[256];
-    server = gethostbyname(server_ip.c_str());
-
-	if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    }
-    
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        printf("ERROR opening socket\n");
-        exit(0);
-    }   
-
-	serv_addr.sin_family = AF_INET;     
-	serv_addr.sin_port = htons(porta);    
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	
-    bzero(&(serv_addr.sin_zero), 8);     
-	
-    
-	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-        printf("ERROR connecting\n");
-    else {
-        // Cria o sync_dir no client
-        this->fileManager.create_sync_dir("client/");
-        cout << "Conexão com servidor estabelecida" << endl;
-    };
-    
-    bzero(buffer, 256);
-    
-    // Client envia para o socket o nome do cliente que quer se conectar
-	n = write(sockfd, this->username.c_str(), strlen(this->username.c_str()));
-    if (n < 0) 
-		printf("ERROR writing to socket\n");
-
-    return sockfd;
-}
-
+// ========================================= //
+// ================ PRIVATE ================ //
+// ========================================= //
 
 vector<string> Client::splitCommand(const string &command) {
     vector<string> tokens;
@@ -146,6 +61,7 @@ void Client::processCommand(const vector<string> &tokens) {
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
+        commManager.send_username();
         // Implement upload functionality here
     }
     else if (command == "download" && tokens.size() == 2) {
@@ -163,7 +79,7 @@ void Client::processCommand(const vector<string> &tokens) {
         // Implement server listing functionality here
     }
     else if (command == "list_client") {
-        this->fileManager.list_files_in_directory("client/sync_dir_" + this->username);
+        fileManager.list_files();
     }
     else if (command == "get_sync_dir") {
         cout << "Creating sync_dir and starting synchronization" << endl;

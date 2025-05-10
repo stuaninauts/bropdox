@@ -13,30 +13,34 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <thread> 
-#include "FileManager.hpp"
-#include "Watcher.hpp"
-#include "Utils.hpp"
+#include <unordered_map>
 
 using namespace std;
 class Server {
-private:
-    // Lista encadeada de processos (?)
-    // Processos se conectam com communication manager e file manager
-    // Hashtable (key = username) com tuplas de processos
-    
-    void accept_connection();
+
 public:
-    // Construtor
-    Server();
-    
-    // File Manager -> modifica os diretórios locais
-    // Communication Manager (pushes) -> modificações externas
+    Server() {};
+    ~Server() {
+        if (server_socketfd != -1) {
+            close(server_socketfd);
+        }
+        if (client_socketfd != -1) {
+            close(client_socketfd);
+        }
+    }
 
-    // Communication Manager recebe um push, e passa para o File Manager atualizar o arquivo,
-    // ao finalizar sinaliza o Communication Manager para atualizar os outros clientes
-
-    void log(const sockaddr_in& serv_addr);
     void run();
+
+private:
+    int server_socketfd;
+    int client_address;
+    int client_socketfd;
+    socklen_t client_len;
+    std::unordered_map<std::string, std::vector<int>> clients;
+    static const int MAX_VALUES = 2;
+
+    bool setup_server(int port);
+    void connect_to_client();
 };
 
 #endif // SERVER_HPP
