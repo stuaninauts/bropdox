@@ -12,9 +12,32 @@ void Client::run() {
     if (socketfd == -1)
         exit(1);
 
-    char buffer[256];
-    int n;
-    
+    std::thread thread_sync_local(&Client::sync_local, this);
+    std::thread thread_user_interface(&Client::user_interface, this);
+
+    thread_sync_local.join();
+    thread_user_interface.join();
+}
+
+void Client::sync_local() {
+    fileManager.watch();
+}
+
+void Client::sync_remote() {
+    // Changes changes;
+    // Changes {
+    //  std::string type;
+    //  std::string filename;
+    // }
+    while(true) {
+        // changes = commManager.pull();
+        // if(changes != nullptr) {
+        //     fileManager.update(changes)
+        // }
+    }
+}
+
+void Client::user_interface() {
     while (true) {
         string input;
         cout << "> ";
@@ -24,14 +47,6 @@ void Client::run() {
         if (!tokens.empty()) {
             processCommand(tokens);
         }
-
-        bzero(buffer,256);
-        /* read from the socket */
-        n = read(socketfd, buffer, 256);
-        if (n < 0) 
-            printf("ERROR reading from socket\n");
-        else if (n > 0)
-            printf("server: %s", buffer);
     }
 }
 
@@ -57,11 +72,14 @@ void Client::processCommand(const vector<string> &tokens) {
     
     string command = tokens[0];
     transform(command.begin(), command.end(), command.begin(), ::tolower);
+
+    if (command == "send_username")
+        commManager.send_username();
+
     
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
-        commManager.send_username();
         // Implement upload functionality here
     }
     else if (command == "download" && tokens.size() == 2) {

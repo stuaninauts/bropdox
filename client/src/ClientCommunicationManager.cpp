@@ -8,15 +8,11 @@ int ClientCommunicationManager::connect_to_server() {
     try {
         struct hostent* server = resolve_hostname(server_ip);
 
-        socketfd = create_socket();
+        create_sockets();
 
         struct sockaddr_in serv_addr = create_server_address(server);
 
-        if (connect(socketfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-            throw std::runtime_error("ERROR: Connecting to server");
-        }
-
-        std::cout << "Conexão com servidor estabelecida" << std::endl;
+        connect_sockets(serv_addr);
 
         return socketfd;
     } catch (const std::exception& e) {
@@ -26,9 +22,10 @@ int ClientCommunicationManager::connect_to_server() {
 }
 
 void ClientCommunicationManager::send_username() {
+    std::cout << "writing...";
     int n = write(socketfd, username.c_str(), username.length());
     if (n < 0) {
-        throw std::runtime_error("ERROR: Writing username to socket");
+        std::cout << "ERROR: Writing username to socket";
     }
 }
 
@@ -39,17 +36,24 @@ void ClientCommunicationManager::send_username() {
 struct hostent* ClientCommunicationManager::resolve_hostname(const std::string& hostname) {
     struct hostent* server = gethostbyname(hostname.c_str());
     if (server == nullptr) {
-        throw std::runtime_error("ERROR: No such host");
+        std::cout << "ERROR: No such host";
     }
     return server;
 }
 
-int ClientCommunicationManager::create_socket() {
-    int socketfd = socket(AF_INET, SOCK_STREAM, 0);
+void ClientCommunicationManager::create_sockets() {
+    socketfd = socket(AF_INET, SOCK_STREAM, 0);
     if (socketfd < 0) {
-        throw std::runtime_error("ERROR: Opening socket");
+        std::cout << "ERROR: Opening socket";
     }
-    return socketfd;
+}
+
+void ClientCommunicationManager::connect_sockets(struct sockaddr_in serv_addr) {
+    if (connect(socketfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        std::cout << "ERROR: Connecting to server";
+    } else {
+        std::cout << "Conexão com servidor estabelecida" << std::endl;
+    }
 }
 
 struct sockaddr_in ClientCommunicationManager::create_server_address(struct hostent* server) {

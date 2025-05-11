@@ -57,6 +57,9 @@
         "ranges": "cpp",
         "cinttypes": "cpp",
         "communicationmanager": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "mutex": "cpp"
     }
 }

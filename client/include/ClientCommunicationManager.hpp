@@ -31,7 +31,8 @@ private:
     std::string username;
 
     struct sockaddr_in create_server_address(struct hostent* server);
-    int create_socket();
+    void create_sockets();
+    void connect_sockets(struct sockaddr_in serv_addr);
     struct hostent* resolve_hostname(const std::string& hostname);
 };
 

@@ -7,13 +7,6 @@
 using namespace std;
 
 class Packet {
-private:
-    uint16_t type;         // Tipo do pacote (p.ex. DATA | CMD)
-    uint16_t seqn;         // Número de sequência
-    uint32_t totalSize;    // Número total de fragmentos
-    uint16_t length;       // Comprimento do payload
-    string payload;   // Dados do pacote
-
 public:
     // Construtor
     Packet(uint16_t type, uint16_t seqn, uint32_t totalSize, uint16_t length, const string& payload);
@@ -34,6 +27,13 @@ public:
 
     // Função para retornar um pacote como string (para depuração ou transmissão)
     string toString() const;
+
+private:
+    uint16_t type;         // Tipo do pacote (p.ex. DATA | CMD)
+    uint16_t seqn;         // Número de sequência
+    uint32_t totalSize;    // Número total de fragmentos
+    uint16_t length;       // Comprimento do payload
+    string payload;   // Dados do pacote
 };
 
 #endif // PACKET_HPP

@@ -16,6 +16,7 @@ class ClientFileManager {
 public:
     void list_files();
     void create_sync_dir();
+    void watch();
 
 private:
     std::string sync_dir_path = "./client/sync_dir";

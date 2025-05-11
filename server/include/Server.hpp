@@ -19,28 +19,14 @@ using namespace std;
 class Server {
 
 public:
-    Server() {};
-    ~Server() {
-        if (server_socketfd != -1) {
-            close(server_socketfd);
-        }
-        if (client_socketfd != -1) {
-            close(client_socketfd);
-        }
-    }
+    Server() = default;
 
     void run();
 
 private:
-    int server_socketfd;
-    int client_address;
-    int client_socketfd;
-    socklen_t client_len;
     std::unordered_map<std::string, std::vector<int>> clients;
-    static const int MAX_VALUES = 2;
 
-    bool setup_server(int port);
-    void connect_to_client();
+    void handle_client(int socket);
 };
 
 #endif // SERVER_HPP
