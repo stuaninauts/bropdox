@@ -37,7 +37,7 @@ private:
     bool send_username();
     bool get_sockets_ports();
     bool connect_socket_cmd();
-    bool connect_socket_to_server(int sockfd, int port);
+    bool connect_socket_to_server(int sockfd, int* port);
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP
