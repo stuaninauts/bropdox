@@ -23,7 +23,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         if (!send_username()) {
             close_sockets();
             return false;
-        };
+        }
 
         if (!get_sockets_ports()) {
             close_sockets();
@@ -44,8 +44,17 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             return false;
         }
 
-        if (!connect_socket_to_server(socket_upload, port_upload)) return false;
-        if (!connect_socket_to_server(socket_download, port_download)) return false;
+        if (!connect_socket_to_server(socket_upload, port_upload)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
+
+        if (!connect_socket_to_server(socket_download, port_download)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
 
         return true;
 

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 4001
+#define PORT 4002
 
 using namespace std;
 
@@ -13,7 +13,7 @@ void Server::handle_client(int socket) {
     int n = read(socket, buffer, 255);
     if(n > 0) {
         std::string username(buffer);
-        std::cout << username;
+        std::cout << "Username: " << username << std::endl;
         fileManager.create_sync_dir(username);
     }
 
