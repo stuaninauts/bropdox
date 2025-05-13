@@ -32,9 +32,9 @@ private:
     int port;
     std::string username;
     std::string server_ip;
+
     ClientFileManager fileManager;
     ClientCommunicationManager commManager;
-    int socketfd;
 
     void sync_local();
     void sync_remote();

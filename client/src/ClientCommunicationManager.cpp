@@ -10,45 +10,57 @@
 // ================ PUBLIC ================ //
 // ======================================== //
 
-int ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username) {
+bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username) {
     this->server_ip = server_ip;
     this->port_cmd = port;
     this->username = username;
     try {
-        if (!connect_socket_cmd()) return -1;
+        if (!connect_socket_cmd()) {
+            close_sockets();
+            return false;
+        }
 
         if (!send_username()) {
             close_sockets();
-            return -1;
-        };
+            return false;
+        }
 
         if (!get_sockets_ports()) {
             close_sockets();
-            return -1;
+            return false;
         }
 
         // cria socket de upload
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de upload";
             close_sockets();
-            return -1;
+            return false;
         }
 
         // cria socket de download
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de download";
             close_sockets();
-            return -1;
+            return false;
         }
 
-        if (!connect_socket_to_server(socket_upload, port_upload)) return -1;
-        if (!connect_socket_to_server(socket_download, port_download)) return -1;
+        if (!connect_socket_to_server(socket_upload, port_upload)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
 
-        return socket_cmd;
+        if (!connect_socket_to_server(socket_download, port_download)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
+
+        return true;
 
     } catch (const std::exception& e) {
         std::cerr << "Exceção: " << e.what() << std::endl;
-        return -1;
+        return false;
     }
 }
 
@@ -86,7 +98,6 @@ bool ClientCommunicationManager::connect_socket_cmd() {
 
     if (connect(socket_cmd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         std::cerr << "ERROR: Connecting to server\n";
-        close_sockets();
         return false;
     }
 
@@ -130,13 +141,11 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int port) 
 
     if (inet_pton(AF_INET, server_ip.c_str(), &serv_addr.sin_addr) <= 0) {
         std::cerr << "Endereço IP inválido: " << server_ip << std::endl;
-        close_sockets();
         return false;
     }
 
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         std::cerr << "Erro ao conectar ao servidor";
-        close_sockets();
         return false;
     }
 

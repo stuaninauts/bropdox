@@ -7,10 +7,10 @@ using namespace std;
 // ======================================== //
 
 void Client::run() {
-    fileManager.create_sync_dir();
-    socketfd = commManager.connect_to_server(server_ip, port, username);
-    if (socketfd == -1)
+    if (!commManager.connect_to_server(server_ip, port, username))
         exit(1);
+
+    fileManager.create_sync_dir();
 
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
