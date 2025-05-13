@@ -8,7 +8,7 @@ using namespace std;
 
 void Client::run() {
     fileManager.create_sync_dir();
-    socketfd = commManager.connect_to_server();
+    socketfd = commManager.connect_to_server(server_ip, port, username);
     if (socketfd == -1)
         exit(1);
 
@@ -73,10 +73,6 @@ void Client::processCommand(const vector<string> &tokens) {
     string command = tokens[0];
     transform(command.begin(), command.end(), command.begin(), ::tolower);
 
-    if (command == "send_username")
-        commManager.send_username();
-
-    
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;

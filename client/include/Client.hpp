@@ -23,11 +23,15 @@
 using namespace std;
 class Client {
 public:
-    Client(const std::string& ip, int port, const std::string& username) : commManager(ip, port, username) {}
+    Client(const std::string& server_ip, int port, const std::string& username)
+        : server_ip(server_ip), port(port), username(username) {};
 
     void run();
 
 private:
+    int port;
+    std::string username;
+    std::string server_ip;
     ClientFileManager fileManager;
     ClientCommunicationManager commManager;
     int socketfd;

@@ -14,6 +14,8 @@
 #include <netinet/in.h>
 #include <thread> 
 #include <unordered_map>
+#include <ServerFileManager.hpp>
+#include <ServerCommunicationManager.hpp>
 
 using namespace std;
 class Server {
@@ -27,6 +29,9 @@ private:
     std::unordered_map<std::string, std::vector<int>> clients;
 
     void handle_client(int socket);
+
+    ServerFileManager fileManager;
+    ServerCommunicationManager commMananger;
 };
 
 #endif // SERVER_HPP

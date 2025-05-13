@@ -3,12 +3,21 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 2000
+#define PORT 4001
 
 using namespace std;
 
 void Server::handle_client(int socket) {
-    std::cout << "test"; 
+    char buffer[256];
+    bzero(buffer, 256);
+    int n = read(socket, buffer, 255);
+    if(n > 0) {
+        std::string username(buffer);
+        std::cout << username;
+        fileManager.create_sync_dir(username);
+    }
+
+    commMananger.create_sockets(socket);
 }
 
 void Server::run() {
@@ -47,8 +56,8 @@ void Server::run() {
         
         if (newsockfd >= 0) {
             std::cout << "client conected" << std::endl; 
-            std::thread t(&Server::handle_client, this, newsockfd);
-            t.detach();
+            std::thread client_thread(&Server::handle_client, this, newsockfd);
+            client_thread.detach();
         }
     }
 }

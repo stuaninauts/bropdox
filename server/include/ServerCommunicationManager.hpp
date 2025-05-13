@@ -12,25 +12,20 @@
 
 class ServerCommunicationManager {
 public:
-    ServerCommunicationManager(const std::string& ip, int port, const std::string& username)
-        : server_ip(ip), port(port), username(username), sockfd(-1) {}
 
-    ~ServerCommunicationManager() {
-        if (sockfd != -1) {
-            close(sockfd); // Make sure to close the socket when done
-        }
-    }
-
-    int connect_to_server();
+    void create_sockets(int socket_cmd);
 private:
-    int sockfd;
-    std::string server_ip;
-    int port;
-    std::string username;
+    int socket_upload;
+    int socket_download;
+    int socket_cmd;
 
-    struct sockaddr_in create_server_address(struct hostent* server);
-    int create_socket();
-    struct hostent* resolve_hostname(const std::string& hostname);
+    int port_upload;
+    int port_download;
+    int port_cmd;
+
+    bool connect_to_client(int *sockfd, int *port);
+
+    void close_sockets();
     void send_username();
 };
 
