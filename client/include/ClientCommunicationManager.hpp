@@ -13,11 +13,9 @@
 class ClientCommunicationManager {
 public:
 
-    bool get_sockets_ports();
-    int connect_to_server(const std::string server_ip, int port, const std::string username);
+    bool connect_to_server(const std::string server_ip, int port, const std::string username);
 
 private:
-    std::string username;
     // ip
     std::string server_ip;
 
@@ -31,12 +29,15 @@ private:
     int socket_upload;
     int socket_download;
 
+    // username
+    std::string username;
 
     void close_sockets();
 
     bool send_username();
-    bool connect_socket_to_server(int sockfd, int port);
+    bool get_sockets_ports();
     bool connect_socket_cmd();
+    bool connect_socket_to_server(int sockfd, int port);
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP

@@ -1,5 +1,9 @@
 #include <ServerCommunicationManager.hpp>
 
+// ======================================== //
+// ================ PUBLIC ================ //
+// ======================================== //
+
 void ServerCommunicationManager::create_sockets(int socket_cmd) {
     this->socket_cmd = socket_cmd;
 
@@ -12,24 +16,28 @@ void ServerCommunicationManager::create_sockets(int socket_cmd) {
         return;
     }
 
-    if(!connect_to_client(&socket_upload, &port_upload)) {
+    if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         close_sockets();
         return;
     }
     
-    if(!connect_to_client(&socket_download, &port_upload)) {
+    if(!connect_socket_to_client(&socket_download, &port_upload)) {
         close_sockets();
         return;
     }
 }
 
+// ========================================= //
+// ================ PRIVATE ================ //
+// ========================================= //
+
 void ServerCommunicationManager::close_sockets() {
-    close(socket_cmd);
-    close(socket_upload);
-    close(socket_download);
+    if (socket_cmd > 0) close(socket_cmd);
+    if (socket_download > 0) close(socket_download);
+    if (socket_upload > 0) close(socket_upload);
 }
 
-bool ServerCommunicationManager::connect_to_client(int *sockfd, int *port) {
+bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
     struct sockaddr_in serv_addr;
     socklen_t len = sizeof(serv_addr);
 
