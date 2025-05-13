@@ -1,4 +1,4 @@
-#include "../include/Client.hpp"
+#include <Client.hpp>
 #include <iostream>
 
 using namespace std;
@@ -9,11 +9,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const char* username = argv[1];
-    const char* ip = argv[2];
+    string username = argv[1];
+    string ip = argv[2];
     int port = stoi(argv[3]);
 
-    Client client(username, ip, port);
+    Client client(ip, port, username);
     client.run();
 
     return 0;

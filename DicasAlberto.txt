@@ -51,3 +51,19 @@ PASSOS:
     - loop
         - accept, retorna socket e cria thread
             - essa thread cria outros 2 outros sockets (totalizando um pra cada thread no cliente) 
+
+
+1) Como o servidor vai guardar as informações do cliente?
+Hashtable:
+    - key: username
+    - values: uma tupla com int (1 para o primeiro cliente, 2 para o segundo)
+
+
+struct session:
+    - socket
+    -
+
+2) Como o cliente vai tratar as conexões do mesmo cliente?
+SERVIDOR DEVE CRIAR UM SEMÁFORO CONTADOR PARA CADA CLIENTE:
+    - quando o cliente se conectar, decrementar do SEMÁFORO
+    - limitar para duas conexões

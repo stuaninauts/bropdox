@@ -1,9 +1,10 @@
 #include <iostream>
+#include <Server.hpp>
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    cout << "Hello, World!" << endl;
-   
-    return 0;
+   Server server;
+   server.run();
+   return 0;
 }
