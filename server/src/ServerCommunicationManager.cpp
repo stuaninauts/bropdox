@@ -7,25 +7,13 @@
 void ServerCommunicationManager::create_sockets(int socket_cmd) {
     this->socket_cmd = socket_cmd;
 
-    if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "Erro ao criar socket" << std::endl;
-        close_sockets();
-        return;
-    }
-
-    if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "Erro ao criar socket" << std::endl;
-        close_sockets();
-        return;
-    }
-
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cerr << "Erro ao conectar socket de upload" << std::endl;
         close_sockets();
         return;
     }
     
-    if(!connect_socket_to_client(&socket_download, &port_upload)) {
+    if(!connect_socket_to_client(&socket_download, &port_download)) {
         std::cerr << "Erro ao conectar socket de download" << std::endl;
         close_sockets();
         return;
@@ -51,6 +39,11 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = 0;
 
+    if ((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        std::cerr << "Erro ao criar socket" << std::endl;
+        return false;
+    }
+
     if (bind(*sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         std::cerr << "Erro no bind" << std::endl;
         return false;
@@ -66,17 +59,26 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         return false;
     }
 
-    std::string ip = inet_ntoa(serv_addr.sin_addr);
-    *port = ntohs(serv_addr.sin_port);
+    std::cout << "Socket escutando em IP: " << inet_ntoa(serv_addr.sin_addr) << std::endl;
     
-    // write in the cmd socket
+    // ENVIA PORTA
+    *port = ntohs(serv_addr.sin_port);
     std::string port_str = std::to_string(*port);
     std::cout << "Enviando porta: " << port_str << std::endl;
-    int n = write(socket_cmd, port_str.c_str(), port_str.length());
-    if (n < 0) {
+    if ((write(socket_cmd, port_str.c_str(), port_str.length())) < 0) {
         std::cerr << "Erro ao enviar porta para o cliente" << std::endl;
         return false;
     }
     std::cout << "Porta enviada" << std::endl;
+
+    // ACEITA CONEXÃO
+    struct sockaddr_in client_address;
+    socklen_t client_address_len = sizeof(struct sockaddr_in);
+    if((*sockfd = accept(*sockfd, (struct sockaddr*) &client_address, &client_address_len)) < 0){
+        std::cerr << "Erro ao aceitar cliente" << std::endl;
+        return false;
+    }
+    std::cout << "Socket conectado" << std::endl;
+
     return true;
 }

@@ -25,10 +25,10 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             return false;
         }
 
-        if (!get_sockets_ports()) {
-            close_sockets();
-            return false;
-        }
+        // if (!get_sockets_ports()) {
+        //     close_sockets();
+        //     return false;
+        // }
 
         // cria socket de upload
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -44,13 +44,13 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             return false;
         }
 
-        if (!connect_socket_to_server(socket_upload, port_upload)){
+        if (!connect_socket_to_server(socket_upload, &port_upload)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
 
-        if (!connect_socket_to_server(socket_download, port_download)){
+        if (!connect_socket_to_server(socket_download, &port_download)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
@@ -132,22 +132,34 @@ void ClientCommunicationManager::close_sockets() {
     if (socket_upload > 0) close(socket_upload);
 }
 
-bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int port) {
+bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {
     struct sockaddr_in serv_addr;
+
+    char buffer[256];
+    bzero(buffer, 256);
+    if (read(socket_cmd, buffer, 255) <= 0) {
+        std::cerr << "ERROR: Can't read upload port\n";
+        return false;
+    }
+    *port = std::stoi(buffer);
+    std::cout << "Upload port: " << *port << std::endl;
 
     std::memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
+    serv_addr.sin_port = htons(*port);
 
     if (inet_pton(AF_INET, server_ip.c_str(), &serv_addr.sin_addr) <= 0) {
         std::cerr << "Endereço IP inválido: " << server_ip << std::endl;
         return false;
     }
+    std::cout << "server ip" << server_ip << std::endl;
 
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         std::cerr << "Erro ao conectar ao servidor";
         return false;
     }
+
+    std::cout << "Socket conectado no servidor" << std::endl;
 
     return true;
 }

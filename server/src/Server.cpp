@@ -3,9 +3,8 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 4002
+#define PORT 4003
 
-using namespace std;
 
 void Server::handle_client(int socket) {
     char buffer[256];
@@ -20,43 +19,54 @@ void Server::handle_client(int socket) {
     commMananger.create_sockets(socket);
 }
 
-void Server::run() {
-    // SETUP socker principal
-    cout << "Iniciando servidor..." << endl;
-    int sockfd, newsockfd, n;
-    socklen_t clilen;
-    struct sockaddr_in serv_addr, cli_addr;
+bool Server::setup() {
+    std::cout << "Setup server..." << endl;
+
+    struct sockaddr_in server_address;
     
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
-        printf("ERROR opening socket");
+    if ((initial_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+        std::cout << "SETUP ERROR opening socket" << std::endl;
+        return false;
+    }
 
-    // Configuração bind socket
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    bzero(&(serv_addr.sin_zero), 8);         
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(PORT);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    bzero(&(server_address.sin_zero), 8);
 
-
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
-        printf("ERROR on binding");
+    if (bind(initial_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
+        std::cout << "SETUP ERROR on binding" << std::endl;
+        return false;
     }
     
-    cout << "Servidor esperando conexões..." << endl;
-    listen(sockfd, 5);
+    std::cout << "Server waiting connections..." << endl;
+
+    if (listen(initial_socket, 5) < 0) {
+        std::cerr << "SETUP ERROR on listen" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+void Server::run() {
+    if (!setup())
+        exit(1);
 
     // Handle clients
-    clilen = sizeof(struct sockaddr_in);
+    int client_socket;
+    struct sockaddr_in client_address;
+    socklen_t client_address_len = sizeof(struct sockaddr_in);
 
     while (true) {
-        socklen_t clilen = sizeof(cli_addr);
-        int newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &clilen);
-            
-        if (newsockfd == -1) 
-            std::cout << "ERROR on accept" << std::endl;
+        client_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
+
+        if (client_socket == -1)
+            std::cout << "ERROR on accept new client" << std::endl;
         
-        if (newsockfd >= 0) {
-            std::cout << "client conected" << std::endl; 
-            std::thread client_thread(&Server::handle_client, this, newsockfd);
+        if (client_socket >= 0) {
+            std::cout << "Client conected" << std::endl; 
+            std::thread client_thread(&Server::handle_client, this, client_socket);
             client_thread.detach();
         }
     }
