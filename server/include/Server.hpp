@@ -27,7 +27,9 @@ public:
 
 private:
     std::unordered_map<std::string, std::vector<int>> clients;
+    int initial_socket = -1;
 
+    bool setup();
     void handle_client(int socket);
 
     ServerFileManager fileManager;
