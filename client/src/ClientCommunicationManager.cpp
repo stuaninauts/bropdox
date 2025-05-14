@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <Packet.hpp>
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -61,6 +62,37 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     } catch (const std::exception& e) {
         std::cerr << "Exceção: " << e.what() << std::endl;
         return false;
+    }
+}
+
+bool ClientCommunicationManager::send_packet() {
+    Packet packet(
+    /*type*/ 1,
+    /*seqn*/ 0,
+    /*total_size*/ 11,
+    /*length*/ 11,
+    /*payload*/ "Hello World"
+    );
+
+    packet.send(socket_upload);
+    return true;
+}
+
+void ClientCommunicationManager::send_command(const std::string command) {
+    // Cria o pacote do tipo comando
+    Packet command_packet;
+    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD); // Tipo CMD
+    command_packet.total_size = 1; // Apenas um pacote
+    command_packet.payload = command; // O comando em si como payload
+    command_packet.length = command_packet.payload.size(); // Tamanho do payload
+    
+    try {
+        // Envia o pacote para o servidor
+        command_packet.send(socket_cmd);
+        std::cout << "Requested server file list" << std::endl;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error sending list_server command: " << e.what() << std::endl;
     }
 }
 

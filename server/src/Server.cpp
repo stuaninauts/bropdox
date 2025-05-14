@@ -3,20 +3,39 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 4003
+#define PORT 4000
 
 
 void Server::handle_client(int socket) {
     char buffer[256];
     bzero(buffer, 256);
     int n = read(socket, buffer, 255);
+    
     if(n > 0) {
         std::string username(buffer);
         std::cout << "Username: " << username << std::endl;
-        fileManager.create_sync_dir(username);
-    }
+        
+        try {
+            // Cria o fileManager para o usuário
+            fileManager = std::make_unique<ServerFileManager>(username);
+            
+            // Configura o communication manager
+            commManager = std::make_unique<ServerCommunicationManager>(*fileManager);
 
-    commMananger.create_sockets(socket);
+            fileManager->create_sync_dir(username);
+            
+            // Loop principal de comunicação
+            while(true) {
+                commManager->read_cmd();
+            }
+            
+        } catch(const std::exception& e) {
+            std::cerr << "Erro ao configurar cliente: " << e.what() << std::endl;
+        }
+    } else {
+        std::cerr << "Erro ao ler username do cliente" << std::endl;
+        close(socket);
+    }
 }
 
 bool Server::setup() {

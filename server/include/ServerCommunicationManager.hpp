@@ -9,10 +9,17 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <string>
+#include <Packet.hpp>
+#include <ServerFileManager.hpp>
 
 class ServerCommunicationManager {
 public:
+    ServerCommunicationManager(const std::string& username);
+
     void create_sockets(int socket_cmd);
+    void receive_packet();
+    void read_cmd();
+    void handle_list_server();
 
     private:
     // sockets

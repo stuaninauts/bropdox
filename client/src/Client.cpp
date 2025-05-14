@@ -1,4 +1,5 @@
 #include <Client.hpp>
+#include <Packet.hpp>
 
 using namespace std;
 
@@ -43,9 +44,9 @@ void Client::user_interface() {
         cout << "> ";
         getline(cin, input);
         
-        vector<string> tokens = splitCommand(input);
+        vector<string> tokens = split_command(input);
         if (!tokens.empty()) {
-            processCommand(tokens);
+            process_command(tokens);
         }
     }
 }
@@ -54,7 +55,7 @@ void Client::user_interface() {
 // ================ PRIVATE ================ //
 // ========================================= //
 
-vector<string> Client::splitCommand(const string &command) {
+vector<string> Client::split_command(const string &command) {
     vector<string> tokens;
     string token;
     istringstream tokenStream(command);
@@ -66,7 +67,7 @@ vector<string> Client::splitCommand(const string &command) {
     return tokens;
 }
 
-void Client::processCommand(const vector<string> &tokens) {
+void Client::process_command(const vector<string> &tokens) {
 
     if (tokens.empty()) return;
     
@@ -76,7 +77,6 @@ void Client::processCommand(const vector<string> &tokens) {
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
-        // Implement upload functionality here
     }
     else if (command == "download" && tokens.size() == 2) {
         string filename = tokens[1];
@@ -90,7 +90,7 @@ void Client::processCommand(const vector<string> &tokens) {
     }
     else if (command == "list_server") {
         cout << "Listing files on server:" << endl;
-        // Implement server listing functionality here
+        commManager.send_command("list_server");
     }
     else if (command == "list_client") {
         fileManager.list_files();

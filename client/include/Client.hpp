@@ -39,8 +39,8 @@ private:
     void sync_local();
     void sync_remote();
     void user_interface();
-    vector<string> splitCommand(const string &command);
-    void processCommand(const vector<string> &tokens);
+    vector<string> split_command(const string &command);
+    void process_command(const vector<string> &tokens);
 };
 
 #endif // CLIENT_HPP
