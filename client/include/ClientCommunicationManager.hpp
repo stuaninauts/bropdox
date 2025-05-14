@@ -14,6 +14,9 @@ class ClientCommunicationManager {
 public:
 
     bool connect_to_server(const std::string server_ip, int port, const std::string username);
+    void receive_packet();
+    void send_command(const std::string command);
+
 
 private:
     // ip

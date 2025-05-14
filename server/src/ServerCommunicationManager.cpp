@@ -1,4 +1,8 @@
-#include <ServerCommunicationManager.hpp>
+#include "ServerCommunicationManager.hpp"
+#include <algorithm> // Para std::transform
+#include <cctype>    // Para ::tolower
+#include <sstream>   // Para std::istringstream
+#include <vector>    // Para std::vector
 
 std::mutex access_devices;
 
@@ -30,15 +34,67 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
     }
     access_devices.unlock();
 
-    sleep(10);
+}
 
-    access_devices.lock();
-    {
-        devices->remove_client_socket(username, socket_download);
+void ServerCommunicationManager::receive_packet() {
+    Packet packet;
+    try {
+        packet = Packet::receive(socket_upload);
+        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
+        return;
     }
-    access_devices.unlock();
+}
 
-    while(true);
+void ServerCommunicationManager::read_cmd() {
+    Packet packet;
+
+    try {
+        packet = Packet::receive(socket_cmd);
+        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
+        return;
+    }
+
+    // Extrair comando do payload
+    std::string payload = packet.payload;
+    std::istringstream iss(payload);
+    std::vector<std::string> tokens;
+    std::string token;
+
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+
+    if (tokens.empty()) return;
+
+    std::string command = tokens[0];
+    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
+
+    if (command == "upload" && tokens.size() == 2) {
+        std::string filename = tokens[1];
+        std::cout << "[Server] Iniciando upload do arquivo: " << filename << std::endl;
+        // Chame função para lidar com upload
+        // ex: handle_upload(filename);
+    } else if (command == "download" && tokens.size() == 2) {
+        std::string filename = tokens[1];
+        std::cout << "[Server] Iniciando download do arquivo: " << filename << std::endl;
+        // Chame função para lidar com download
+    } else if (command == "delete" && tokens.size() == 2) {
+        std::string filename = tokens[1];
+        std::cout << "[Server] Deletando arquivo: " << filename << std::endl;
+        // Chame função para deletar
+    } else if (command == "list_server") {
+        std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
+        handle_list_server();
+    } else if (command == "exit") {
+        std::cout << "[Server] Encerrando sessão com o cliente." << std::endl;
+        // Feche conexão ou finalize
+    } else {
+        std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
+    }
 }
 
 // ========================================= //
@@ -99,6 +155,34 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         std::cerr << "Erro ao aceitar cliente" << std::endl;
         return false;
     }
-    
+    std::cout << "Socket conectado" << std::endl;
+
     return true;
 }
+
+void ServerCommunicationManager::handle_list_server() {
+    // Primeiro, lista os arquivos no console do servidor
+    file_manager.list_files();
+    
+    // Em seguida, obtém a lista formatada para enviar ao cliente
+    std::string file_list = file_manager.get_files_list();
+    
+    // Cria um pacote com a lista de arquivos
+    Packet response_packet;
+    response_packet.type = static_cast<uint16_t>(Packet::Type::DATA); // Tipo DATA
+    response_packet.total_size = 1;          // Apenas um pacote para a lista
+    response_packet.length = file_list.size();
+    response_packet.payload = file_list;
+    
+    try {
+        // Valida o pacote antes de enviar
+        response_packet.validate_length();
+        
+        // Envia a resposta para o cliente pelo socket de download
+        response_packet.send(socket_download);
+        std::cout << "[Server] Lista de arquivos enviada ao cliente." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "[Server] Erro ao enviar lista de arquivos: " << e.what() << std::endl;
+    }
+}
+

@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <Packet.hpp>
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -61,6 +62,33 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     } catch (const std::exception& e) {
         std::cerr << "Exceção: " << e.what() << std::endl;
         return false;
+    }
+}
+
+void ClientCommunicationManager::receive_packet() {
+    Packet packet;
+    try {
+        packet = Packet::receive(socket_download);
+        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
+        return;
+    }
+}
+
+void ClientCommunicationManager::send_command(const std::string command) {
+    // Cria o pacote do tipo comando
+    Packet command_packet;
+    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD); // Tipo CMD
+    command_packet.total_size = 1; // Apenas um pacote
+    command_packet.payload = command; // O comando em si como payload
+    command_packet.length = command_packet.payload.size(); // Tamanho do payload
+    
+    try {
+        // Envia o pacote para o servidor
+        command_packet.send(socket_cmd);
+    } catch (const std::exception& e) {
+        std::cerr << "Error sending list_server command: " << e.what() << std::endl;
     }
 }
 
@@ -132,15 +160,17 @@ void ClientCommunicationManager::close_sockets() {
     if (socket_upload > 0) close(socket_upload);
 }
 
-bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {
+bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {    
     struct sockaddr_in serv_addr;
 
     char buffer[256];
     bzero(buffer, 256);
+
     if (read(socket_cmd, buffer, 255) <= 0) {
         std::cerr << "ERROR: Can't read upload port\n";
         return false;
     }
+
     *port = std::stoi(buffer);
   //  std::cout << "Upload port: " << *port << std::endl;
 

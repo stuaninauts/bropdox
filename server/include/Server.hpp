@@ -37,7 +37,6 @@ private:
     void handle_client(int socket);
 
     std::shared_ptr<ClientsDevices> devices;
-    ServerFileManager fileManager;
 };
 
 #endif // SERVER_HPP

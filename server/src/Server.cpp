@@ -5,21 +5,33 @@
 
 #define PORT 8080
 
+
 void Server::handle_client(int socket) {
     char buffer[256];
     bzero(buffer, 256);
     std::string username = "";
     int n = read(socket, buffer, 255);
-
-    if(n > 0) {
-        username = std::string(buffer); // <-- corrigido: atribuição em vez de nova declaração
-        std::cout << "Username: " << username << std::endl;
-        fileManager.create_sync_dir(username);
+    
+    if(n <= 0) {
+        std::cerr << "Erro ao ler username do cliente" << std::endl;
+        return;
     }
+    username = std::string(buffer); // <-- corrigido: atribuição em vez de nova declaração
+    std::cout << "Username: " << username << std::endl;
+    
+    try {
+        std::unique_ptr<ServerFileManager> file_manager = std::make_unique<ServerFileManager>(username);
+        std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>(*file_manager);
 
-    ServerCommunicationManager commManager;
-    std::cout << "ok: " << username << std::endl;
-    commManager.run_client_session(socket, username, devices);
+        file_manager->create_sync_dir();
+        comm_manager->run_client_session(socket, username, devices);
+
+        while(true) {
+            comm_manager->read_cmd();
+        }
+    } catch(const std::exception& e) {
+        std::cerr << "Erro ao criar o gerenciador de arquivos do servidor: " << e.what() << std::endl;
+    }
 }
 
 bool Server::setup() {

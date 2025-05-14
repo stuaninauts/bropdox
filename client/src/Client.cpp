@@ -1,4 +1,5 @@
 #include <Client.hpp>
+#include <Packet.hpp>
 
 using namespace std;
 
@@ -7,10 +8,13 @@ using namespace std;
 // ======================================== //
 
 void Client::run() {
-    if (!commManager.connect_to_server(server_ip, port, username))
+    cout << "Connecting to server..." << endl;
+    if (!comm_manager.connect_to_server(server_ip, port, username)) {
+        cerr << "Error connecting to server" << endl;
         exit(1);
+    }
 
-    fileManager.create_sync_dir();
+    file_manager.create_sync_dir();
 
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
@@ -20,7 +24,7 @@ void Client::run() {
 }
 
 void Client::sync_local() {
-    fileManager.watch();
+    file_manager.watch();
 }
 
 void Client::sync_remote() {
@@ -43,9 +47,9 @@ void Client::user_interface() {
         cout << "> ";
         getline(cin, input);
         
-        vector<string> tokens = splitCommand(input);
+        vector<string> tokens = split_command(input);
         if (!tokens.empty()) {
-            processCommand(tokens);
+            process_command(tokens);
         }
     }
 }
@@ -54,7 +58,7 @@ void Client::user_interface() {
 // ================ PRIVATE ================ //
 // ========================================= //
 
-vector<string> Client::splitCommand(const string &command) {
+vector<string> Client::split_command(const string &command) {
     vector<string> tokens;
     string token;
     istringstream tokenStream(command);
@@ -66,7 +70,7 @@ vector<string> Client::splitCommand(const string &command) {
     return tokens;
 }
 
-void Client::processCommand(const vector<string> &tokens) {
+void Client::process_command(const vector<string> &tokens) {
 
     if (tokens.empty()) return;
     
@@ -76,7 +80,6 @@ void Client::processCommand(const vector<string> &tokens) {
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
-        // Implement upload functionality here
     }
     else if (command == "download" && tokens.size() == 2) {
         string filename = tokens[1];
@@ -90,10 +93,11 @@ void Client::processCommand(const vector<string> &tokens) {
     }
     else if (command == "list_server") {
         cout << "Listing files on server:" << endl;
-        // Implement server listing functionality here
+        comm_manager.send_command("list_server");
+        comm_manager.receive_packet();
     }
     else if (command == "list_client") {
-        fileManager.list_files();
+        file_manager.list_files();
     }
     else if (command == "get_sync_dir") {
         cout << "Creating sync_dir and starting synchronization" << endl;

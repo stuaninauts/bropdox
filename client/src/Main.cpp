@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
     int port = stoi(argv[3]);
 
     Client client(ip, port, username);
+    cout << "Iniciando cliente com username: " << username << ", ip: " << ip << ", porta: " << port << endl;
     client.run();
 
     return 0;

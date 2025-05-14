@@ -1,22 +1,29 @@
-#ifndef SERVERFILEMANAGER_HPP
-#define SERVERFILEMANAGER_HPP
+#ifndef SERVER_FILE_MANAGER_HPP
+#define SERVER_FILE_MANAGER_HPP
 
-#include <iostream>
-#include <iomanip>
-#include <filesystem>
-#include <chrono>
 #include <string>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <ctime>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include "FileDisplayFormatter.hpp"
 
 namespace fs = std::filesystem;
 
 class ServerFileManager {
 public:
-    void create_sync_dir(std::string username);
+    ServerFileManager(const std::string& username);
 
+    void create_sync_dir();
+    
+    // Lista os arquivos no diretório do servidor
+    void list_files();
+    
+    // Retorna uma string formatada com a listagem dos arquivos
+    std::string get_files_list();
+
+    std::string username;
 private:
+    std::string server_dir_path;
 };
 
-#endif // ServerFILEMANAGER_HPP
+#endif
