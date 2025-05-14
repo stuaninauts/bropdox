@@ -11,19 +11,27 @@
 #include <string>
 #include <Packet.hpp>
 #include <ServerFileManager.hpp>
+#include <ClientsDevices.hpp>
+#include <mutex>
+#include <thread>
+#include <memory>
 
 class ServerCommunicationManager {
+
 public:
     ServerCommunicationManager(ServerFileManager& file_manager_) 
         : file_manager(file_manager_) {
     }
     
-    int create_sockets(int socket_cmd);
+    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
     void receive_packet();
     void read_cmd();
     void handle_list_server();
+    std::shared_ptr<ClientsDevices> devices;
 
-    private:
+private:
+    std::string username;
+    
     // sockets
     int socket_upload;
     int socket_download;
@@ -33,7 +41,7 @@ public:
     int port_download;
     int port_cmd;
 
-    int connect_socket_to_client(int *sockfd, int *port);
+    bool connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
 
     ServerFileManager& file_manager;

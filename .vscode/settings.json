@@ -54,7 +54,12 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "optional": "cpp",
+        "mutex": "cpp",
+        "ranges": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

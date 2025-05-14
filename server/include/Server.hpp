@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <ServerFileManager.hpp>
 #include <ServerCommunicationManager.hpp>
+#include <ClientsDevices.hpp>
 
 using namespace std;
 class Server {
@@ -27,17 +28,15 @@ public:
     Server() = default;
 
     void run();
-    void addClientSocket(const std::string& username, int socketFd);
-    void removeClientSocket(const std::string& username, int socketFd);
-    void printClientsSockets();
 
 private:
-    std::unordered_map<std::string, std::vector<int>> clientsSockets;
 
     int initial_socket = -1;
 
     bool setup();
     void handle_client(int socket);
+
+    std::shared_ptr<ClientsDevices> devices;
 };
 
 #endif // SERVER_HPP

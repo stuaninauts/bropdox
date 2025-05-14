@@ -4,28 +4,36 @@
 #include <sstream>   // Para std::istringstream
 #include <vector>    // Para std::vector
 
+std::mutex access_devices;
+
 // ======================================== //
 // ================ PUBLIC ================ //
 // ======================================== //
 
 // Retornar o download_socket para ser salvo na hash de usuários
-int ServerCommunicationManager::create_sockets(int socket_cmd) {
+void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
     this->socket_cmd = socket_cmd;
+    this->devices = devices;
+    this->username = username;
 
-    if(connect_socket_to_client(&socket_upload, &port_upload) < 0) {
+    if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cerr << "Erro ao conectar socket de upload" << std::endl;
         close_sockets();
-        return -1;
+        return;
     }
     
-    int download_socket = connect_socket_to_client(&socket_download, &port_download);
-    if(download_socket < 0) {
+    if(!connect_socket_to_client(&socket_download, &port_download)) {
         std::cerr << "Erro ao conectar socket de download" << std::endl;
         close_sockets();
-        return -1;
+        return;
     }
 
-    return download_socket;
+    access_devices.lock();
+    {
+        devices->add_client_socket(username, socket_download);
+    }
+    access_devices.unlock();
+
 }
 
 void ServerCommunicationManager::receive_packet() {
@@ -99,7 +107,7 @@ void ServerCommunicationManager::close_sockets() {
     if (socket_upload > 0) close(socket_upload);
 }
 
-int ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
+bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
     struct sockaddr_in serv_addr;
     socklen_t len = sizeof(serv_addr);
 
@@ -145,11 +153,11 @@ int ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port)
     socklen_t client_address_len = sizeof(struct sockaddr_in);
     if((*sockfd = accept(*sockfd, (struct sockaddr*) &client_address, &client_address_len)) < 0){
         std::cerr << "Erro ao aceitar cliente" << std::endl;
-        return -1;
+        return false;
     }
     std::cout << "Socket conectado" << std::endl;
 
-    return *sockfd;
+    return true;
 }
 
 void ServerCommunicationManager::handle_list_server() {
@@ -177,3 +185,4 @@ void ServerCommunicationManager::handle_list_server() {
         std::cerr << "[Server] Erro ao enviar lista de arquivos: " << e.what() << std::endl;
     }
 }
+

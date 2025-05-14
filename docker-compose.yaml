@@ -1,0 +1,36 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    # Interactive mode settings
+    stdin_open: true
+    tty: true
+    networks:
+      - bropdox-network
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    environment:
+      - USERNAME=default_user  # Default username, can be overridden
+      - SERVER_IP=server  # Uses the service name as hostname
+      - SERVER_PORT=8080  # Match with the exposed port of the server
+    depends_on:
+      - server
+    restart: unless-stopped
+    # Interactive mode settings
+    stdin_open: true
+    tty: true
+    networks:
+      - bropdox-network
+
+networks:
+  bropdox-network:
+    driver: bridge
