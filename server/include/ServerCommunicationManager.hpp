@@ -14,8 +14,10 @@
 
 class ServerCommunicationManager {
 public:
-    ServerCommunicationManager(const std::string& username);
-
+    ServerCommunicationManager(ServerFileManager& file_manager_) 
+        : file_manager(file_manager_) {
+    }
+    
     void create_sockets(int socket_cmd);
     void receive_packet();
     void read_cmd();
@@ -33,6 +35,8 @@ public:
 
     bool connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
+
+    ServerFileManager& file_manager;
 };
 
 #endif // SERVERCOMMUNICATIONMANAGER_HPP

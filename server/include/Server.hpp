@@ -32,8 +32,8 @@ private:
     bool setup();
     void handle_client(int socket);
 
-    std::unique_ptr<ServerFileManager> fileManager;
-    std::unique_ptr<ServerCommunicationManager> commManager;
+    std::unique_ptr<ServerFileManager> file_manager;
+    std::unique_ptr<ServerCommunicationManager> comm_manager;
 };
 
 #endif // SERVER_HPP

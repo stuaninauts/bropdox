@@ -13,7 +13,7 @@ class ServerFileManager {
 public:
     ServerFileManager(const std::string& username);
 
-    void create_sync_dir(const std::string& username);
+    void create_sync_dir();
     
     // Lista os arquivos no diretório do servidor
     void list_files();
@@ -23,6 +23,7 @@ public:
 
 private:
     std::string username;
+    std::string server_dir_path;
 };
 
 #endif

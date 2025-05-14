@@ -65,17 +65,15 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
-bool ClientCommunicationManager::send_packet() {
-    Packet packet(
-    /*type*/ 1,
-    /*seqn*/ 0,
-    /*total_size*/ 11,
-    /*length*/ 11,
-    /*payload*/ "Hello World"
-    );
-
-    packet.send(socket_upload);
-    return true;
+void ClientCommunicationManager::receive_packet() {
+    Packet packet;
+    try {
+        packet = Packet::receive(socket_download);
+        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
+        return;
+    }
 }
 
 void ClientCommunicationManager::send_command(const std::string command) {
@@ -89,8 +87,6 @@ void ClientCommunicationManager::send_command(const std::string command) {
     try {
         // Envia o pacote para o servidor
         command_packet.send(socket_cmd);
-        std::cout << "Requested server file list" << std::endl;
-        
     } catch (const std::exception& e) {
         std::cerr << "Error sending list_server command: " << e.what() << std::endl;
     }
@@ -164,15 +160,17 @@ void ClientCommunicationManager::close_sockets() {
     if (socket_upload > 0) close(socket_upload);
 }
 
-bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {
+bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {    
     struct sockaddr_in serv_addr;
 
     char buffer[256];
     bzero(buffer, 256);
+
     if (read(socket_cmd, buffer, 255) <= 0) {
         std::cerr << "ERROR: Can't read upload port\n";
         return false;
     }
+
     *port = std::stoi(buffer);
     std::cout << "Upload port: " << *port << std::endl;
 

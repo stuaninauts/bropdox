@@ -8,8 +8,11 @@ using namespace std;
 // ======================================== //
 
 void Client::run() {
-    if (!commManager.connect_to_server(server_ip, port, username))
+    cout << "Connecting to server..." << endl;
+    if (!commManager.connect_to_server(server_ip, port, username)) {
+        cerr << "Error connecting to server" << endl;
         exit(1);
+    }
 
     fileManager.create_sync_dir();
 
@@ -91,6 +94,7 @@ void Client::process_command(const vector<string> &tokens) {
     else if (command == "list_server") {
         cout << "Listing files on server:" << endl;
         commManager.send_command("list_server");
+        commManager.receive_packet();
     }
     else if (command == "list_client") {
         fileManager.list_files();

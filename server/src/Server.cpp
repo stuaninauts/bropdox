@@ -16,17 +16,16 @@ void Server::handle_client(int socket) {
         std::cout << "Username: " << username << std::endl;
         
         try {
-            // Cria o fileManager para o usuário
-            fileManager = std::make_unique<ServerFileManager>(username);
-            
-            // Configura o communication manager
-            commManager = std::make_unique<ServerCommunicationManager>(*fileManager);
+            this->file_manager = std::make_unique<ServerFileManager>(username);
+            this->comm_manager = std::make_unique<ServerCommunicationManager>(*file_manager);
 
-            fileManager->create_sync_dir(username);
+            file_manager->create_sync_dir();
+
+            comm_manager->create_sockets(socket);
             
             // Loop principal de comunicação
             while(true) {
-                commManager->read_cmd();
+                comm_manager->read_cmd();
             }
             
         } catch(const std::exception& e) {
