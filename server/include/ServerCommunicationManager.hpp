@@ -9,12 +9,18 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <string>
+#include <ClientsDevices.hpp>
+#include <mutex>
+#include <thread>
+#include <memory>
 
 class ServerCommunicationManager {
-public:
-    int create_sockets(int socket_cmd);
 
-    private:
+public:
+    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
+    std::shared_ptr<ClientsDevices> devices;
+
+private:
     // sockets
     int socket_upload;
     int socket_download;
@@ -24,7 +30,7 @@ public:
     int port_download;
     int port_cmd;
 
-    int connect_socket_to_client(int *sockfd, int *port);
+    bool connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
 };
 
