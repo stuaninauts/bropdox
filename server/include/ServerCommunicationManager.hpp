@@ -21,6 +21,8 @@ public:
     std::shared_ptr<ClientsDevices> devices;
 
 private:
+    std::string username;
+    
     // sockets
     int socket_upload;
     int socket_download;

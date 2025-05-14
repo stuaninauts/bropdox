@@ -10,6 +10,7 @@ std::mutex access_devices;
 void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
     this->socket_cmd = socket_cmd;
     this->devices = devices;
+    this->username = username;
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cerr << "Erro ao conectar socket de upload" << std::endl;
