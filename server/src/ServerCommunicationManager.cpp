@@ -1,7 +1,6 @@
 #include <ServerCommunicationManager.hpp>
 
-std::mutex add_device;
-std::mutex remove_device;
+std::mutex access_devices;
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -24,19 +23,19 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
         return;
     }
 
-    add_device.lock();
+    access_devices.lock();
     {
         devices->add_client_socket(username, socket_download);
     }
-    add_device.unlock();
+    access_devices.unlock();
 
     sleep(10);
 
-    add_device.lock();
+    access_devices.lock();
     {
         devices->remove_client_socket(username, socket_download);
     }
-    add_device.unlock();
+    access_devices.unlock();
 
     while(true);
 }
