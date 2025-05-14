@@ -1,0 +1,38 @@
+FROM debian:bullseye-slim as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Build the server
+RUN make
+
+# Runtime stage
+FROM debian:bullseye-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/bin/server /app/bin/server
+
+RUN mkdir -p /app/server/bropdox
+
+# Expose the port (default to 8080, adjust as needed)
+EXPOSE 8080
+
+# Run the server
+CMD ["./bin/server"]
