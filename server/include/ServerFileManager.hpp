@@ -21,8 +21,8 @@ public:
     // Retorna uma string formatada com a listagem dos arquivos
     std::string get_files_list();
 
-private:
     std::string username;
+private:
     std::string server_dir_path;
 };
 

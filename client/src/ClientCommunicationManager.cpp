@@ -140,7 +140,7 @@ bool ClientCommunicationManager::get_sockets_ports() {
         return false;
     }
     port_upload = std::stoi(buffer_upload);
-    std::cout << "Upload port: " << port_upload << std::endl;
+    // std::cout << "Upload port: " << port_upload << std::endl;
 
     char buffer_download[256];
     bzero(buffer_download, 256);
@@ -172,7 +172,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     }
 
     *port = std::stoi(buffer);
-    std::cout << "Upload port: " << *port << std::endl;
+  //  std::cout << "Upload port: " << *port << std::endl;
 
     std::memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -188,8 +188,6 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
         std::cerr << "Erro ao conectar ao servidor";
         return false;
     }
-
-    std::cout << "Socket conectado no servidor" << std::endl;
 
     return true;
 }

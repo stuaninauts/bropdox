@@ -18,7 +18,7 @@ public:
         : file_manager(file_manager_) {
     }
     
-    void create_sockets(int socket_cmd);
+    int create_sockets(int socket_cmd);
     void receive_packet();
     void read_cmd();
     void handle_list_server();
@@ -33,7 +33,7 @@ public:
     int port_download;
     int port_cmd;
 
-    bool connect_socket_to_client(int *sockfd, int *port);
+    int connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
 
     ServerFileManager& file_manager;

@@ -8,20 +8,24 @@
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ServerCommunicationManager::create_sockets(int socket_cmd) {
+// Retornar o download_socket para ser salvo na hash de usuários
+int ServerCommunicationManager::create_sockets(int socket_cmd) {
     this->socket_cmd = socket_cmd;
 
-    if(!connect_socket_to_client(&socket_upload, &port_upload)) {
+    if(connect_socket_to_client(&socket_upload, &port_upload) < 0) {
         std::cerr << "Erro ao conectar socket de upload" << std::endl;
         close_sockets();
-        return;
+        return -1;
     }
     
-    if(!connect_socket_to_client(&socket_download, &port_download)) {
+    int download_socket = connect_socket_to_client(&socket_download, &port_download);
+    if(download_socket < 0) {
         std::cerr << "Erro ao conectar socket de download" << std::endl;
         close_sockets();
-        return;
+        return -1;
     }
+
+    return download_socket;
 }
 
 void ServerCommunicationManager::receive_packet() {
@@ -95,7 +99,7 @@ void ServerCommunicationManager::close_sockets() {
     if (socket_upload > 0) close(socket_upload);
 }
 
-bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
+int ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
     struct sockaddr_in serv_addr;
     socklen_t len = sizeof(serv_addr);
 
@@ -124,28 +128,28 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         return false;
     }
 
-    std::cout << "Socket escutando em IP: " << inet_ntoa(serv_addr.sin_addr) << std::endl;
+    // std::cout << "Socket escutando em IP: " << inet_ntoa(serv_addr.sin_addr) << std::endl;
     
     // ENVIA PORTA
     *port = ntohs(serv_addr.sin_port);
     std::string port_str = std::to_string(*port);
-    std::cout << "Enviando porta: " << port_str << std::endl;
+    // std::cout << "Enviando porta: " << port_str << std::endl;
     if ((write(socket_cmd, port_str.c_str(), port_str.length())) < 0) {
         std::cerr << "Erro ao enviar porta para o cliente" << std::endl;
         return false;
     }
-    std::cout << "Porta enviada" << std::endl;
+    // std::cout << "Porta enviada" << std::endl;
 
     // ACEITA CONEXÃO
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(struct sockaddr_in);
     if((*sockfd = accept(*sockfd, (struct sockaddr*) &client_address, &client_address_len)) < 0){
         std::cerr << "Erro ao aceitar cliente" << std::endl;
-        return false;
+        return -1;
     }
     std::cout << "Socket conectado" << std::endl;
 
-    return true;
+    return *sockfd;
 }
 
 void ServerCommunicationManager::handle_list_server() {
