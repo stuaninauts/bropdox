@@ -9,12 +9,12 @@ using namespace std;
 
 void Client::run() {
     cout << "Connecting to server..." << endl;
-    if (!commManager.connect_to_server(server_ip, port, username)) {
+    if (!comm_manager.connect_to_server(server_ip, port, username)) {
         cerr << "Error connecting to server" << endl;
         exit(1);
     }
 
-    fileManager.create_sync_dir();
+    file_manager.create_sync_dir();
 
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
@@ -24,7 +24,7 @@ void Client::run() {
 }
 
 void Client::sync_local() {
-    fileManager.watch();
+    file_manager.watch();
 }
 
 void Client::sync_remote() {
@@ -93,11 +93,11 @@ void Client::process_command(const vector<string> &tokens) {
     }
     else if (command == "list_server") {
         cout << "Listing files on server:" << endl;
-        commManager.send_command("list_server");
-        commManager.receive_packet();
+        comm_manager.send_command("list_server");
+        comm_manager.receive_packet();
     }
     else if (command == "list_client") {
-        fileManager.list_files();
+        file_manager.list_files();
     }
     else if (command == "get_sync_dir") {
         cout << "Creating sync_dir and starting synchronization" << endl;

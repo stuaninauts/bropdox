@@ -33,8 +33,8 @@ private:
     std::string username;
     std::string server_ip;
 
-    ClientFileManager fileManager;
-    ClientCommunicationManager commManager;
+    ClientFileManager file_manager;
+    ClientCommunicationManager comm_manager;
 
     void sync_local();
     void sync_remote();
