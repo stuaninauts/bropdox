@@ -3,20 +3,75 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 4003
+#define PORT 4002
 
+std::mutex mutexHashClientes;
 
 void Server::handle_client(int socket) {
     char buffer[256];
     bzero(buffer, 256);
+    std::string username = "";
     int n = read(socket, buffer, 255);
+
     if(n > 0) {
-        std::string username(buffer);
+        username = std::string(buffer); // <-- corrigido: atribuição em vez de nova declaração
         std::cout << "Username: " << username << std::endl;
         fileManager.create_sync_dir(username);
     }
 
-    commMananger.create_sockets(socket);
+    int download_socket = commMananger.create_sockets(socket);
+    std::cout << "Esperando atribuição da conexão" << std::endl;
+    addClientSocket(username, download_socket);
+    std::cout << "Conexão atribuida" << std::endl;
+    sleep(10);
+    removeClientSocket(username, download_socket);
+}
+
+void Server::addClientSocket(const std::string& username, int socketFd)
+{
+    std::lock_guard<std::mutex> lock(mutexHashClientes);  
+    // Acesso ao mapa protegido
+    auto it = clientsSockets.find(username);
+    if (it != clientsSockets.end()) {
+        if (clientsSockets[username].size() >= 2) {
+            std::cout << "Máximo de 2 conexões alcançado para o usuário " << username << ".\n";
+            close(socketFd);
+            mutexHashClientes.unlock();  // libera antes do return
+            // TODO ENVIAR PARA O CLIENTE  UM SINAL PARA ELE SE MATAR
+            return;
+        }
+        clientsSockets[username].push_back(socketFd);
+    } else {
+        clientsSockets[username].push_back(socketFd);
+    }
+
+    printClientsSockets();  // <-- PERIGOSO SE USAR O MESMO MUTEX
+}
+
+void Server::removeClientSocket(const std::string& username, int socketFd)
+{
+    mutexHashClientes.lock();
+
+    auto it = clientsSockets.find(username);
+    if (it != clientsSockets.end()) {
+        auto& sockets = it->second;
+
+        // Remove o socketFd do vetor
+        sockets.erase(std::remove(sockets.begin(), sockets.end(), socketFd), sockets.end());
+
+        std::cout << "Socket " << socketFd << " removido do usuário " << username << ".\n";
+
+        // Se não restarem mais sockets, remove o usuário do mapa
+        if (sockets.empty()) {
+            clientsSockets.erase(it);
+            std::cout << "Usuário " << username << " removido do mapa (sem conexões ativas).\n";
+        }
+    } else {
+        std::cout << "Usuário " << username << " não encontrado para remoção.\n";
+    }
+
+    mutexHashClientes.unlock();  // libera o mutex
+    printClientsSockets();
 }
 
 bool Server::setup() {
@@ -53,6 +108,7 @@ void Server::run() {
     if (!setup())
         exit(1);
 
+
     // Handle clients
     int client_socket;
     struct sockaddr_in client_address;
@@ -69,5 +125,25 @@ void Server::run() {
             std::thread client_thread(&Server::handle_client, this, client_socket);
             client_thread.detach();
         }
+    }
+}
+
+void Server::printClientsSockets() {
+    // Verifica se o mapa está vazio
+    if (clientsSockets.empty()) {
+        std::cout << "O mapa de clientes está vazio!" << std::endl;
+    }
+
+    // Itera sobre o unordered_map
+    for (const auto& pair : clientsSockets) {
+        const std::string& username = pair.first;
+        const std::vector<int>& sockets = pair.second;
+
+        std::cout << "Usuário: " << username << " - Conexões de download: ";
+
+        for (int socket : sockets) {
+            std::cout << socket << " ";
+        }
+        std::cout << std::endl;
     }
 }

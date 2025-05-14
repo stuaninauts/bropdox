@@ -11,8 +11,11 @@
 #include <sys/types.h> 
 #include <sys/socket.h> 
 #include <arpa/inet.h>
+#include <mutex>
 #include <netinet/in.h>
 #include <thread> 
+#include <algorithm>
+#include <iostream>
 #include <unordered_map>
 #include <ServerFileManager.hpp>
 #include <ServerCommunicationManager.hpp>
@@ -24,13 +27,18 @@ public:
     Server() = default;
 
     void run();
+    void addClientSocket(const std::string& username, int socketFd);
+    void removeClientSocket(const std::string& username, int socketFd);
+    void printClientsSockets();
 
 private:
-    std::unordered_map<std::string, std::vector<int>> clients;
+    std::unordered_map<std::string, std::vector<int>> clientsSockets;
+
     int initial_socket = -1;
 
     bool setup();
     void handle_client(int socket);
+
 
     ServerFileManager fileManager;
     ServerCommunicationManager commMananger;
