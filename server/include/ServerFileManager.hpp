@@ -22,7 +22,7 @@ public:
     std::string get_files_list();
 
     std::string username;
-private:
+// private:
     std::string server_dir_path;
 };
 

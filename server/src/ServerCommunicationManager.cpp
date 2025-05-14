@@ -11,7 +11,7 @@ std::mutex access_devices;
 // ======================================== //
 
 // Retornar o download_socket para ser salvo na hash de usuários
-void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
+void ServerCommunicationManager::setup_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
     this->socket_cmd = socket_cmd;
     this->devices = devices;
     this->username = username;
@@ -34,6 +34,11 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
     }
     access_devices.unlock();
 
+    std::thread thread_cmd(&ServerCommunicationManager::read_cmd, this);
+    std::thread thread_sync_client(&ServerCommunicationManager::sync_client, this);
+    
+    thread_cmd.join();
+    thread_sync_client.join();
 }
 
 void ServerCommunicationManager::receive_packet() {
@@ -48,53 +53,45 @@ void ServerCommunicationManager::receive_packet() {
 }
 
 void ServerCommunicationManager::read_cmd() {
-    Packet packet;
+    while (socket_cmd > 0) {
+        Packet packet;
 
-    try {
-        packet = Packet::receive(socket_cmd);
-        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
-        return;
+        try {
+            packet = Packet::receive(socket_cmd);
+            std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
+            return;
+        }
+
+        // Extrair comando do payload
+        std::string command = packet.payload;
+        
+        if (command == "upload") {
+            Packet::receive_file(socket_upload, file_manager.server_dir_path);
+
+            // Chame função para lidar com upload
+            // ex: handle_upload(filename);
+        } else if (command == "download") {
+            // Packet::send_file(comm_manager.socket_upload, filename);
+
+        } else if (command == "delete") {
+            // Chame função para deletar
+        } else if (command == "list_server") {
+            std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
+            handle_list_server();
+        } else if (command == "exit") {
+            std::cout << "[Server] Encerrando sessão com o cliente." << std::endl;
+            // Feche conexão ou finalize
+        } else {
+            std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
+        }
     }
+    
+}
 
-    // Extrair comando do payload
-    std::string payload = packet.payload;
-    std::istringstream iss(payload);
-    std::vector<std::string> tokens;
-    std::string token;
-
-    while (iss >> token) {
-        tokens.push_back(token);
-    }
-
-    if (tokens.empty()) return;
-
-    std::string command = tokens[0];
-    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
-
-    if (command == "upload" && tokens.size() == 2) {
-        std::string filename = tokens[1];
-        std::cout << "[Server] Iniciando upload do arquivo: " << filename << std::endl;
-        // Chame função para lidar com upload
-        // ex: handle_upload(filename);
-    } else if (command == "download" && tokens.size() == 2) {
-        std::string filename = tokens[1];
-        std::cout << "[Server] Iniciando download do arquivo: " << filename << std::endl;
-        // Chame função para lidar com download
-    } else if (command == "delete" && tokens.size() == 2) {
-        std::string filename = tokens[1];
-        std::cout << "[Server] Deletando arquivo: " << filename << std::endl;
-        // Chame função para deletar
-    } else if (command == "list_server") {
-        std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
-        handle_list_server();
-    } else if (command == "exit") {
-        std::cout << "[Server] Encerrando sessão com o cliente." << std::endl;
-        // Feche conexão ou finalize
-    } else {
-        std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
-    }
+void ServerCommunicationManager::sync_client() {
+    // server_dir_path
 }
 
 // ========================================= //

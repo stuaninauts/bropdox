@@ -80,11 +80,13 @@ void Client::process_command(const vector<string> &tokens) {
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
+        comm_manager.send_command("upload");
+        Packet::send_file(comm_manager.socket_upload, filepath);
     }
     else if (command == "download" && tokens.size() == 2) {
         string filename = tokens[1];
         cout << "Downloading file: " << filename << " from server to local directory" << endl;
-        // Implement download functionality here
+        Packet::receive_file(comm_manager.socket_download, filename);
     }
     else if (command == "delete" && tokens.size() == 2) {
         string filename = tokens[1];

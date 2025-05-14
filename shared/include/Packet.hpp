@@ -54,6 +54,9 @@ public:
             throw std::logic_error("Payload length mismatch");
         }
     }
+
+    static bool send_file(int socket_fd, const std::string& filePath);
+    static bool receive_file(int socket_fd, const std::string& outputDir);
 };
 
 #endif

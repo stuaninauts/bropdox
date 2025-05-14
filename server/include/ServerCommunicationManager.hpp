@@ -23,13 +23,15 @@ public:
         : file_manager(file_manager_) {
     }
     
-    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
+    void setup_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
     void receive_packet();
+    void sync_client();
+    
     void read_cmd();
     void handle_list_server();
     std::shared_ptr<ClientsDevices> devices;
 
-private:
+// private:
     std::string username;
     
     // sockets

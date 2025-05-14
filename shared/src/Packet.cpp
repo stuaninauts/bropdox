@@ -3,6 +3,7 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
+#include <fstream> 
 #include <unistd.h>
 #include <netinet/in.h>
 
@@ -124,20 +125,136 @@ string Packet::to_string() const {
     return ss.str();
 }
 
-void Packet::set_type(uint16_t type) {
-    this->type = type;
+// void Packet::set_type(uint16_t type) {
+//     this->type = type;
+// }
+
+// void Packet::set_length(uint16_t length) {
+//     if (payload.size() != length) {
+//         throw std::invalid_argument("New length doesn't match current payload size");
+//     }
+//     this->length = length;
+// }
+
+// void Packet::set_payload(const std::string& payload) {
+//     if (payload.size() != length) {
+//         throw std::invalid_argument("Payload length doesn't match specified length");
+//     }
+//     this->payload = payload;
+// }
+
+bool Packet::send_file(int socket_fd, const string& filePath) {
+    ifstream file(filePath, ios::binary);
+    if (!file) {
+        cerr << "Erro ao abrir o arquivo: " << filePath << endl;
+        return false;
+    }
+    
+    // Obtém o nome do arquivo
+    string fileName = filePath.substr(filePath.find_last_of("/\\") + 1);
+    
+    // Tamanho máximo do payload
+    const size_t MAX_PAYLOAD_SIZE = 4096;
+    
+    // Primeiro pacote com o nome do arquivo
+    Packet metaPacket;
+    metaPacket.type = 1; // Tipo metadados
+    metaPacket.seqn = 0;
+    metaPacket.payload = fileName;
+    metaPacket.length = fileName.length();
+    metaPacket.total_size = 0; // Será calculado depois
+    
+    // Buffer para ler o arquivo
+    vector<char> buffer(MAX_PAYLOAD_SIZE);
+    vector<Packet> packets;
+    uint16_t seqn = 1;
+    
+    // Lê o arquivo em partes e cria pacotes
+    while (file) {
+        file.read(buffer.data(), MAX_PAYLOAD_SIZE);
+        size_t bytesRead = file.gcount();
+        
+        if (bytesRead > 0) {
+            Packet dataPacket;
+            dataPacket.type = 2; // Tipo dados
+            dataPacket.seqn = seqn++;
+            dataPacket.payload = string(buffer.data(), bytesRead);
+            dataPacket.length = bytesRead;
+            
+            packets.push_back(dataPacket);
+        }
+        
+        if (bytesRead < MAX_PAYLOAD_SIZE) {
+            break; // Fim do arquivo
+        }
+    }
+    
+    // Atualiza o total de pacotes
+    metaPacket.total_size = packets.size();
+    for (auto& packet : packets) {
+        packet.total_size = packets.size();
+    }
+    
+    // Envia o pacote de metadados
+    try {
+        metaPacket.send(socket_fd);
+        
+        // Envia os pacotes de dados
+        for (const auto& packet : packets) {
+            packet.send(socket_fd);
+        }
+        
+        cout << "Arquivo " << fileName << " enviado com sucesso em " << packets.size() << " pacotes." << endl;
+        return true;
+    } catch (const std::runtime_error& e) {
+        cerr << "Erro ao enviar arquivo: " << e.what() << endl;
+        return false;
+    }
 }
 
-void Packet::set_length(uint16_t length) {
-    if (payload.size() != length) {
-        throw std::invalid_argument("New length doesn't match current payload size");
+bool Packet::receive_file(int socket_fd, const string& outputDir) {
+    try {
+        // Recebe o pacote de metadados
+        Packet metaPacket = Packet::receive(socket_fd);
+        
+        // Extrai informações do pacote
+        string fileName = metaPacket.payload;
+        uint32_t totalPackets = metaPacket.total_size;
+        
+        // Cria o arquivo de saída
+        string outputPath = outputDir;
+        if (!outputDir.empty() && outputDir.back() != '/') {
+            outputPath += '/';
+        }
+        outputPath += fileName;
+        
+        ofstream outFile(outputPath, ios::binary);
+        if (!outFile) {
+            cerr << "Erro ao criar arquivo de saída: " << outputPath << endl;
+            return false;
+        }
+        
+        // Recebe os pacotes de dados
+        for (uint32_t i = 0; i < totalPackets; i++) {
+            Packet dataPacket = Packet::receive(socket_fd);
+            
+            // Verifica se o número de sequência está correto
+            if (dataPacket.seqn != i+1) {
+                cerr << "Erro: Pacote fora de ordem. Esperado " << i+1 
+                     << ", recebido " << dataPacket.seqn << endl;
+                outFile.close();
+                return false;
+            }
+            
+            // Escreve o payload no arquivo
+            outFile.write(dataPacket.payload.c_str(), dataPacket.payload.length());
+        }
+        
+        outFile.close();
+        cout << "Arquivo " << fileName << " recebido com sucesso e salvo em " << outputPath << endl;
+        return true;
+    } catch (const std::runtime_error& e) {
+        cerr << "Erro ao receber arquivo: " << e.what() << endl;
+        return false;
     }
-    this->length = length;
-}
-
-void Packet::set_payload(const std::string& payload) {
-    if (payload.size() != length) {
-        throw std::invalid_argument("Payload length doesn't match specified length");
-    }
-    this->payload = payload;
 }

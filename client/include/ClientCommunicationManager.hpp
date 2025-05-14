@@ -18,7 +18,7 @@ public:
     void send_command(const std::string command);
 
 
-private:
+// private:
     // ip
     std::string server_ip;
 
