@@ -12,7 +12,7 @@
 
 class ServerCommunicationManager {
 public:
-    void create_sockets(int socket_cmd);
+    int create_sockets(int socket_cmd);
 
     private:
     // sockets
@@ -24,7 +24,7 @@ public:
     int port_download;
     int port_cmd;
 
-    bool connect_socket_to_client(int *sockfd, int *port);
+    int connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
 };
 

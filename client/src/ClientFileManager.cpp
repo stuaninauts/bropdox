@@ -13,9 +13,9 @@ void ClientFileManager::create_sync_dir() {
     try {
         if (!fs::exists(sync_dir_path)) {
             fs::create_directories(sync_dir_path);
-            std::cout << "Diretório criado: " << sync_dir_path << std::endl;
+            // std::cout << "Diretório criado: " << sync_dir_path << std::endl;
         } else {
-            std::cout << "Diretório já existe: " << sync_dir_path << std::endl;
+           // std::cout << "Diretório já existe: " << sync_dir_path << std::endl;
         }
     } catch (const fs::filesystem_error& e) {
         std::cerr << "Erro ao criar diretório: " << e.what() << std::endl;
