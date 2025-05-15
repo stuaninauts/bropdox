@@ -1,7 +1,7 @@
 #include <ClientsDevices.hpp>
 
 
-void ClientsDevices::add_client_socket(const std::string& username, int sockfd)
+bool ClientsDevices::add_client_socket(const std::string& username, int sockfd)
 {
     auto it = clients_sockets.find(username);
     if (it != clients_sockets.end()) {
@@ -9,7 +9,7 @@ void ClientsDevices::add_client_socket(const std::string& username, int sockfd)
             std::cout << "Máximo de 2 conexões alcançado para o usuário " << username << ".\n";
             close(sockfd);
             // MANDAR MSG PRA MATAR CLIENTE
-            return;
+            return false;
         }
         clients_sockets[username].push_back(sockfd);
     } else {
@@ -17,6 +17,7 @@ void ClientsDevices::add_client_socket(const std::string& username, int sockfd)
     }
 
     print_clients_sockets();  // <-- PERIGOSO SE USAR O MESMO MUTEX
+    return true;
 }
 
 void ClientsDevices::remove_client_socket(const std::string& username, int sockfd)

@@ -24,7 +24,7 @@ class ClientsDevices {
 
 public:
     ClientsDevices() = default;
-    void add_client_socket(const std::string& username, int sockfd);
+    bool add_client_socket(const std::string& username, int sockfd);
     void remove_client_socket(const std::string& username, int sockfd);
     void print_clients_sockets();
     

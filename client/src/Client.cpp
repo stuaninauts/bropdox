@@ -79,11 +79,15 @@ void Client::process_command(const vector<string> &tokens) {
     string command = tokens[0];
     transform(command.begin(), command.end(), command.begin(), ::tolower);
 
+    // TODO: checagem de erro TYPE ERROR
+    // funcao para cada bloco do if (handle_upload)
     if (command == "upload" && tokens.size() == 2) {
         string filepath = tokens[1];
         cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
         comm_manager.send_command("upload");
-        Packet::send_file(comm_manager.socket_upload, filepath);
+        if (!Packet::send_file(comm_manager.socket_upload, filepath)) {
+            Packet::send_error(comm_manager.socket_upload);
+        }
     }
     else if (command == "download" && tokens.size() == 2) {
         string filename = std::filesystem::path(tokens[1]).filename().string();

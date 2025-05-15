@@ -217,6 +217,11 @@ bool Packet::receive_file(int socket_fd, const string& outputDir) {
         // Recebe o pacote de metadados
         Packet metaPacket = Packet::receive(socket_fd);
         
+        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+            cerr << "Erro ao receber arquivo: " << metaPacket.payload << endl;
+            return false;
+        }
+
         // Extrai informações do pacote
         string fileName = metaPacket.payload;
         uint32_t totalPackets = metaPacket.total_size;
@@ -256,5 +261,30 @@ bool Packet::receive_file(int socket_fd, const string& outputDir) {
     } catch (const std::runtime_error& e) {
         cerr << "Erro ao receber arquivo: " << e.what() << endl;
         return false;
+    }
+}
+
+// TODO:
+// Packet { Type: 4, Seqn: 0, TotalSize: 0, Length: 0, Payload: "" }
+// ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! ADSFASFDSA Error sending error packet: Error writing to socket
+// 5
+// Exceção: Connection closed by peer
+// Error connecting to server
+void Packet::send_error(int socket_fd) {
+    Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, 5, "ERROR");
+    std::cout << errorPacket.to_string() << std::endl;
+    try {
+        errorPacket.send(socket_fd);
+    } catch (const std::exception& e) {
+        std::cerr << "ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! ADSFASFDSA Error sending error packet: " << e.what() << std::endl;
+    }
+}
+
+void Packet::send_ack(int socket_fd) {
+    Packet ackPacket(static_cast<uint16_t>(Packet::Type::ACK), 0, 0, 3, "ACK");
+    try {
+        ackPacket.send(socket_fd);
+    } catch (const std::exception& e) {
+        std::cerr << "ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! Error sending ack packet: " << e.what() << std::endl;
     }
 }

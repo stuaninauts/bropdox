@@ -15,6 +15,7 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
     this->socket_cmd = socket_cmd;
     this->devices = devices;
     this->username = username;
+    bool suicide; // cliente SE MATA!
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cerr << "Erro ao conectar socket de upload" << std::endl;
@@ -30,9 +31,20 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
 
     access_devices.lock();
     {
-        devices->add_client_socket(username, socket_download);
+        suicide = !devices->add_client_socket(username, socket_download);
     }
     access_devices.unlock();
+
+    // mata
+    if (suicide) {
+        std::cout << "Socket download " << socket_download << std::endl;
+        Packet::send_error(socket_download);
+        sleep(10);
+        close_sockets();
+        return;
+    }
+
+    Packet::send_ack(socket_download);
 
     std::thread thread_cmd(&ServerCommunicationManager::read_cmd, this);
     std::thread thread_sync_client(&ServerCommunicationManager::sync_client, this);

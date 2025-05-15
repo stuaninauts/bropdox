@@ -11,7 +11,7 @@ public:
     enum class Type : uint16_t {
         DATA = 1,      // Pacote de dados
         CMD = 2,       // Pacote de comando
-        ACK = 3,       // Pacote de confirmação
+        ACK = 3,      // Pacote de confirmação
         ERROR = 4      // Pacote de erro
     };
 
@@ -57,6 +57,10 @@ public:
 
     static bool send_file(int socket_fd, const std::string& filePath);
     static bool receive_file(int socket_fd, const std::string& outputDir);
+
+    // TODO mensagem de erro?
+    static void send_error(int socket_fd);
+    static void send_ack(int socket_fd);
 };
 
 #endif
