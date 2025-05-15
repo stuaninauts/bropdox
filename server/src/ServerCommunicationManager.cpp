@@ -52,6 +52,18 @@ void ServerCommunicationManager::receive_packet() {
     }
 }
 
+vector<string> split_command(const string &command) {
+    vector<string> tokens;
+    string token;
+    istringstream tokenStream(command);
+    
+    while (tokenStream >> token) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
+}
+
 void ServerCommunicationManager::read_cmd() {
     while (socket_cmd > 0) {
         Packet packet;
@@ -65,17 +77,18 @@ void ServerCommunicationManager::read_cmd() {
         }
 
         // Extrair comando do payload
-        std::string command = packet.payload;
+        std::vector<string> tokens = split_command(packet.payload);
+        std::string command = tokens[0];
+
+        for(int i = 0; i < tokens.size(); i++)
+            std::cout<< tokens[i] << std::endl;
         
         if (command == "upload") {
             Packet::receive_file(socket_upload, file_manager.server_dir_path);
-
-            // Chame função para lidar com upload
-            // ex: handle_upload(filename);
         } else if (command == "download") {
-            // Packet::send_file(comm_manager.socket_upload, filename);
-
+            Packet::send_file(socket_download, file_manager.server_dir_path + "/" + tokens[1]);
         } else if (command == "delete") {
+            
             // Chame função para deletar
         } else if (command == "list_server") {
             std::cout << "[Server] Listando arquivos no servidor:" << std::endl;

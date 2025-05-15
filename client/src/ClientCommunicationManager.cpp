@@ -76,16 +76,19 @@ void ClientCommunicationManager::receive_packet() {
     }
 }
 
-void ClientCommunicationManager::send_command(const std::string command) {
-    // Cria o pacote do tipo comando
+void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
+    std::string payload = command;
+    if(filename != ""){
+        payload += " " + filename; //segredo TODO ta ruim feio
+    }
+
     Packet command_packet;
-    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD); // Tipo CMD
-    command_packet.total_size = 1; // Apenas um pacote
-    command_packet.payload = command; // O comando em si como payload
-    command_packet.length = command_packet.payload.size(); // Tamanho do payload
-    
+    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD);
+    command_packet.total_size = 1;
+    command_packet.payload = payload;
+    command_packet.length = command_packet.payload.size();
+
     try {
-        // Envia o pacote para o servidor
         command_packet.send(socket_cmd);
     } catch (const std::exception& e) {
         std::cerr << "Error sending list_server command: " << e.what() << std::endl;
