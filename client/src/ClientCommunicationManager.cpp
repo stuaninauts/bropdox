@@ -31,14 +31,12 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         //     return false;
         // }
 
-        // cria socket de upload
         std::cout << "1" << std::endl;
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de upload";
             close_sockets();
             return false;
         }
-        std::cout << "2" << std::endl;
 
         // cria socket de download
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -46,33 +44,25 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             close_sockets();
             return false;
         }
-        std::cout << "3" << std::endl;
 
         if (!connect_socket_to_server(socket_upload, &port_upload)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
-        std::cout << "4" << std::endl;
 
         if (!connect_socket_to_server(socket_download, &port_download)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
-        std::cout << "5" << std::endl;
 
         Packet ack = Packet::receive(socket_download);
-        std::cout << "6" << std::endl;
-
-        std::cout << "-- Pacote recebido: " << ack.to_string() << std::endl;
-        if (ack.payload == static_cast<uint16_t>(Packet::Type::ERROR)) {
+        if (ack.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
             close_sockets();
             return false;
         }
 
-        std::cout << "7" << std::endl;
-        
         return true;
 
     } catch (const std::exception& e) {
@@ -82,16 +72,37 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
-void ClientCommunicationManager::receive_packet() {
-    Packet packet;
-    try {
-        packet = Packet::receive(socket_download);
-        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
-        return;
-    }
+
+void ClientCommunicationManager::upload_file(const std::string filepath) {
+    std::cout << "Uploading file: " << filepath << " to server's sync_dir" << std::endl;
+    
+    send_command("upload");
+
+    if (!Packet::send_file(socket_upload, filepath))
+        Packet::send_error(socket_upload);
 }
+
+void ClientCommunicationManager::download_file(const std::string filename) {
+    send_command("download", filename);
+    if(!Packet::receive_file(socket_download, "./client/sync_dir/"))
+        std::cout << "Não foi possível fazer o download do arquivo" << std::endl;
+}
+
+void ClientCommunicationManager::delete_file(const std::string filename) {
+    std::cout << "Deleting file: " << filename << " from sync_dir" << std::endl;
+    send_command("delete", filename);
+}
+
+void ClientCommunicationManager::list_server() {
+    std::cout << "Listing files on server:" << std::endl;
+    send_command("list_server");
+    Packet packet = Packet::receive(socket_download);
+    std::cout << packet.to_string() << std::endl;
+
+}
+// ========================================= //
+// ================ PRIVATE ================ //
+// ========================================= //
 
 void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
     std::string payload = command;
@@ -112,9 +123,6 @@ void ClientCommunicationManager::send_command(const std::string command, const s
     }
 }
 
-// ========================================= //
-// ================ PRIVATE ================ //
-// ========================================= //
 
 bool ClientCommunicationManager::send_username() {
     int n = write(socket_cmd, username.c_str(), username.length());

@@ -92,25 +92,18 @@ void ServerCommunicationManager::read_cmd() {
         std::vector<string> tokens = split_command(packet.payload);
         std::string command = tokens[0];
 
-        for(int i = 0; i < tokens.size(); i++)
-            std::cout<< tokens[i] << std::endl;
-        
-        if (command == "upload") {
-            Packet::receive_file(socket_upload, file_manager.server_dir_path);
-        } else if (command == "download") {
-            Packet::send_file(socket_download, file_manager.server_dir_path + "/" + tokens[1]);
-        } else if (command == "delete") {
-            
-            // Chame função para deletar
-        } else if (command == "list_server") {
-            std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
+        if (command == "upload")
+            handle_client_upload();
+        else if (command == "download")
+            handle_client_download(tokens[1]);
+        else if (command == "delete")
+            handle_client_delete(tokens[1]);
+        else if (command == "list_server")
             handle_list_server();
-        } else if (command == "exit") {
-            std::cout << "[Server] Encerrando sessão com o cliente." << std::endl;
-            // Feche conexão ou finalize
-        } else {
+        else if (command == "exit")
+            handle_exit();
+        else
             std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
-        }
     }
     
 }
@@ -158,17 +151,16 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         return false;
     }
 
-    // std::cout << "Socket escutando em IP: " << inet_ntoa(serv_addr.sin_addr) << std::endl;
+    std::cout << "Socket escutando em IP: " << inet_ntoa(serv_addr.sin_addr) << std::endl;
     
     // ENVIA PORTA
     *port = ntohs(serv_addr.sin_port);
     std::string port_str = std::to_string(*port);
-    // std::cout << "Enviando porta: " << port_str << std::endl;
+
     if ((write(socket_cmd, port_str.c_str(), port_str.length())) < 0) {
         std::cerr << "Erro ao enviar porta para o cliente" << std::endl;
         return false;
     }
-    // std::cout << "Porta enviada" << std::endl;
 
     // ACEITA CONEXÃO
     struct sockaddr_in client_address;
@@ -177,12 +169,29 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         std::cerr << "Erro ao aceitar cliente" << std::endl;
         return false;
     }
-    std::cout << "Socket conectado" << std::endl;
 
     return true;
 }
 
+void ServerCommunicationManager::handle_client_download(const std::string filename) {
+    if(!Packet::send_file(socket_download, file_manager.server_dir_path + "/" + filename))
+        Packet::send_error(socket_download);
+}
+
+void ServerCommunicationManager::handle_client_upload() {
+    file_manager.write_file(socket_upload, socket_upload); // arrumar segundo param
+}
+
+void ServerCommunicationManager::handle_client_delete(const std::string filename) {
+
+}
+
+void ServerCommunicationManager::handle_exit() {
+    // TO DO
+}
+
 void ServerCommunicationManager::handle_list_server() {
+    std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
     // Primeiro, lista os arquivos no console do servidor
     file_manager.list_files();
     

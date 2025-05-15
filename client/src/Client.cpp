@@ -81,41 +81,20 @@ void Client::process_command(const vector<string> &tokens) {
 
     // TODO: checagem de erro TYPE ERROR
     // funcao para cada bloco do if (handle_upload)
-    if (command == "upload" && tokens.size() == 2) {
-        string filepath = tokens[1];
-        cout << "Uploading file: " << filepath << " to server's sync_dir" << endl;
-        comm_manager.send_command("upload");
-        if (!Packet::send_file(comm_manager.socket_upload, filepath)) {
-            Packet::send_error(comm_manager.socket_upload);
-        }
-    }
-    else if (command == "download" && tokens.size() == 2) {
-        string filename = std::filesystem::path(tokens[1]).filename().string();
-        cout << "Downloading file: " << filename << " from server to local directory" << endl;
-        comm_manager.send_command("download", filename);
-        Packet::receive_file(comm_manager.socket_download, "./client/sync_dir/");
-    }
-    else if (command == "delete" && tokens.size() == 2) {
-        string filepath = std::filesystem::path(tokens[1]).filename().string();
-        string filename = tokens[1];
-        cout << "Deleting file: " << filename << " from sync_dir" << endl;
-        comm_manager.send_command("delete", filepath);
-        // Implement delete functionality here
-    }
-    else if (command == "list_server") {
-        cout << "Listing files on server:" << endl;
-        comm_manager.send_command("list_server");
-        comm_manager.receive_packet();
-    }
-    else if (command == "list_client") {
+    if (command == "upload" && tokens.size() == 2)
+        comm_manager.upload_file(tokens[1]);
+    else if (command == "download" && tokens.size() == 2)
+        comm_manager.download_file(tokens[1]);
+    else if (command == "delete" && tokens.size() == 2)
+        comm_manager.delete_file(tokens[1]);
+    else if (command == "list_server")
+        comm_manager.list_server();
+    else if (command == "list_client")
         file_manager.list_files();
-    }
-    else if (command == "get_sync_dir") {
-        cout << "Creating sync_dir and starting synchronization" << endl;
-        // Implement sync dir creation here
-    }
+    else if (command == "get_sync_dir")
+        std::cout << "Creating sync_dir and starting synchronization" << std::endl;
     else if (command == "exit") {
-        cout << "Closing session with server" << endl;
+        std::cout << "Closing session with server" << std::endl;
         // Implement exit functionality here
         exit(0);
     }

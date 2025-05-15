@@ -28,7 +28,6 @@ public:
     void sync_client();
     
     void read_cmd();
-    void handle_list_server();
     std::shared_ptr<ClientsDevices> devices;
 
 // private:
@@ -45,6 +44,13 @@ public:
 
     bool connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
+
+    void handle_client_download(const std::string filename);    
+    void handle_client_upload();
+    void handle_client_delete(const std::string filename);
+    void handle_exit();
+    void handle_list_server();
+
 
     ServerFileManager& file_manager;
 };

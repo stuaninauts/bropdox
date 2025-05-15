@@ -59,7 +59,8 @@
         "csignal": "cpp",
         "optional": "cpp",
         "mutex": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "fstream": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

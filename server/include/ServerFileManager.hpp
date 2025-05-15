@@ -12,17 +12,13 @@ namespace fs = std::filesystem;
 class ServerFileManager {
 public:
     ServerFileManager(const std::string& username);
-
     void create_sync_dir();
-    
-    // Lista os arquivos no diretório do servidor
     void list_files();
-    
-    // Retorna uma string formatada com a listagem dos arquivos
-    std::string get_files_list();
+    void write_file(int socket_receive, int socket_repropagrate);
+    void delete_file(const std::string filename, int socket_repropagrate);
 
+    std::string get_files_list();
     std::string username;
-// private:
     std::string server_dir_path;
 };
 

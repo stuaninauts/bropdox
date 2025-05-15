@@ -19,6 +19,12 @@ public:
     void send_command(const std::string command, const std::string filename = "");
 
 
+    void upload_file(const std::string filename);
+    void download_file(const std::string filename);
+    void delete_file(const std::string filename);
+    void list_server();
+
+
 // private:
     // ip
     std::string server_ip;

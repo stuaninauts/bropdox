@@ -1,4 +1,5 @@
 #include <ServerFileManager.hpp>
+#include <Packet.hpp>
 
 void ServerFileManager::create_sync_dir() {
     int status;
@@ -35,6 +36,14 @@ ServerFileManager::ServerFileManager(const std::string& username_) {
     } catch (const fs::filesystem_error& e) {
         std::cerr << "Erro ao verificar/criar diretório do usuário: " << e.what() << std::endl;
     }
+}
+
+void ServerFileManager::write_file(int socket_receive, int socket_repropagrate) {
+    Packet::receive_file(socket_receive, server_dir_path);
+}
+
+void ServerFileManager::delete_file(const std::string filename, int socket_repropagrate) {
+    // TO DO
 }
 
 void ServerFileManager::list_files() {
