@@ -187,7 +187,10 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
 }
 
 void ServerCommunicationManager::handle_exit() {
-    // TO DO
+    close_sockets();
+    access_devices.lock();
+    devices->remove_client_socket(username, socket_download);
+    access_devices.unlock();
 }
 
 void ServerCommunicationManager::handle_list_server() {

@@ -95,8 +95,7 @@ void Client::process_command(const vector<string> &tokens) {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;
     else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;
-        // Implement exit functionality here
-        exit(0);
+        comm_manager.exit_server();
     }
     else {
         cout << "Invalid command or missing arguments. Available commands:" << endl;
