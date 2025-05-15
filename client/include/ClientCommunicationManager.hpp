@@ -22,6 +22,7 @@ public:
     void upload_file(const std::string filename);
     void download_file(const std::string filename);
     void delete_file(const std::string filename);
+    void exit_server();
     void list_server();
 
 

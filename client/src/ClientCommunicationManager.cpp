@@ -72,6 +72,12 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
+void ClientCommunicationManager::exit_server() {
+    std::cout << "Desconexando do servidor..." << std::endl;
+    send_command("exit");
+    close_sockets();
+    exit(0);
+}
 
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::cout << "Uploading file: " << filepath << " to server's sync_dir" << std::endl;
