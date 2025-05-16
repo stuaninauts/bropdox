@@ -83,7 +83,7 @@ void ClientCommunicationManager::fetch() {
 
 
 void ClientCommunicationManager::get_sync_dir(){
-    std::string file_path = "./sync_dir";
+    std::string file_path = "./client/sync_dir";
     send_command("get_sync_dir");
     if(!Packet::receive_multiple_files(socket_download, file_path)){
         std::cout << "Erro ao realizar o get_sync_dir" << std::endl;
@@ -123,7 +123,6 @@ void ClientCommunicationManager::list_server() {
     send_command("list_server");
     Packet packet = Packet::receive(socket_cmd);
     std::cout << packet.payload << std::endl;
-
 }
 // ========================================= //
 // ================ PRIVATE ================ //

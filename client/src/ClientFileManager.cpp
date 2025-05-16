@@ -120,3 +120,69 @@ void ClientFileManager::watch() {
     inotify_rm_watch(fd, wd);
     close(fd);
 }
+
+bool ClientFileManager::delete_local_file(const std::string filename) {
+    std::filesystem::path filePath = "/bropdox/client/sync_dir";
+    filePath /= filename;
+
+    try {
+        if (std::filesystem::exists(filePath)) {
+            std::filesystem::remove(filePath);
+            std::cout << "Arquivo " << filePath << " deletado com sucesso." << std::endl;
+        } else {
+            std::cerr << "Arquivo " << filePath << " não encontrado." << std::endl;
+            return false;
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Erro ao deletar o arquivo: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool ClientFileManager::upload_local_file(const std::string& file_path) {
+    std::filesystem::path sourcePath(file_path);
+    std::filesystem::path destinationDir = "./client/sync_dir";
+    std::filesystem::path destinationPath = destinationDir / sourcePath.filename(); // Copia com o mesmo nome
+
+    try {
+        // Verifica se o arquivo de origem existe
+        if (!std::filesystem::exists(sourcePath)) {
+            std::cerr << "Arquivo de origem não encontrado: " << sourcePath << std::endl;
+            return false;
+        }
+
+        // Cria o diretório de destino se ele não existir
+        if (!std::filesystem::exists(destinationDir)) {
+            std::filesystem::create_directories(destinationDir);
+        }
+
+        // Copia o arquivo
+        std::filesystem::copy_file(sourcePath, destinationPath, std::filesystem::copy_options::overwrite_existing);
+        return true;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Erro ao fazer upload do arquivo: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool ClientFileManager::download_local_file(const std::string& filename) {
+    std::filesystem::path sourcePath = "./client/sync_dir";
+    sourcePath /= filename;
+
+    std::filesystem::path destinationPath = std::filesystem::current_path() / filename;
+
+    try {
+        if (!std::filesystem::exists(sourcePath)) {
+            std::cerr << "Arquivo não encontrado no diretório de sincronização: " << sourcePath << std::endl;
+            return false;
+        }
+
+        std::filesystem::copy_file(sourcePath, destinationPath, std::filesystem::copy_options::overwrite_existing);
+
+        std::cout << "Arquivo copiado com sucesso para: " << destinationPath << std::endl;
+        return true;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cout << "Erro ao fazer download do arquivo: " << e.what() << std::endl;
+        return false;
+    }
+}

@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 
 class ClientFileManager {
 public:
-    ClientFileManager(const std::string& sync_dir_path = "./sync_dir");
+    ClientFileManager(const std::string& sync_dir_path = "./client/sync_dir");
     
     // Cria o diretório de sincronização se não existir
     void create_sync_dir();
@@ -27,6 +27,12 @@ public:
     
     // Monitora mudanças no diretório de sincronização
     void watch();
+    
+    bool delete_local_file(const std::string filename);
+
+    bool upload_local_file(const std::string& file_path);
+
+    bool download_local_file(const std::string& filename);
 
 private:
     std::string sync_dir_path;
