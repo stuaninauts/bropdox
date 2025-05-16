@@ -212,70 +212,78 @@ bool Packet::send_file(int socket_fd, const string& filePath) {
     }
 }
 
-bool Packet::receive_file(int socket_fd, const string& outputDir) {
+bool Packet::receive_file(int socket_fd, const string& fileName, const string& outputDir, uint32_t totalPackets) {
+    string outputPath = build_output_path(fileName, outputDir);
+    ofstream outFile(outputPath, ios::binary);
+
+    if (!outFile) {
+        cerr << "Erro ao criar arquivo de saída: " << outputPath << endl;
+        return false;
+    }
+
+    for (uint32_t i = 0; i < totalPackets; i++) {
+        Packet dataPacket = Packet::receive(socket_fd);
+
+        if (dataPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+            cerr << "Erro ao receber arquivo: " << dataPacket.payload << endl;
+            return false;
+        }
+
+        if (dataPacket.seqn != i + 1) {
+            cerr << "Erro: Pacote fora de ordem. Esperado " << i + 1
+                 << ", recebido " << dataPacket.seqn << endl;
+            outFile.close();
+            return false;
+        }
+
+        outFile.write(dataPacket.payload.c_str(), dataPacket.payload.length());
+    }
+
+    outFile.close();
+    cout << "Arquivo " << fileName << " recebido com sucesso e salvo em " << outputPath << endl;
+    return true;
+}
+
+bool Packet::delete_file(const string& fileName, const string& outputDir) {
+    string filePath = outputDir;
+    if (!outputDir.empty() && outputDir.back() != '/') {
+        filePath += '/';
+    }
+    filePath += fileName;
+
+    if (std::remove(filePath.c_str()) == 0) {
+        cout << "Arquivo " << filePath << " deletado com sucesso." << endl;
+        return true;
+    } else {
+        cerr << "Erro ao deletar arquivo: " << filePath << endl;
+        return false;
+    }
+}
+
+string Packet::build_output_path(const string& fileName, const string& outputDir) {
+    string outputPath = outputDir;
+    if (!outputDir.empty() && outputDir.back() != '/') {
+        outputPath += '/';
+    }
+    outputPath += fileName;
+    return outputPath;
+}
+
+bool Packet::process_file_instruction(int socket_fd, const string& outputDir) {
     try {
-        // Recebe o pacote de metadados
         Packet metaPacket = Packet::receive(socket_fd);
-        
+
         if (metaPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            cerr << "Erro ao receber arquivo: " << metaPacket.payload << endl;
+            cerr << "Erro ao receber propagação: " << metaPacket.payload << endl;
             return false;
         }
 
         if (metaPacket.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
-            // Deleta um arquivo
-            string fileName = metaPacket.payload;
+            return delete_file(metaPacket.payload, outputDir);
+        }
 
-            string filePath = outputDir;
-            if (!outputDir.empty() && outputDir.back() != '/') {
-                filePath += '/';
-            }
-            filePath += fileName;
+        return receive_file(socket_fd, metaPacket.payload, outputDir, metaPacket.total_size);
 
-            if (std::remove(filePath.c_str()) == 0) {
-                cout << "Arquivo " << filePath << " deletado com sucesso." << endl;
-                return true;
-            } else {
-                cerr << "Erro ao deletar arquivo: " << filePath << endl;
-                return false;
-            }
-        }
-        // Extrai informações do pacote
-        string fileName = metaPacket.payload;
-        uint32_t totalPackets = metaPacket.total_size;
-        
-        // Cria o arquivo de saída
-        string outputPath = outputDir;
-        if (!outputDir.empty() && outputDir.back() != '/') {
-            outputPath += '/';
-        }
-        outputPath += fileName;
-        
-        ofstream outFile(outputPath, ios::binary);
-        if (!outFile) {
-            cerr << "Erro ao criar arquivo de saída: " << outputPath << endl;
-            return false;
-        }
-        
-        // Recebe os pacotes de dados
-        for (uint32_t i = 0; i < totalPackets; i++) {
-            Packet dataPacket = Packet::receive(socket_fd);
-            
-            // Verifica se o número de sequência está correto
-            if (dataPacket.seqn != i+1) {
-                cerr << "Erro: Pacote fora de ordem. Esperado " << i+1 
-                     << ", recebido " << dataPacket.seqn << endl;
-                outFile.close();
-                return false;
-            }
-            
-            // Escreve o payload no arquivo
-            outFile.write(dataPacket.payload.c_str(), dataPacket.payload.length());
-        }
-        
-        outFile.close();
-        cout << "Arquivo " << fileName << " recebido com sucesso e salvo em " << outputPath << endl;
-        return true;
     } catch (const std::runtime_error& e) {
         cerr << "Erro ao receber arquivo: " << e.what() << endl;
         return false;
