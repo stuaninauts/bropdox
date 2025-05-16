@@ -73,13 +73,13 @@ void ClientFileManager::remove_sync_dir(){
 };
 
 bool ClientFileManager::delete_local_file(const std::string filename) {
-    std::filesystem::path filePath = "./bropdox/client/sync_dir";
+    std::filesystem::path filePath = "./client/sync_dir";
     filePath /= filename;
 
     try {
         if (std::filesystem::exists(filePath)) {
             std::filesystem::remove(filePath);
-            std::cout << "Arquivo " << filePath << " deletado com sucesso." << std::endl;
+            return true;
         } else {
             std::cerr << "Arquivo " << filePath << " não encontrado." << std::endl;
             return false;
