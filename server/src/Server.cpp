@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-#define PORT 8080
+#define PORT 4001
 
 
 void Server::handle_client(int socket) {

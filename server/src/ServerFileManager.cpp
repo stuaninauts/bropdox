@@ -39,7 +39,7 @@ ServerFileManager::ServerFileManager(const std::string& username_) {
 }
 
 void ServerFileManager::write_file(int socket_receive) {
-    Packet::receive_file(socket_receive, server_dir_path);
+    Packet::process_file_instruction(socket_receive, server_dir_path);
 }
 
 void ServerFileManager::delete_file(const std::string filename) {

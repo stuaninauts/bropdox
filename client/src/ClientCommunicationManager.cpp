@@ -78,7 +78,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
 }
 
 void ClientCommunicationManager::fetch() {
-    Packet::receive_file(socket_download, "./client/sync_dir/");
+    Packet::process_file_instruction(socket_download, "./client/sync_dir/");
 }
 
 void ClientCommunicationManager::exit_server() {
