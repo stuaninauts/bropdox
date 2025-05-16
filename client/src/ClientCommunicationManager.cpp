@@ -103,8 +103,8 @@ void ClientCommunicationManager::delete_file(const std::string filename) {
 void ClientCommunicationManager::list_server() {
     std::cout << "Listing files on server:" << std::endl;
     send_command("list_server");
-    Packet packet = Packet::receive(socket_download);
-    std::cout << packet.to_string() << std::endl;
+    Packet packet = Packet::receive(socket_cmd);
+    std::cout << packet.payload << std::endl;
 
 }
 // ========================================= //

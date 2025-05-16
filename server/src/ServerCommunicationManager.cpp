@@ -248,7 +248,7 @@ void ServerCommunicationManager::handle_list_server() {
         response_packet.validate_length();
         
         // Envia a resposta para o cliente pelo socket de download
-        response_packet.send(socket_download);
+        response_packet.send(socket_cmd);
         std::cout << "[Server] Lista de arquivos enviada ao cliente." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Server] Erro ao enviar lista de arquivos: " << e.what() << std::endl;
