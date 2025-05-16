@@ -6,7 +6,9 @@
 #include <fstream> 
 #include <unistd.h>
 #include <netinet/in.h>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace std;
 
 // Constructor with uint16_t type
@@ -142,6 +144,77 @@ string Packet::to_string() const {
 //     }
 //     this->payload = payload;
 // }
+
+bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
+    std::string dir_path = "./server/bropdox/sync_dir_" + username;
+
+    // Diretório não existe ou está vazio — envia "empty"
+    Packet empty_packet;
+    empty_packet.type = static_cast<uint16_t>(Packet::Type::EMPTY);
+    empty_packet.seqn = 0;
+    empty_packet.payload = "empty";
+    empty_packet.length = empty_packet.payload.size();
+    empty_packet.total_size = 1;
+
+    if (!fs::exists(dir_path) || fs::is_empty(dir_path)) {
+        empty_packet.send(socket_fd);
+        return true;
+    }
+
+    bool all_sent = true;
+    for (const auto& entry : fs::directory_iterator(dir_path)) {
+        if (fs::is_regular_file(entry.path())) {
+            bool result = Packet::send_file(socket_fd, entry.path().string());
+            if (!result) {
+                cerr << "Falha ao enviar o arquivo: " << entry.path() << endl;
+                all_sent = false;
+            }
+        }
+    }
+
+    empty_packet.send(socket_fd);
+    return all_sent;
+}
+
+bool Packet::receive_multiple_files(int socket_fd, const std::string& output_dir) {
+    while (true) {
+        Packet metaPacket = Packet::receive(socket_fd);
+
+        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::EMPTY)  && metaPacket.payload == "empty") {
+            std::cout << "Todos arquivos remotos recebidos." << std::endl;
+            return true;
+        }
+
+        if (metaPacket.type != 1) {
+            std::cerr << "Esperado pacote de metadados (type 1), recebido type " << metaPacket.type << std::endl;
+            return false;
+        }
+
+        std::string fileName = metaPacket.payload;
+        std::string filePath = output_dir + "/" + fileName;
+
+        std::ofstream outFile(filePath, std::ios::binary);
+        if (!outFile) {
+            std::cerr << "Erro ao criar arquivo: " << filePath << std::endl;
+            return false;
+        }
+
+        for (uint16_t i = 0; i < metaPacket.total_size; ++i) {
+            Packet dataPacket = Packet::receive(socket_fd);
+            
+            if (dataPacket.type != 2) {
+                std::cerr << "Esperado pacote de dados (type 2), recebido type " << dataPacket.type << std::endl;
+                return false;
+            }
+
+            outFile.write(dataPacket.payload.data(), dataPacket.length);
+        }
+
+        outFile.close();
+    }
+
+    return true;
+}
 
 bool Packet::send_file(int socket_fd, const string& filePath) {
     ifstream file(filePath, ios::binary);

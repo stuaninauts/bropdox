@@ -15,6 +15,10 @@ public:
     // Cria o diretório de sincronização se não existir
     void create_sync_dir();
     
+
+    // Remove o diretório antigo para criar novo
+    void remove_sync_dir();
+    
     // Lista arquivos no diretório de sincronização
     void list_files();
     

@@ -61,6 +61,19 @@ std::string ClientFileManager::get_files_list() {
     return ss.str();
 }
 
+void ClientFileManager::remove_sync_dir(){
+       try {
+        if (fs::exists(sync_dir_path)) {
+            fs::remove_all(sync_dir_path);
+            // std::cout << "Diretório deletado: " << sync_dir_path << std::endl;
+        } else {
+            // std::cout << "Diretório não existe: " << sync_dir_path << std::endl;
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Erro ao deletar diretório: " << e.what() << std::endl;
+    } 
+};
+
 void ClientFileManager::watch() {
     int fd = inotify_init();
     if (fd < 0) {

@@ -13,7 +13,9 @@ public:
         CMD = 2,       // Pacote de comando
         ACK = 3,      // Pacote de confirmação
         ERROR = 4,  // Pacote de erro
-        DELETE = 5      // Pacote de delete
+        DELETE = 5,      // Pacote de delete
+        EMPTY = 6      // Pacote de empty
+
     };
 
     // Construtor
@@ -57,6 +59,9 @@ public:
     }
 
     static bool send_file(int socket_fd, const std::string& filePath);
+    static bool send_multiple_files(int socket_fd, const std::string& username);
+    
+    static bool receive_multiple_files(int socket_fd, const std::string& output_dir);
     static bool receive_file(int socket_fd, const std::string& outputDir);
 
     // TODO mensagem de erro?

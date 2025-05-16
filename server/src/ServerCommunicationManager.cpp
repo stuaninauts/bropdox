@@ -124,6 +124,8 @@ void ServerCommunicationManager::read_cmd() {
             handle_list_server();
         else if (command == "exit")
             handle_exit();
+        else if (command == "get_sync_dir")
+            handle_get_sync_dir();        
         else
             std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
     }
@@ -250,6 +252,15 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
         delete_packet.send(socket_download_other_device);
     }
     access_download.unlock();
+}
+
+void ServerCommunicationManager::handle_get_sync_dir(){
+    access_download.lock();
+    if(!Packet::send_multiple_files(socket_download, username)){
+        std::cout << "Erro ao enviar múltiplos arquivos" << std::endl;
+    }
+    access_download.unlock();
+
 }
 
 void ServerCommunicationManager::handle_exit() {
