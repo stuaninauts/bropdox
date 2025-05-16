@@ -17,9 +17,11 @@ void Client::run() {
 
     file_manager.create_sync_dir();
 
+    std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
 
+    thread_sync_remote.join();
     thread_sync_local.join();
     thread_user_interface.join();
 }
@@ -29,17 +31,8 @@ void Client::sync_local() {
 }
 
 void Client::sync_remote() {
-
-    // Changes changes;
-    // Changes {
-    //  std::string type;
-    //  std::string filename;
-    // }
     while(true) {
-        // changes = commManager.pull();
-        // if(changes != nullptr) {
-        //     fileManager.update(changes)
-        // }
+        comm_manager.fetch();
     }
 }
 

@@ -18,7 +18,7 @@ public:
     void receive_packet();
     void send_command(const std::string command, const std::string filename = "");
 
-
+    void fetch();
     void upload_file(const std::string filename);
     void download_file(const std::string filename);
     void delete_file(const std::string filename);
