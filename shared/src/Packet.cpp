@@ -222,6 +222,24 @@ bool Packet::receive_file(int socket_fd, const string& outputDir) {
             return false;
         }
 
+        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+            // Deleta um arquivo
+            string fileName = metaPacket.payload;
+
+            string filePath = outputDir;
+            if (!outputDir.empty() && outputDir.back() != '/') {
+                filePath += '/';
+            }
+            filePath += fileName;
+
+            if (std::remove(filePath.c_str()) == 0) {
+                cout << "Arquivo " << filePath << " deletado com sucesso." << endl;
+                return true;
+            } else {
+                cerr << "Erro ao deletar arquivo: " << filePath << endl;
+                return false;
+            }
+        }
         // Extrai informações do pacote
         string fileName = metaPacket.payload;
         uint32_t totalPackets = metaPacket.total_size;

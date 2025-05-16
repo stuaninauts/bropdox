@@ -12,7 +12,8 @@ public:
         DATA = 1,      // Pacote de dados
         CMD = 2,       // Pacote de comando
         ACK = 3,      // Pacote de confirmação
-        ERROR = 4      // Pacote de erro
+        ERROR = 4,  // Pacote de erro
+        DELETE = 5      // Pacote de delete
     };
 
     // Construtor

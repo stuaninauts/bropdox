@@ -210,18 +210,26 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
 }
 
 void ServerCommunicationManager::handle_client_delete(const std::string filename) {
-    // int socket_download_other_device;
-    // access_files.lock();
-    // {
-    //     file_manager.delete_file(filename)
-    // }
-    // access_files.lock();
-    // access_devices.lock();
-    // {
-    //     socket_download_other_device = devices->get_other_device_socket(username, socket_download);
-    // }
-    // access_devices.unlock();
-    // std::cout << socket_download_other_device << std::endl;
+    int socket_download_other_device;
+    access_files.lock();
+    {
+        file_manager.delete_file(filename);
+    }
+    access_files.unlock();
+    access_devices.lock();
+    {
+        socket_download_other_device = devices->get_other_device_socket(username, socket_download);
+    }
+    access_devices.unlock();
+    std::cout << "[ SOCKET OTHER DEVICE ]: " << socket_download_other_device << std::endl;
+    if(socket_download_other_device < 0)
+        return;
+    access_download.lock();
+    {
+        Packet delete_packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.size(), filename);
+        delete_packet.send(socket_download_other_device);
+    }
+    access_download.unlock();
 }
 
 void ServerCommunicationManager::handle_exit() {
