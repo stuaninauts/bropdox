@@ -1,5 +1,4 @@
 #include "ClientFileManager.hpp"
-#include <sys/inotify.h>
 #include <unistd.h>
 #include <limits.h>
 #include <cstring>
@@ -9,13 +8,12 @@
 // ================ PUBLIC ================ //
 // ======================================== //
 
-ClientFileManager::ClientFileManager(const std::string& sync_dir_path)
-    : sync_dir_path(sync_dir_path) {
-}
-
-void ClientFileManager::create_sync_dir() {
+void ClientFileManager::create_sync_dir(const std::string& sync_dir_path) {
+    this->sync_dir_path = sync_dir_path;
+    remove_sync_dir();
     try {
         if (!fs::exists(sync_dir_path)) {
+            std::cout<< "create" << sync_dir_path << std::endl;
             fs::create_directories(sync_dir_path);
             // std::cout << "Diretório criado: " << sync_dir_path << std::endl;
         } else {
@@ -74,55 +72,8 @@ void ClientFileManager::remove_sync_dir(){
     } 
 };
 
-void ClientFileManager::watch() {
-    int fd = inotify_init();
-    if (fd < 0) {
-        std::cerr << "Erro ao inicializar inotify\n";
-        return;
-    }
-
-    int wd = inotify_add_watch(fd, sync_dir_path.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE);
-    if (wd < 0) {
-        std::cerr << "Erro ao adicionar watch para " << sync_dir_path << "\n";
-        close(fd);
-        return;
-    }
-
-    const size_t EVENT_SIZE = sizeof(struct inotify_event);
-    const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
-    char buffer[BUF_LEN];
-
-    while (true) {
-        int length = read(fd, buffer, BUF_LEN);
-        if (length < 0) {
-            std::cerr << "Erro na leitura do inotify\n";
-            break;
-        }
-
-        int i = 0;
-        while (i < length) {
-            struct inotify_event *event = (struct inotify_event *) &buffer[i];
-            // TODO -> Possivelmente necessario utilizacao de lock
-            if (event->len) {
-                if (event->mask & IN_CREATE) {
-                    std::cout << "[INOTIFY] Arquivo criado: " << event->name << std::endl;
-                } else if (event->mask & IN_MODIFY) {
-                    std::cout << "[INOTIFY] Arquivo modificado: " << event->name << std::endl;
-                } else if (event->mask & IN_DELETE) {
-                    std::cout << "[INOTIFY] Arquivo deletado: " << event->name << std::endl;
-                }
-            }
-
-            i += EVENT_SIZE + event->len;
-        }
-    }
-
-    inotify_rm_watch(fd, wd);
-    close(fd);
-}
-
 bool ClientFileManager::delete_local_file(const std::string filename) {
-    std::filesystem::path filePath = "/bropdox/client/sync_dir";
+    std::filesystem::path filePath = "./bropdox/client/sync_dir";
     filePath /= filename;
 
     try {

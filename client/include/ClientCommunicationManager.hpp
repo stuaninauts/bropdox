@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <mutex>
 
 class ClientCommunicationManager {
 public:
@@ -25,6 +26,7 @@ public:
     void delete_file(const std::string filename);
     void exit_server();
     void list_server();
+    void watch(const std::string sync_dir_path);
 
 
 // private:
@@ -43,6 +45,8 @@ public:
 
     // username
     std::string username;
+
+    std::vector<std::string> files_received_from_server;
 
     void close_sockets();
 

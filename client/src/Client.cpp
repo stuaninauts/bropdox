@@ -14,10 +14,10 @@ void Client::run() {
         cerr << "Error connecting to server" << endl;
         exit(1);
     }
+    std::string aaa("./client/sync_dir/");
     // Remove o sync_dir antigo
-    file_manager.remove_sync_dir();
     // Cria novo sync_dir zerado
-    file_manager.create_sync_dir();
+    file_manager.create_sync_dir(aaa);
     comm_manager.get_sync_dir();
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
@@ -29,7 +29,7 @@ void Client::run() {
 }
 
 void Client::sync_local() {
-    file_manager.watch();
+    comm_manager.watch(file_manager.sync_dir_path);
 }
 
 void Client::sync_remote() {
@@ -84,6 +84,7 @@ void Client::process_command(const vector<string> &tokens) {
     } else if (command == "delete" && tokens.size() == 2) {
         if (file_manager.delete_local_file(tokens[1])) {
             comm_manager.delete_file(tokens[1]);
+        }
     } else if (command == "list_server") {
         comm_manager.list_server();
 
