@@ -264,12 +264,6 @@ bool Packet::receive_file(int socket_fd, const string& outputDir) {
     }
 }
 
-// TODO:
-// Packet { Type: 4, Seqn: 0, TotalSize: 0, Length: 0, Payload: "" }
-// ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! ADSFASFDSA Error sending error packet: Error writing to socket
-// 5
-// Exceção: Connection closed by peer
-// Error connecting to server
 void Packet::send_error(int socket_fd) {
     Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, 5, "ERROR");
     std::cout << errorPacket.to_string() << std::endl;

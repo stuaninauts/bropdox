@@ -16,6 +16,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     this->port_cmd = port;
     this->username = username;
     try {
+        // Inicialização da conexão principal
         if (!connect_socket_cmd()) {
             close_sockets();
             return false;
@@ -31,34 +32,36 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         //     return false;
         // }
 
-        std::cout << "1" << std::endl;
+        // Cria socket de upload
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de upload";
             close_sockets();
             return false;
         }
 
-        // cria socket de download
+        // Cria socket de download
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de download";
             close_sockets();
             return false;
         }
 
+        // Conecta socket de upload
         if (!connect_socket_to_server(socket_upload, &port_upload)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
 
+        // Conecta socket de download
         if (!connect_socket_to_server(socket_download, &port_download)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
 
-        Packet ack = Packet::receive(socket_download);
-        if (ack.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+        // Verificação de erros e recebimento de confirmação
+        if (!check_for_errors_and_confirm()) {
             close_sockets();
             return false;
         }
@@ -224,4 +227,67 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     }
 
     return true;
+}
+
+bool ClientCommunicationManager::check_for_errors_and_confirm() {
+    // Verificar se há mensagens de erro no socket_cmd
+    if (!check_command_socket_for_errors()) {
+        return false;
+    }
+
+    // Verificar se o servidor confirmou a conexão
+    if (!receive_server_confirmation()) {
+        return false;
+    }
+
+    return true;
+}
+
+bool ClientCommunicationManager::check_command_socket_for_errors() {
+    fd_set readfds;
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;  // 100ms
+
+    FD_ZERO(&readfds);
+    FD_SET(socket_cmd, &readfds);
+
+    if (select(socket_cmd + 1, &readfds, NULL, NULL, &tv) > 0) {
+        // Há dados para ler no socket_cmd
+        try {
+            Packet errorCheck = Packet::receive(socket_cmd);
+            if (errorCheck.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cerr << "O servidor negou a conexão: " << errorCheck.payload << std::endl;
+                return false;
+            }
+        } catch (const std::exception& e) {
+            // Ignora exceções aqui, pq não é obrigatório ter um erro
+        }
+    }
+    return true;
+}
+
+bool ClientCommunicationManager::receive_server_confirmation() {
+    struct timeval recv_tv;
+    recv_tv.tv_sec = 2;  // 2 seg
+    recv_tv.tv_usec = 0;
+    setsockopt(socket_download, SOL_SOCKET, SO_RCVTIMEO, &recv_tv, sizeof(recv_tv));
+
+    try {
+        Packet ack = Packet::receive(socket_download);
+        std::cout << "ACK recebido: " << ack.to_string() << std::endl;
+        
+        if (ack.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+            std::cerr << "Erro recebido do servidor: " << ack.payload << std::endl;
+            return false;
+        }
+        
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Erro durante a conexão: " << e.what() << std::endl;
+        if (std::string(e.what()).find("Connection closed") != std::string::npos) {
+            std::cerr << "O servidor negou a conexão (máximo de clientes atingido)" << std::endl;
+        }
+        return false;
+    }
 }

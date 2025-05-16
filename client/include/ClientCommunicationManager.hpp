@@ -49,6 +49,9 @@ public:
     bool get_sockets_ports();
     bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
+    bool check_for_errors_and_confirm();
+    bool check_command_socket_for_errors();
+    bool receive_server_confirmation();
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP
