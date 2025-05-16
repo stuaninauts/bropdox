@@ -5,6 +5,8 @@
 #include <vector>    // Para std::vector
 
 std::mutex access_devices;
+std::mutex access_files;
+std::mutex access_download;
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -64,7 +66,7 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
         }
     }
 
-    Packet::send_ack(socket_download);
+    //Packet::send_ack(socket_download);
 
     std::thread thread_cmd(&ServerCommunicationManager::read_cmd, this);
     std::thread thread_sync_client(&ServerCommunicationManager::sync_client, this);
@@ -111,9 +113,9 @@ void ServerCommunicationManager::read_cmd() {
         // Extrair comando do payload
         std::vector<string> tokens = split_command(packet.payload);
         std::string command = tokens[0];
-
+        
         if (command == "upload")
-            handle_client_upload();
+            handle_client_upload(tokens[1]);
         else if (command == "download")
             handle_client_download(tokens[1]);
         else if (command == "delete")
@@ -189,21 +191,65 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
         std::cerr << "Erro ao aceitar cliente" << std::endl;
         return false;
     }
-
     return true;
 }
 
 void ServerCommunicationManager::handle_client_download(const std::string filename) {
-    if(!Packet::send_file(socket_download, file_manager.server_dir_path + "/" + filename))
-        Packet::send_error(socket_download);
+    access_download.lock();
+    {
+        if(!Packet::send_file(socket_download, file_manager.server_dir_path + "/" + filename))
+            Packet::send_error(socket_download);
+    }
+    access_download.unlock();
+
 }
 
-void ServerCommunicationManager::handle_client_upload() {
-    file_manager.write_file(socket_upload, socket_upload); // arrumar segundo param
+void ServerCommunicationManager::handle_client_upload(const std::string filename) {
+    int socket_download_other_device;
+    std::cout << "[ FILENAME ]: " << filename << std::endl;
+    access_files.lock();
+    {
+        file_manager.write_file(socket_upload);
+    }
+    access_files.unlock();
+    access_devices.lock();
+    {
+        socket_download_other_device = devices->get_other_device_socket(username, socket_download);
+    }
+    access_devices.unlock();
+    // Se não existe outra sessão do cliente, não envia o arquivo
+    std::cout << "[ SOCKET OTHER DEVICE ]: " << socket_download_other_device << std::endl;
+    if(socket_download_other_device < 0)
+        return;
+    access_download.lock();
+    {
+        if(!Packet::send_file(socket_download_other_device, file_manager.server_dir_path + "/" + filename))
+            Packet::send_error(socket_download_other_device);
+    }
+    access_download.unlock();
 }
 
 void ServerCommunicationManager::handle_client_delete(const std::string filename) {
-
+    int socket_download_other_device;
+    access_files.lock();
+    {
+        file_manager.delete_file(filename);
+    }
+    access_files.unlock();
+    access_devices.lock();
+    {
+        socket_download_other_device = devices->get_other_device_socket(username, socket_download);
+    }
+    access_devices.unlock();
+    std::cout << "[ SOCKET OTHER DEVICE ]: " << socket_download_other_device << std::endl;
+    if(socket_download_other_device < 0)
+        return;
+    access_download.lock();
+    {
+        Packet delete_packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.size(), filename);
+        delete_packet.send(socket_download_other_device);
+    }
+    access_download.unlock();
 }
 
 void ServerCommunicationManager::handle_exit() {
@@ -233,7 +279,7 @@ void ServerCommunicationManager::handle_list_server() {
         response_packet.validate_length();
         
         // Envia a resposta para o cliente pelo socket de download
-        response_packet.send(socket_download);
+        response_packet.send(socket_cmd);
         std::cout << "[Server] Lista de arquivos enviada ao cliente." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Server] Erro ao enviar lista de arquivos: " << e.what() << std::endl;

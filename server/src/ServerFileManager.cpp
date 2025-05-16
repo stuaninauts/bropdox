@@ -38,12 +38,18 @@ ServerFileManager::ServerFileManager(const std::string& username_) {
     }
 }
 
-void ServerFileManager::write_file(int socket_receive, int socket_repropagrate) {
+void ServerFileManager::write_file(int socket_receive) {
     Packet::receive_file(socket_receive, server_dir_path);
 }
 
-void ServerFileManager::delete_file(const std::string filename, int socket_repropagrate) {
-    // TO DO
+void ServerFileManager::delete_file(const std::string filename) {
+    std::string filepath = server_dir_path + "/" + filename;
+
+    if (std::remove(filepath.c_str()) == 0) {
+        std::cout << "Arquivo " << filepath << " deletado com sucesso." << std::endl;
+    } else {
+        std::cerr << "Erro ao deletar arquivo: " << filepath << std::endl;
+    }
 }
 
 void ServerFileManager::list_files() {

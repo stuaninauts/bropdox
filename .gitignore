@@ -57,3 +57,7 @@ dump
 */sync_dir*
 server/bropdox/sync_dir*
 /bin/*
+
+*.mp4
+
+*.txt

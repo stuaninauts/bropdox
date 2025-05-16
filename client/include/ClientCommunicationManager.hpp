@@ -18,7 +18,7 @@ public:
     void receive_packet();
     void send_command(const std::string command, const std::string filename = "");
 
-
+    void fetch();
     void upload_file(const std::string filename);
     void download_file(const std::string filename);
     void delete_file(const std::string filename);
@@ -49,9 +49,7 @@ public:
     bool get_sockets_ports();
     bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
-    bool check_for_errors_and_confirm();
-    bool check_command_socket_for_errors();
-    bool receive_server_confirmation();
+    bool connection_accepted();
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP

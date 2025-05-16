@@ -62,3 +62,15 @@ void ClientsDevices::print_clients_sockets() {
         std::cout << std::endl;
     }
 }
+
+int ClientsDevices::get_other_device_socket(const std::string& username, int current_sockfd) {
+    auto it = clients_sockets.find(username);
+    if (it != clients_sockets.end() && it->second.size() > 1) {
+        for (int sockfd : it->second) {
+            if (sockfd != current_sockfd) {
+                return sockfd;
+            }
+        }
+    }
+    return -1;
+}

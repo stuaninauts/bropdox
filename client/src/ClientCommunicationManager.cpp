@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <Packet.hpp>
+#include <filesystem>
+
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -61,7 +63,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         }
 
         // Verificação de erros e recebimento de confirmação
-        if (!check_for_errors_and_confirm()) {
+        if (!connection_accepted()) {
             close_sockets();
             return false;
         }
@@ -75,6 +77,10 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
+void ClientCommunicationManager::fetch() {
+    Packet::receive_file(socket_download, "./client/sync_dir/");
+}
+
 void ClientCommunicationManager::exit_server() {
     std::cout << "Desconexando do servidor..." << std::endl;
     send_command("exit");
@@ -83,18 +89,19 @@ void ClientCommunicationManager::exit_server() {
 }
 
 void ClientCommunicationManager::upload_file(const std::string filepath) {
-    std::cout << "Uploading file: " << filepath << " to server's sync_dir" << std::endl;
+    std::string filename = std::filesystem::path(filepath).filename().string();
+    std::cout << "Uploading file: " << filename << " to server's sync_dir" << std::endl;
     
-    send_command("upload");
+    send_command("upload", filename);
 
+    // Se não é possível enviar o arquivo, o cliente deve enviar um pacote de erro
+    // para o servidor para desbloquea-lo, pois ele está esperando um arquivo.
     if (!Packet::send_file(socket_upload, filepath))
         Packet::send_error(socket_upload);
 }
 
 void ClientCommunicationManager::download_file(const std::string filename) {
     send_command("download", filename);
-    if(!Packet::receive_file(socket_download, "./client/sync_dir/"))
-        std::cout << "Não foi possível fazer o download do arquivo" << std::endl;
 }
 
 void ClientCommunicationManager::delete_file(const std::string filename) {
@@ -105,8 +112,8 @@ void ClientCommunicationManager::delete_file(const std::string filename) {
 void ClientCommunicationManager::list_server() {
     std::cout << "Listing files on server:" << std::endl;
     send_command("list_server");
-    Packet packet = Packet::receive(socket_download);
-    std::cout << packet.to_string() << std::endl;
+    Packet packet = Packet::receive(socket_cmd);
+    std::cout << packet.payload << std::endl;
 
 }
 // ========================================= //
@@ -229,21 +236,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     return true;
 }
 
-bool ClientCommunicationManager::check_for_errors_and_confirm() {
-    // Verificar se há mensagens de erro no socket_cmd
-    if (!check_command_socket_for_errors()) {
-        return false;
-    }
-
-    // Verificar se o servidor confirmou a conexão
-    if (!receive_server_confirmation()) {
-        return false;
-    }
-
-    return true;
-}
-
-bool ClientCommunicationManager::check_command_socket_for_errors() {
+bool ClientCommunicationManager::connection_accepted() {
     fd_set readfds;
     struct timeval tv;
     tv.tv_sec = 0;
@@ -265,29 +258,4 @@ bool ClientCommunicationManager::check_command_socket_for_errors() {
         }
     }
     return true;
-}
-
-bool ClientCommunicationManager::receive_server_confirmation() {
-    struct timeval recv_tv;
-    recv_tv.tv_sec = 2;  // 2 seg
-    recv_tv.tv_usec = 0;
-    setsockopt(socket_download, SOL_SOCKET, SO_RCVTIMEO, &recv_tv, sizeof(recv_tv));
-
-    try {
-        Packet ack = Packet::receive(socket_download);
-        std::cout << "ACK recebido: " << ack.to_string() << std::endl;
-        
-        if (ack.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            std::cerr << "Erro recebido do servidor: " << ack.payload << std::endl;
-            return false;
-        }
-        
-        return true;
-    } catch (const std::exception& e) {
-        std::cerr << "Erro durante a conexão: " << e.what() << std::endl;
-        if (std::string(e.what()).find("Connection closed") != std::string::npos) {
-            std::cerr << "O servidor negou a conexão (máximo de clientes atingido)" << std::endl;
-        }
-        return false;
-    }
 }

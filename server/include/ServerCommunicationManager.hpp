@@ -46,7 +46,7 @@ public:
     void close_sockets();
 
     void handle_client_download(const std::string filename);    
-    void handle_client_upload();
+    void handle_client_upload(const std::string filename);
     void handle_client_delete(const std::string filename);
     void handle_exit();
     void handle_list_server();
