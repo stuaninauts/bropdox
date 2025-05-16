@@ -18,6 +18,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     this->port_cmd = port;
     this->username = username;
     try {
+        // Inicialização da conexão principal
         if (!connect_socket_cmd()) {
             close_sockets();
             return false;
@@ -33,34 +34,36 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         //     return false;
         // }
 
-        std::cout << "1" << std::endl;
+        // Cria socket de upload
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de upload";
             close_sockets();
             return false;
         }
 
-        // cria socket de download
+        // Cria socket de download
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Erro ao criar socket de download";
             close_sockets();
             return false;
         }
 
+        // Conecta socket de upload
         if (!connect_socket_to_server(socket_upload, &port_upload)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
 
+        // Conecta socket de download
         if (!connect_socket_to_server(socket_download, &port_download)){
             std::cerr << "Erro ao conectar socket de download";
             close_sockets();
             return false;
         }
 
-        Packet ack = Packet::receive(socket_download);
-        if (ack.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+        // Verificação de erros e recebimento de confirmação
+        if (!connection_accepted()) {
             close_sockets();
             return false;
         }
@@ -78,6 +81,12 @@ void ClientCommunicationManager::fetch() {
     Packet::receive_file(socket_download, "./client/sync_dir/");
 }
 
+void ClientCommunicationManager::exit_server() {
+    std::cout << "Desconexando do servidor..." << std::endl;
+    send_command("exit");
+    close_sockets();
+    exit(0);
+}
 
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::string filename = std::filesystem::path(filepath).filename().string();
@@ -224,5 +233,29 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
         return false;
     }
 
+    return true;
+}
+
+bool ClientCommunicationManager::connection_accepted() {
+    fd_set readfds;
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;  // 100ms
+
+    FD_ZERO(&readfds);
+    FD_SET(socket_cmd, &readfds);
+
+    if (select(socket_cmd + 1, &readfds, NULL, NULL, &tv) > 0) {
+        // Há dados para ler no socket_cmd
+        try {
+            Packet errorCheck = Packet::receive(socket_cmd);
+            if (errorCheck.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cerr << "O servidor negou a conexão: " << errorCheck.payload << std::endl;
+                return false;
+            }
+        } catch (const std::exception& e) {
+            // Ignora exceções aqui, pq não é obrigatório ter um erro
+        }
+    }
     return true;
 }

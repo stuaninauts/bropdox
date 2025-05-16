@@ -22,6 +22,7 @@ public:
     void upload_file(const std::string filename);
     void download_file(const std::string filename);
     void delete_file(const std::string filename);
+    void exit_server();
     void list_server();
 
 
@@ -48,6 +49,7 @@ public:
     bool get_sockets_ports();
     bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
+    bool connection_accepted();
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP

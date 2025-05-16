@@ -39,14 +39,34 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
 
     // mata
     if (suicide) {
-        std::cout << "Socket download " << socket_download << std::endl;
-        Packet::send_error(socket_download);
-        sleep(10);
-        close_sockets();
-        return;
+        // Cria e envia um pacote de erro pelo socket_cmd (que já está estabelecido)
+        Packet errorPacket;
+        errorPacket.type = static_cast<uint16_t>(Packet::Type::ERROR);
+        errorPacket.seqn = 0;
+        errorPacket.total_size = 1;
+        errorPacket.payload = "USER_MAX_CONNECTIONS_REACHED";
+        errorPacket.length = errorPacket.payload.size();
+        
+        try {
+            // Envie o erro pelo socket_cmd que já está estabelecido
+            errorPacket.send(socket_cmd);
+            
+            // Fecha os sockets de dados
+            close(socket_download);
+            close(socket_upload);
+            
+            // Não fecha o socket_cmd para permitir que o cliente receba o erro
+            return;
+        } catch (const std::exception& e) {
+            std::cerr << "Erro ao enviar pacote de erro: " << e.what() << std::endl;
+            // Se falhar, fecha tudo
+            close(socket_download);
+            close(socket_upload);
+            return;
+        }
     }
 
-    Packet::send_ack(socket_download);
+    //Packet::send_ack(socket_download);
 
     std::thread thread_cmd(&ServerCommunicationManager::read_cmd, this);
     std::thread thread_sync_client(&ServerCommunicationManager::sync_client, this);
@@ -233,7 +253,10 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
 }
 
 void ServerCommunicationManager::handle_exit() {
-    // TO DO
+    close_sockets();
+    access_devices.lock();
+    devices->remove_client_socket(username, socket_download);
+    access_devices.unlock();
 }
 
 void ServerCommunicationManager::handle_list_server() {
