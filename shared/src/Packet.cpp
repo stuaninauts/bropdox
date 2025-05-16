@@ -6,7 +6,9 @@
 #include <fstream> 
 #include <unistd.h>
 #include <netinet/in.h>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 using namespace std;
 
 // Constructor with uint16_t type
@@ -142,6 +144,69 @@ string Packet::to_string() const {
 //     }
 //     this->payload = payload;
 // }
+
+bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
+    std::string dir_path = "./server/bropdox/sync_dir_" + username;
+
+    // Diretório não existe ou está vazio — envia "empty"
+    Packet empty_packet(
+        static_cast<uint16_t>(Packet::Type::EMPTY), // type
+        0,                                            // seqn
+        1,                                            // total_size
+        static_cast<uint16_t>(std::string("empty").size()), // length
+        "empty"                                     // payload
+    );
+
+    if (!fs::exists(dir_path) || fs::is_empty(dir_path)) {
+        empty_packet.send(socket_fd);
+        return true;
+    }
+
+    bool all_sent = true;
+    for (const auto& entry : fs::directory_iterator(dir_path)) {
+        if (fs::is_regular_file(entry.path())) {
+            bool result = Packet::send_file(socket_fd, entry.path().string());
+            if (!result) {
+                cerr << "Falha ao enviar o arquivo: " << entry.path() << endl;
+                all_sent = false;
+            }
+        }
+    }
+
+    empty_packet.send(socket_fd);
+    return all_sent;
+}
+
+bool Packet::receive_multiple_files(int socket_fd, const std::string& output_dir) {
+    while (true) {
+        // Receive metadata packet
+        Packet metaPacket = Packet::receive(socket_fd);
+
+        // End-of-stream marker
+        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::EMPTY)
+            && metaPacket.payload == "empty") {
+            std::cout << "All remote files received." << std::endl;
+            return true;
+        }
+
+        // Expecting metadata packet type
+        if (metaPacket.type != static_cast<uint16_t>(Packet::Type::DATA)) {
+            std::cerr << "Esperado pacote de metadados (type METADATA), recebido type "
+                      << metaPacket.type << std::endl;
+            return false;
+        }
+
+        // Extract file information
+        std::string fileName = metaPacket.payload;
+        uint32_t totalPackets = metaPacket.total_size;
+
+        // Receive actual file packets
+        bool ok = receive_file(socket_fd, fileName, output_dir, totalPackets);
+        if (!ok) {
+            return false;
+        }
+    }
+}
 
 bool Packet::send_file(int socket_fd, const string& filePath) {
     ifstream file(filePath, ios::binary);

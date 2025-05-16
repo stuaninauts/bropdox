@@ -49,6 +49,7 @@ public:
     void handle_client_upload(const std::string filename);
     void handle_client_delete(const std::string filename);
     void handle_exit();
+    void handle_get_sync_dir();
     void handle_list_server();
 
 

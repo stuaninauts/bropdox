@@ -81,6 +81,15 @@ void ClientCommunicationManager::fetch() {
     Packet::process_file_instruction(socket_download, "./client/sync_dir/");
 }
 
+
+void ClientCommunicationManager::get_sync_dir(){
+    std::string file_path = "./sync_dir";
+    send_command("get_sync_dir");
+    if(!Packet::receive_multiple_files(socket_download, file_path)){
+        std::cout << "Erro ao realizar o get_sync_dir" << std::endl;
+    }
+}
+
 void ClientCommunicationManager::exit_server() {
     std::cout << "Desconexando do servidor..." << std::endl;
     send_command("exit");

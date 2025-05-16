@@ -14,9 +14,11 @@ void Client::run() {
         cerr << "Error connecting to server" << endl;
         exit(1);
     }
-
+    // Remove o sync_dir antigo
+    file_manager.remove_sync_dir();
+    // Cria novo sync_dir zerado
     file_manager.create_sync_dir();
-
+    comm_manager.get_sync_dir();
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
