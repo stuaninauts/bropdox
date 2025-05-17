@@ -8,69 +8,69 @@
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ClientFileManager::create_sync_dir(const std::string& sync_dir_path) {
-    this->sync_dir_path = sync_dir_path;
-    remove_sync_dir();
-    try {
-        if (!fs::exists(sync_dir_path)) {
-            std::cout << "Creating directory: " << sync_dir_path << std::endl;
-            fs::create_directories(sync_dir_path);
-            // std::cout << "Directory created: " << sync_dir_path << std::endl;
-        } else {
-            // std::cout << "Directory already exists: " << sync_dir_path << std::endl;
-        }
-    } catch (const fs::filesystem_error& e) {
-        std::cout << "Error while creating directory: " << e.what() << std::endl;
-    }
-}
+// void ClientFileManager::create_sync_dir(const std::string& sync_dir_path) {
+//     this->sync_dir_path = sync_dir_path;
+//     remove_sync_dir();
+//     try {
+//         if (!fs::exists(sync_dir_path)) {
+//             std::cout << "Creating directory: " << sync_dir_path << std::endl;
+//             fs::create_directories(sync_dir_path);
+//             // std::cout << "Directory created: " << sync_dir_path << std::endl;
+//         } else {
+//             // std::cout << "Directory already exists: " << sync_dir_path << std::endl;
+//         }
+//     } catch (const fs::filesystem_error& e) {
+//         std::cout << "Error while creating directory: " << e.what() << std::endl;
+//     }
+// }
 
-void ClientFileManager::list_files() {
-    if (!fs::exists(sync_dir_path) || !fs::is_directory(sync_dir_path)) {
-        std::cout << "Invalid directory: " << sync_dir_path << std::endl;
-        return;
-    }
+// void ClientFileManager::list_files() {
+//     if (!fs::exists(sync_dir_path) || !fs::is_directory(sync_dir_path)) {
+//         std::cout << "Invalid directory: " << sync_dir_path << std::endl;
+//         return;
+//     }
 
-    FileDisplayFormatter::print_table_header();
+//     FileDisplayFormatter::print_table_header();
 
-    for (const auto& entry : fs::directory_iterator(sync_dir_path)) {
-        if (entry.is_regular_file()) {
-            FileDisplayFormatter::print_file_info(entry);
-        }
-    }
-}
+//     for (const auto& entry : fs::directory_iterator(sync_dir_path)) {
+//         if (entry.is_regular_file()) {
+//             FileDisplayFormatter::print_file_info(entry);
+//         }
+//     }
+// }
 
-std::string ClientFileManager::get_files_list() {
-    if (!fs::exists(sync_dir_path) || !fs::is_directory(sync_dir_path)) {
-        return "Invalid directory: " + sync_dir_path;
-    }
+// std::string ClientFileManager::get_files_list() {
+//     if (!fs::exists(sync_dir_path) || !fs::is_directory(sync_dir_path)) {
+//         return "Invalid directory: " + sync_dir_path;
+//     }
 
-    std::stringstream ss;
+//     std::stringstream ss;
     
-    // Add header
-    ss << FileDisplayFormatter::get_table_header_string();
+//     // Add header
+//     ss << FileDisplayFormatter::get_table_header_string();
 
-    // Add file information
-    for (const auto& entry : fs::directory_iterator(sync_dir_path)) {
-        if (entry.is_regular_file()) {
-            FileDisplayFormatter::print_file_info(entry, ss);
-        }
-    }
+//     // Add file information
+//     for (const auto& entry : fs::directory_iterator(sync_dir_path)) {
+//         if (entry.is_regular_file()) {
+//             FileDisplayFormatter::print_file_info(entry, ss);
+//         }
+//     }
 
-    return ss.str();
-}
+//     return ss.str();
+// }
 
-void ClientFileManager::remove_sync_dir(){
-    try {
-        if (fs::exists(sync_dir_path)) {
-            fs::remove_all(sync_dir_path);
-            // std::cout << "Directory deleted: " << sync_dir_path << std::endl;
-        } else {
-            // std::cout << "Directory does not exist: " << sync_dir_path << std::endl;
-        }
-    } catch (const fs::filesystem_error& e) {
-        std::cout << "Error while deleting directory: " << e.what() << std::endl;
-    } 
-};
+// void ClientFileManager::remove_sync_dir(){
+//     try {
+//         if (fs::exists(sync_dir_path)) {
+//             fs::remove_all(sync_dir_path);
+//             // std::cout << "Directory deleted: " << sync_dir_path << std::endl;
+//         } else {
+//             // std::cout << "Directory does not exist: " << sync_dir_path << std::endl;
+//         }
+//     } catch (const fs::filesystem_error& e) {
+//         std::cout << "Error while deleting directory: " << e.what() << std::endl;
+//     } 
+// };
 
 bool ClientFileManager::delete_local_file(const std::string filename) {
     std::filesystem::path filePath = "./sync_dir";

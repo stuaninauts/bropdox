@@ -21,17 +21,22 @@
 #include <ClientCommunicationManager.hpp>
 
 using namespace std;
+namespace fs = std::filesystem;
 class Client {
 public:
-    Client(const std::string& server_ip, int port, const std::string& username)
-        : server_ip(server_ip), port(port), username(username) {};
+Client(const std::string& server_ip, int port, const std::string& username)
+    : server_ip(server_ip),
+      port(port),
+      username(username),
+      sync_dir_path("./sync_dir/") {
+}
 
     void run();
 
-private:
     int port;
     std::string username;
     std::string server_ip;
+    fs::path sync_dir_path;
 
     ClientFileManager file_manager;
     ClientCommunicationManager comm_manager;

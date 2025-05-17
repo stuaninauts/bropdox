@@ -61,3 +61,33 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
 
     return ss.str();
 }
+
+bool FileManager::create_directory(const fs::path& directory_path) {
+    try {
+        if (fs::create_directories(directory_path)) {
+            std::cout << "Directory created: " + directory_path.string() << std::endl;
+            return true;
+        } else {
+            std::cout << "Directory already exists: " + directory_path.string() << std::endl;
+            return false;
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Error creating directory: " + std::string(e.what()) << std::endl;
+        return false;
+    }
+}
+
+bool FileManager::remove_directory(const fs::path& directory_path) {
+    try {
+        if (fs::remove(directory_path)) {
+            std::cout << "Directory removed: " + directory_path.string() << std::endl;
+            return true;
+        } else {
+            std::cout << "Directory does not exist: " + directory_path.string() << std::endl;
+            return false;
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Error removing directory: " + std::string(e.what()) << std::endl;
+        return false;
+    }
+}

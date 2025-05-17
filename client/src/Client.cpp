@@ -1,14 +1,15 @@
 #include <Client.hpp>
 #include <Packet.hpp>
 #include <filesystem>
+#include <FileManager.hpp>
 
 // ======================================== //
 // ================= PUBLIC =============== //
 // ======================================== //
 
 void Client::run() {
-    std::string sync_dir_path("./sync_dir/");
-    file_manager.create_sync_dir(sync_dir_path);
+    FileManager::delete_all_files_in_directory(sync_dir_path);
+    FileManager::create_directory(sync_dir_path);
 
     cout << "Connecting to server..." << endl;
     if (!comm_manager.connect_to_server(server_ip, port, username)) {

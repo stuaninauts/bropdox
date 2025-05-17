@@ -10,10 +10,6 @@ namespace fs = std::filesystem;
 
 class ClientFileManager {
 public:
-    // Cria o diretório de sincronização se não existir
-    void create_sync_dir(const std::string& sync_dir_path);
-    
-
     // Remove o diretório antigo para criar novo
     void remove_sync_dir();
     
