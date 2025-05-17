@@ -117,7 +117,7 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             if (event->mask & IN_DELETE)
                 std::cout << "[INOTIFY] IN_DELETE: " << event->name << std::endl;
             if (event->mask & IN_CLOSE_WRITE)
-                std::cout << "[INOTIFY] IN_CLOSE_WRITE / SEND_FILE: " << event->name << std::endl;
+                std::cout << "[INOTIFY] IN_CLOSE_WRITE: " << event->name << std::endl;
             if (event->mask & IN_MOVED_FROM)
                 std::cout << "[INOTIFY] IN_MOVED_FROM: " << event->name << std::endl;
             if (event->mask & IN_MOVED_TO)
@@ -137,6 +137,8 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             }
             access_ignored_files.unlock();
 
+            i += EVENT_SIZE + event->len;
+
             if (ignore) continue;
 
             if (event->mask & IN_MOVED_FROM || event->mask & IN_DELETE) {
@@ -144,11 +146,10 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
                 Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, strlen(event->name), event->name);
                 packet.send(socket_upload);
             }
-            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
+            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
                 std::cout << "[INOTIFY] SEND_FILE: " << event->name << std::endl;
                 Packet::send_file(socket_upload, sync_dir_path + event->name);
             }
-            i += EVENT_SIZE + event->len;
         }
     }
     
