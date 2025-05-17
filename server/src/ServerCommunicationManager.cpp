@@ -19,13 +19,13 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
     bool suicide;
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
-        std::cerr << "Failed to connect upload socket" << std::endl;
+        std::cout << "Failed to connect upload socket" << std::endl;
         close_sockets();
         return;
     }
     
     if(!connect_socket_to_client(&socket_download, &port_download)) {
-        std::cerr << "Failed to connect download socket" << std::endl;
+        std::cout << "Failed to connect download socket" << std::endl;
         close_sockets();
         return;
     }
@@ -48,7 +48,7 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
             close(socket_upload);
             return;
         } catch (const std::exception& e) {
-            std::cerr << "Failed to send error packet: " << e.what() << std::endl;
+            std::cout << "Failed to send error packet: " << e.what() << std::endl;
             close(socket_download);
             close(socket_upload);
             return;
@@ -90,7 +90,7 @@ void ServerCommunicationManager::handle_client_cmd() {
         } else if (packet.payload == "get_sync_dir") {
             handle_get_sync_dir();        
         } else {
-            std::cerr << session_name << "Unknown command: " << packet.payload << std::endl;
+            std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
         }
     }
 }
@@ -123,7 +123,7 @@ void ServerCommunicationManager::handle_client_update() {
             );
 
         } catch (const std::runtime_error& e) {
-            std::cerr << session_name << "Client update failed: " << e.what() << std::endl;
+            std::cout << session_name << "Client update failed: " << e.what() << std::endl;
             return;
         }
     }
@@ -149,22 +149,22 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
     serv_addr.sin_port = 0;
 
     if ((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "Failed to create socket" << std::endl;
+        std::cout << "Failed to create socket" << std::endl;
         return false;
     }
 
     if (bind(*sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "Bind error" << std::endl;
+        std::cout << "Bind error" << std::endl;
         return false;
     }
 
     if (listen(*sockfd, 5) < 0) {
-        std::cerr << "Listen error" << std::endl;
+        std::cout << "Listen error" << std::endl;
         return false;
     }
 
     if (getsockname(*sockfd, (struct sockaddr *)&serv_addr, &len) == -1) {
-        std::cerr << "getsockname error" << std::endl;
+        std::cout << "getsockname error" << std::endl;
         return false;
     }
 
@@ -174,14 +174,14 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
     std::string port_str = std::to_string(*port);
 
     if ((write(socket_cmd, port_str.c_str(), port_str.length())) < 0) {
-        std::cerr << "Failed to send port to client" << std::endl;
+        std::cout << "Failed to send port to client" << std::endl;
         return false;
     }
 
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(struct sockaddr_in);
     if((*sockfd = accept(*sockfd, (struct sockaddr*) &client_address, &client_address_len)) < 0){
-        std::cerr << "Failed to accept client" << std::endl;
+        std::cout << "Failed to accept client" << std::endl;
         return false;
     }
     return true;

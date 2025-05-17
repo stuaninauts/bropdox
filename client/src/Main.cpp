@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char* argv[]) {
     if (argc != 4) {
-        cerr << "Uso: ./client <username> <ip_servidor> <porta>\n";
+        cout << "Uso: ./client <username> <ip_servidor> <porta>\n";
         return 1;
     }
 

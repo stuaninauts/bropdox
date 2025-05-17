@@ -9,7 +9,7 @@ void ServerFileManager::create_sync_dir() {
     status = mkdir(folder_name.c_str(), 0777);
     if (status != 0) {
         if (errno != EEXIST) {
-            std::cerr << "[ERROR] Failed to create folder." << std::endl;
+            std::cout << "[ERROR] Failed to create folder." << std::endl;
         } 
     }
 
@@ -18,7 +18,7 @@ void ServerFileManager::create_sync_dir() {
     status = mkdir(folder_name.c_str(), 0777);
     if (status != 0) {
         if (errno != EEXIST) {
-            std::cerr << "[ERROR] Failed to create folder." << std::endl;
+            std::cout << "[ERROR] Failed to create folder." << std::endl;
         } 
     }
 }
@@ -34,7 +34,7 @@ ServerFileManager::ServerFileManager(const std::string& username_) {
             std::cout << "User directory created: " << server_dir_path << std::endl;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error checking/creating user directory: " << e.what() << std::endl;
+        std::cout << "Error checking/creating user directory: " << e.what() << std::endl;
     }
 }
 
@@ -48,7 +48,7 @@ void ServerFileManager::delete_file(const std::string filename) {
     if (std::remove(filepath.c_str()) == 0) {
         std::cout << "File " << filepath << " successfully deleted." << std::endl;
     } else {
-        std::cerr << "Error deleting file: " << filepath << std::endl;
+        std::cout << "Error deleting file: " << filepath << std::endl;
     }
 }
 
@@ -57,7 +57,7 @@ void ServerFileManager::list_files() {
     std::cout << "Listing files in directory: " << user_dir << std::endl;
 
     if (!fs::exists(user_dir) || !fs::is_directory(user_dir)) {
-        std::cerr << "User directory not found: " << user_dir << std::endl;
+        std::cout << "User directory not found: " << user_dir << std::endl;
         return;
     }
 

@@ -12,7 +12,7 @@ void Client::run() {
 
     cout << "Connecting to server..." << endl;
     if (!comm_manager.connect_to_server(server_ip, port, username)) {
-        cerr << "Error connecting to server" << endl;
+        cout << "Error connecting to server" << endl;
         exit(1);
     }
 
@@ -91,13 +91,13 @@ void Client::process_command(const std::vector<string> &tokens) {
         std::cout << "Closing session with server" << std::endl;
         comm_manager.exit_server();
     } else {
-        std::cerr << "Invalid command or missing arguments. Available commands:" << std::endl;
-        std::cerr << "# upload <path/filename.ext>" << std::endl;
-        std::cerr << "# download <filename.ext>" << std::endl;
-        std::cerr << "# delete <filename.ext>" << std::endl;
-        std::cerr << "# list_server" << std::endl;
-        std::cerr << "# list_client" << std::endl;
-        std::cerr << "# get_sync_dir" << std::endl;
-        std::cerr << "# exit" << std::endl;
+        std::cout << "Invalid command or missing arguments. Available commands:" << std::endl;
+        std::cout << "# upload <path/filename.ext>" << std::endl;
+        std::cout << "# download <filename.ext>" << std::endl;
+        std::cout << "# delete <filename.ext>" << std::endl;
+        std::cout << "# list_server" << std::endl;
+        std::cout << "# list_client" << std::endl;
+        std::cout << "# get_sync_dir" << std::endl;
+        std::cout << "# exit" << std::endl;
     }
 }

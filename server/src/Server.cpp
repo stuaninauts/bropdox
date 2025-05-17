@@ -12,7 +12,7 @@ void Server::handle_client(int socket) {
     int n = read(socket, buffer, 255);
     
     if(n <= 0) {
-        std::cerr << "Error reading client's username" << std::endl;
+        std::cout << "Error reading client's username" << std::endl;
         return;
     }
     username = std::string(buffer); // <-- fixed: assignment instead of redeclaration
@@ -26,7 +26,7 @@ void Server::handle_client(int socket) {
         comm_manager->run_client_session(socket, username, devices);
 
     } catch(const std::exception& e) {
-        std::cerr << "Error creating server file manager: " << e.what() << std::endl;
+        std::cout << "Error creating server file manager: " << e.what() << std::endl;
     }
 }
 
@@ -53,7 +53,7 @@ bool Server::setup() {
     std::cout << "Server waiting for connections..." << std::endl;
 
     if (listen(initial_socket, 5) < 0) {
-        std::cerr << "SETUP ERROR: Failed to listen on socket" << std::endl;
+        std::cout << "SETUP ERROR: Failed to listen on socket" << std::endl;
         return false;
     }
 

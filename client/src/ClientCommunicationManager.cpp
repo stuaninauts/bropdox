@@ -37,28 +37,28 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
 
         // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Error creating upload socket";
+            std::cout << "Error creating upload socket";
             close_sockets();
             return false;
         }
 
         // Create download socket
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Error creating download socket";
+            std::cout << "Error creating download socket";
             close_sockets();
             return false;
         }
 
         // Connect upload socket
         if (!connect_socket_to_server(socket_upload, &port_upload)){
-            std::cerr << "Error connecting upload socket";
+            std::cout << "Error connecting upload socket";
             close_sockets();
             return false;
         }
 
         // Connect download socket
         if (!connect_socket_to_server(socket_download, &port_download)){
-            std::cerr << "Error connecting download socket";
+            std::cout << "Error connecting download socket";
             close_sockets();
             return false;
         }
@@ -74,7 +74,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         return true;
 
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        std::cout << "Exception: " << e.what() << std::endl;
         close_sockets(); // TODO: review
         return false;
     }
@@ -84,13 +84,13 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     bool ignore = false;
     int inotify_fd = inotify_init();
     if (inotify_fd < 0) {
-        std::cerr << "Error initializing inotify\n";
+        std::cout << "Error initializing inotify\n";
         return;
     }
     
     int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
     if (wd < 0) {
-        std::cerr << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
+        std::cout << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
         close(inotify_fd);
         return;
     }
@@ -103,7 +103,7 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     while (true) {
         int length = read(inotify_fd, buffer, BUF_LEN);
         if (length < 0) {
-            std::cerr << "Error reading from inotify\n";
+            std::cout << "Error reading from inotify\n";
             break;
         }
         
@@ -185,7 +185,7 @@ void ClientCommunicationManager::handle_server_update() {
             );
 
         } catch (const std::runtime_error& e) {
-            std::cerr << "Session update failed: " << e.what() << std::endl;
+            std::cout << "Session update failed: " << e.what() << std::endl;
             return;
         }
     }
@@ -268,7 +268,7 @@ void ClientCommunicationManager::send_command(const std::string command, const s
 bool ClientCommunicationManager::send_username() {
     int n = write(socket_cmd, username.c_str(), username.length());
     if (n < 0) {
-        std::cerr << "ERROR: Writing username to socket\n";
+        std::cout << "ERROR: Writing username to socket\n";
         return false;
     }
     return true;
@@ -279,12 +279,12 @@ bool ClientCommunicationManager::connect_socket_cmd() {
     struct sockaddr_in serv_addr{};
 
     if ((server = gethostbyname(server_ip.c_str())) == nullptr) {
-        std::cerr << "ERROR: No such host\n";
+        std::cout << "ERROR: No such host\n";
         return false;
     }
     
     if ((socket_cmd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "ERROR: Opening socket\n";
+        std::cout << "ERROR: Opening socket\n";
         return false;
     }
 
@@ -294,7 +294,7 @@ bool ClientCommunicationManager::connect_socket_cmd() {
     bzero(&(serv_addr.sin_zero), 8);
 
     if (connect(socket_cmd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "ERROR: Connecting to server\n";
+        std::cout << "ERROR: Connecting to server\n";
         return false;
     }
 
@@ -314,7 +314,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     bzero(buffer, 256);
 
     if (read(socket_cmd, buffer, 255) <= 0) {
-        std::cerr << "ERROR: Can't read upload port\n";
+        std::cout << "ERROR: Can't read upload port\n";
         return false;
     }
 
@@ -325,13 +325,13 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     serv_addr.sin_port = htons(*port);
 
     if (inet_pton(AF_INET, server_ip.c_str(), &serv_addr.sin_addr) <= 0) {
-        std::cerr << "Invalid IP address: " << server_ip << std::endl;
+        std::cout << "Invalid IP address: " << server_ip << std::endl;
         return false;
     }
     std::cout << "server ip: " << server_ip << std::endl;
 
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "Error connecting to server";
+        std::cout << "Error connecting to server";
         return false;
     }
 
@@ -352,7 +352,7 @@ bool ClientCommunicationManager::confirm_connection() {
         try {
             Packet errorCheck = Packet::receive(socket_cmd);
             if (errorCheck.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-                std::cerr << "Server denied connection: " << errorCheck.payload << std::endl;
+                std::cout << "Server denied connection: " << errorCheck.payload << std::endl;
                 return false;
             }
         } catch (const std::exception& e) {

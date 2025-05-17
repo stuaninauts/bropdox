@@ -20,13 +20,13 @@ void ClientFileManager::create_sync_dir(const std::string& sync_dir_path) {
             // std::cout << "Directory already exists: " << sync_dir_path << std::endl;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error while creating directory: " << e.what() << std::endl;
+        std::cout << "Error while creating directory: " << e.what() << std::endl;
     }
 }
 
 void ClientFileManager::list_files() {
     if (!fs::exists(sync_dir_path) || !fs::is_directory(sync_dir_path)) {
-        std::cerr << "Invalid directory: " << sync_dir_path << std::endl;
+        std::cout << "Invalid directory: " << sync_dir_path << std::endl;
         return;
     }
 
@@ -68,7 +68,7 @@ void ClientFileManager::remove_sync_dir(){
             // std::cout << "Directory does not exist: " << sync_dir_path << std::endl;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error while deleting directory: " << e.what() << std::endl;
+        std::cout << "Error while deleting directory: " << e.what() << std::endl;
     } 
 };
 
@@ -81,11 +81,11 @@ bool ClientFileManager::delete_local_file(const std::string filename) {
             std::filesystem::remove(filePath);
             return true;
         } else {
-            std::cerr << "File not found: " << filePath << std::endl;
+            std::cout << "File not found: " << filePath << std::endl;
             return false;
         }
     } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Error while deleting file: " << e.what() << std::endl;
+        std::cout << "Error while deleting file: " << e.what() << std::endl;
         return false;
     }
 }
@@ -97,7 +97,7 @@ bool ClientFileManager::upload_local_file(const std::string& file_path) {
 
     try {
         if (!std::filesystem::exists(sourcePath)) {
-            std::cerr << "Source file not found: " << sourcePath << std::endl;
+            std::cout << "Source file not found: " << sourcePath << std::endl;
             return false;
         }
 
@@ -108,7 +108,7 @@ bool ClientFileManager::upload_local_file(const std::string& file_path) {
         std::filesystem::copy_file(sourcePath, destinationPath, std::filesystem::copy_options::overwrite_existing);
         return true;
     } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Error while uploading file: " << e.what() << std::endl;
+        std::cout << "Error while uploading file: " << e.what() << std::endl;
         return false;
     }
 }
@@ -121,7 +121,7 @@ bool ClientFileManager::download_local_file(const std::string& filename) {
 
     try {
         if (!std::filesystem::exists(sourcePath)) {
-            std::cerr << "File not found in sync directory: " << sourcePath << std::endl;
+            std::cout << "File not found in sync directory: " << sourcePath << std::endl;
             return false;
         }
 
