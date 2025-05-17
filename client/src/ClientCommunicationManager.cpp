@@ -130,9 +130,12 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             access_ignored_files.lock();
             {
                 auto it = ignored_files.find(event->name);
-                if(ignore = it != ignored_files.end()) {
-                    ignored_files.erase(it);
+                if(it != ignored_files.end()) {
                     std::cout << "Removed file from ignored_files: " << *it << std::endl;
+                    ignored_files.erase(it);
+                    ignore = true;
+                } else {
+                    ignore = false;
                 }
             }
             access_ignored_files.unlock();
