@@ -67,43 +67,74 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
 // ========================================= //
 
 void ServerCommunicationManager::handle_client_cmd() {
-    while (socket_cmd > 0) {
-        Packet packet = Packet::receive(socket_cmd);
-        std::cout << session_name << "Packet received: " << packet.to_string() << std::endl;
+    try {
+        while (this->socket_cmd > 0) {
+            Packet packet = Packet::receive(this->socket_cmd);
+            // std::cout << session_name << "Packet received: " << packet.to_string() << std::endl; // Optional: can be verbose
 
-        std::vector<string> tokens = split_command(packet.payload);
-        std::string command = tokens[0];
-        
-        if (command == "upload") {
-            std::cout << session_name << "{CMD} client upload" << std::endl;
+            std::vector<string> tokens = split_command(packet.payload);
+            if (tokens.empty()) {
+                std::cout << session_name << "Received empty command payload." << std::endl;
+                continue;
+            }
+            std::string command = tokens[0];
+            
+            if (command == "upload") {
+                std::cout << session_name << "{CMD} client upload: " << (tokens.size() > 1 ? tokens[1] : "filename_missing") << std::endl;
+                // Note: Actual upload logic would typically be handled after this command,
+                // involving reading data from the socket_upload.
+            } else if (command == "download") {
+                if (tokens.size() > 1) {
+                    std::cout << session_name << "{CMD} client download: " << tokens[1] << std::endl;
+                    handle_client_download(tokens[1]);
+                } else {
+                    std::cout << session_name << "Download command missing filename." << std::endl;
+                    // Optionally send an error packet back to client
+                }
+            } else if (command == "delete") {
+                 if (tokens.size() > 1) {
+                    std::cout << session_name << "{CMD} client delete: " << tokens[1] << std::endl;
+                    handle_client_delete(tokens[1]);
+                } else {
+                    std::cout << session_name << "Delete command missing filename." << std::endl;
+                    // Optionally send an error packet back to client
+                }
+            } else if (command == "list_server") {
+                std::cout << session_name << "{CMD} list_server" << std::endl;
+                handle_list_server();
+            } else if (command == "exit") {
+                std::cout << session_name << "{CMD} client exit" << std::endl;
+                handle_exit(); // Perform cleanup
+                break;         // Exit the loop and thread
+            } else if (command == "get_sync_dir") {
+                std::cout << session_name << "{CMD} get_sync_dir" << std::endl;
+                handle_get_sync_dir();        
+            } else {
+                std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
+            }
         }
-        else if (command == "download") {
-            std::cout << session_name << "{CMD} client download" << std::endl;
-            handle_client_download(tokens[1]);
-        } else if (command == "delete") {
-            std::cout << session_name << "{CMD} client delete" << std::endl;
-            handle_client_delete(tokens[1]);
-        } else if (command == "list_server") {
-            handle_list_server();
-        } else if (packet.payload == "exit") {
-            handle_exit();
-        } else if (packet.payload == "get_sync_dir") {
-            handle_get_sync_dir();        
+    } catch (const std::runtime_error& e) {
+        std::string error_msg = e.what();
+        if (error_msg == "Connection closed by peer" || error_msg == "Error reading from socket") {
+            std::cout << session_name << "Client command socket closed unexpectedly: " << error_msg << std::endl;
         } else {
-            std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
+            std::cout << session_name << "Runtime error in handle_client_cmd: " << error_msg << std::endl;
         }
+        handle_exit(); // Ensure cleanup on any error that terminates the loop
     }
+    std::cout << session_name << "Exiting handle_client_cmd thread." << std::endl;
 }
 
 void ServerCommunicationManager::handle_client_update() {
-    while (socket_upload != -1) {
-        try {
-            std::cout << session_name << "Receiving client pushes" << std::endl;
-            Packet meta_packet = Packet::receive(socket_upload);
+    try {
+        while (this->socket_upload > 0) { // Use > 0 for consistency with close_sockets
+            // std::cout << session_name << "Receiving client pushes" << std::endl; // Optional: can be verbose
+            Packet meta_packet = Packet::receive(this->socket_upload);
 
-            std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl;
+            // std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl; // Optional
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cout << session_name << "Received ERROR packet on update socket: " << meta_packet.payload << std::endl;
                 continue;
             }
 
@@ -116,17 +147,24 @@ void ServerCommunicationManager::handle_client_update() {
                 handle_client_upload(meta_packet.payload, meta_packet.total_size);
                 continue;
             }
-
-            throw std::runtime_error(
-                "Unexpected packet type " + std::to_string(meta_packet.type) + 
-                " received from client (expected DATA, DELETE, or ERROR)"
-            );
-
-        } catch (const std::runtime_error& e) {
-            std::cout << session_name << "Client update failed: " << e.what() << std::endl;
-            return;
+            
+            // If packet type is none of the above, it's unexpected.
+            std::cout << session_name << "Unexpected packet type " << meta_packet.type 
+                      << " on update socket. Payload: " << meta_packet.payload << std::endl;
+            // Consider if this should be an error that terminates the session.
+            // For now, it logs and continues. If it should be fatal:
+            // throw std::runtime_error("Unexpected packet type on update socket");
         }
+    } catch (const std::runtime_error& e) {
+        std::string error_msg = e.what();
+        if (error_msg == "Connection closed by peer" || error_msg == "Error reading from socket") {
+            std::cout << session_name << "Client update socket closed unexpectedly: " << error_msg << std::endl;
+        } else {
+            std::cout << session_name << "Runtime error in handle_client_update: " << error_msg << std::endl;
+        }
+        handle_exit(); // Ensure cleanup on any error
     }
+    std::cout << session_name << "Exiting handle_client_update thread." << std::endl;
 }
 
 // ========================================= //
@@ -134,9 +172,19 @@ void ServerCommunicationManager::handle_client_update() {
 // ========================================= //
 
 void ServerCommunicationManager::close_sockets() {
-    if (socket_cmd > 0) close(socket_cmd);
-    if (socket_download > 0) close(socket_download);
-    if (socket_upload > 0) close(socket_upload);
+    std::cout << session_name << "Closing sockets." << std::endl;
+    if (socket_cmd > 0) {
+        close(socket_cmd);
+        socket_cmd = 0;
+    }
+    if (socket_download > 0) {
+        close(socket_download);
+        socket_download = 0;
+    }
+    if (socket_upload > 0) {
+        close(socket_upload);
+        socket_upload = 0;
+    }
 }
 
 bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
@@ -257,12 +305,31 @@ void ServerCommunicationManager::handle_get_sync_dir(){
 }
 
 void ServerCommunicationManager::handle_exit() {
-    close_sockets();
-    access_devices.lock();
-    {
-        devices->remove_client_socket(username, socket_download);
+    std::cout << session_name << "Handling exit for client." << std::endl;
+
+    // Capture the download socket descriptor used for device registration before closing.
+    // This assumes this->socket_download holds the relevant descriptor.
+    // If close_sockets() has already run, this->socket_download might be 0.
+    // It's better if remove_client_socket could be called with the original descriptor
+    // or if ClientsDevices handles already closed sockets gracefully.
+    // For now, we rely on the fact that socket_download was added.
+    int download_socket_id_for_removal = this->socket_download;
+
+    close_sockets(); // Close all sockets for this session.
+
+    // Remove client from the shared devices list.
+    // access_devices lock protects the shared 'devices' object.
+    if (download_socket_id_for_removal > 0) { // Only attempt removal if it was a valid socket
+        access_devices.lock();
+        {
+            if (devices) { // Ensure devices pointer is valid
+                devices->remove_client_socket(this->username, download_socket_id_for_removal);
+            }
+        }
+        access_devices.unlock();
     }
-    access_devices.unlock();
+    // The loops in handle_client_cmd and handle_client_update will now terminate
+    // because their respective socket variables (e.g., this->socket_cmd) are set to 0.
 }
 
 void ServerCommunicationManager::handle_list_server() {
