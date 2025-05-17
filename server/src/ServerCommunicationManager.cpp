@@ -135,32 +135,36 @@ void ServerCommunicationManager::read_cmd() {
 }
 
 void ServerCommunicationManager::sync_client() {
-    try {
-        Packet meta_packet = Packet::receive(socket_upload);
+    while (socket_upload != -1) {
+        try {
+            std::cout << session_name << "receiving client pushes" << std::endl;
+            Packet meta_packet = Packet::receive(socket_upload);
 
-        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            std::cerr << session_name << "Received error packet from client: " << meta_packet.payload << std::endl;
+            std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl;
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+                handle_client_delete(meta_packet.payload);
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+                handle_client_upload(meta_packet.payload, meta_packet.total_size);
+                continue;
+            }
+
+            throw std::runtime_error(
+                "Unexpected packet type " + std::to_string(meta_packet.type) + 
+                " received from client (expected DATA, DELETE, or ERROR)"
+            );
+
+        } catch (const std::runtime_error& e) {
+            std::cerr << session_name << "Client synchronization failed - " << e.what() << std::endl;
             return;
         }
-
-        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
-            handle_client_delete(meta_packet.payload);
-            return;
-        }
-
-        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
-            handle_client_upload(meta_packet.payload, meta_packet.total_size);
-            return;
-        }
-
-        throw std::runtime_error(
-            "Unexpected packet type " + std::to_string(meta_packet.type) + 
-            " received from client (expected DATA, DELETE, or ERROR)"
-        );
-
-    } catch (const std::runtime_error& e) {
-        std::cerr << session_name << "Client synchronization failed - " << e.what() << std::endl;
-        return;
     }
 }
 
