@@ -253,7 +253,7 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
     }
     access_ignored_files.unlock();
     // TEST WITH DOCKER
-    std::string tmp = "./tmp/";
+    std::string tmp = "./.tmp/";
     std::filesystem::create_directory(tmp);
     Packet::receive_file(socket_download, filename, tmp, total_packets);
     std::string tmp_filepath = tmp + filename;
