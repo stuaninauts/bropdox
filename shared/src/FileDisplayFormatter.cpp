@@ -2,10 +2,10 @@
 
 void FileDisplayFormatter::print_table_header(std::ostream& out) {
     out << std::left 
-        << std::setw(FILE_COLUMN_WIDTH) << "Arquivo"
-        << std::setw(TIME_COLUMN_WIDTH) << "Último Acesso (atime)"
-        << std::setw(TIME_COLUMN_WIDTH) << "Modificação (mtime)"
-        << "Criação/Metadata (ctime)" << std::endl;
+        << std::setw(FILE_COLUMN_WIDTH) << "File"
+        << std::setw(TIME_COLUMN_WIDTH) << "Last Access (atime)"
+        << std::setw(TIME_COLUMN_WIDTH) << "Modification (mtime)"
+        << "Creation/Metadata (ctime)" << std::endl;
 }
 
 std::string FileDisplayFormatter::format_time(std::time_t raw_time) {
@@ -23,7 +23,7 @@ bool FileDisplayFormatter::get_file_stat(const fs::path& path, struct stat& st) 
 void FileDisplayFormatter::print_file_info(const fs::directory_entry& entry, std::ostream& out) {
     struct stat st{};
     if (!get_file_stat(entry.path(), st)) {
-        out << "Erro ao acessar: " << entry.path() << std::endl;
+        out << "Error accessing: " << entry.path() << std::endl;
         return;
     }
 

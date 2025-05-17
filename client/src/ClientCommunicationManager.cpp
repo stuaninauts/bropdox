@@ -24,7 +24,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     this->port_cmd = port;
     this->username = username;
     try {
-        // Inicialização da conexão principal
+        // Initialization of the main connection
         if (!connect_socket_cmd()) {
             close_sockets();
             return false;
@@ -35,35 +35,35 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             return false;
         }
 
-        // Cria socket de upload
+        // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Erro ao criar socket de upload";
+            std::cerr << "Error creating upload socket";
             close_sockets();
             return false;
         }
 
-        // Cria socket de download
+        // Create download socket
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Erro ao criar socket de download";
+            std::cerr << "Error creating download socket";
             close_sockets();
             return false;
         }
 
-        // Conecta socket de upload
+        // Connect upload socket
         if (!connect_socket_to_server(socket_upload, &port_upload)){
-            std::cerr << "Erro ao conectar socket de download";
+            std::cerr << "Error connecting upload socket";
             close_sockets();
             return false;
         }
 
-        // Conecta socket de download
+        // Connect download socket
         if (!connect_socket_to_server(socket_download, &port_download)){
-            std::cerr << "Erro ao conectar socket de download";
+            std::cerr << "Error connecting download socket";
             close_sockets();
             return false;
         }
 
-        // Verificação de erros e recebimento de confirmação
+        // Error checking and connection confirmation
         if (!confirm_connection()) {
             close_sockets();
             return false;
@@ -74,8 +74,8 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         return true;
 
     } catch (const std::exception& e) {
-        std::cerr << "Exceção: " << e.what() << std::endl;
-        close_sockets(); // TODO: revisar
+        std::cerr << "Exception: " << e.what() << std::endl;
+        close_sockets(); // TODO: review
         return false;
     }
 }
@@ -84,13 +84,13 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     bool ignore = false;
     int inotify_fd = inotify_init();
     if (inotify_fd < 0) {
-        std::cerr << "Erro ao inicializar inotify\n";
+        std::cerr << "Error initializing inotify\n";
         return;
     }
     
     int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
     if (wd < 0) {
-        std::cerr << "Erro ao adicionar watch para " << sync_dir_path << ": " << strerror(errno) << "\n";
+        std::cerr << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
         close(inotify_fd);
         return;
     }
@@ -98,12 +98,12 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     const size_t EVENT_SIZE = sizeof(struct inotify_event);
     const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
     char buffer[BUF_LEN];
-    std::cout << "Monitorando diretório: " << sync_dir_path << std::endl;
+    std::cout << "Watching directory: " << sync_dir_path << std::endl;
     
     while (true) {
         int length = read(inotify_fd, buffer, BUF_LEN);
         if (length < 0) {
-            std::cerr << "Erro na leitura do inotify\n";
+            std::cerr << "Error reading from inotify\n";
             break;
         }
         
@@ -132,7 +132,7 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
                 auto it = ignored_files.find(event->name);
                 if(ignore = it != ignored_files.end()) {
                     ignored_files.erase(it);
-                    std::cout << "removed file from ignored_files: " << *it << std::endl;
+                    std::cout << "Removed file from ignored_files: " << *it << std::endl;
                 }
             }
             access_ignored_files.unlock();
@@ -160,10 +160,10 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
 void ClientCommunicationManager::handle_server_update() {
     while (socket_upload != -1) {
         try {
-            std::cout << "receiving server pushes" << std::endl;
+            std::cout << "Receiving server pushes" << std::endl;
             Packet meta_packet = Packet::receive(socket_download);
 
-            std::cout << "received meta_packet from client: " << meta_packet.payload << std::endl;
+            std::cout << "Received meta_packet from client: " << meta_packet.payload << std::endl;
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
                 continue;
@@ -180,7 +180,7 @@ void ClientCommunicationManager::handle_server_update() {
             }
 
             throw std::runtime_error(
-                "unexpected packet type " + std::to_string(meta_packet.type) + 
+                "Unexpected packet type " + std::to_string(meta_packet.type) + 
                 " received from client (expected DATA, DELETE, or ERROR)"
             );
 
@@ -195,11 +195,11 @@ void ClientCommunicationManager::get_sync_dir(){
     std::string file_path = "./sync_dir/";
     send_command("get_sync_dir");
     if(!Packet::receive_multiple_files(socket_download, file_path))
-        std::cout << "Erro ao realizar o get_sync_dir" << std::endl;
+        std::cout << "Error performing get_sync_dir" << std::endl;
 }
 
 void ClientCommunicationManager::exit_server() {
-    std::cout << "Desconexando do servidor..." << std::endl;
+    std::cout << "Disconnecting from server..." << std::endl;
     send_command("exit");
     close_sockets();
     exit(0);
@@ -208,11 +208,10 @@ void ClientCommunicationManager::exit_server() {
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::string filename = std::filesystem::path(filepath).filename().string();
     send_command("upload", filename);
-    // Se não é possível enviar o arquivo, o cliente deve enviar um pacote de erro
-    // para o servidor para desbloquea-lo, pois ele está esperando um arquivo.
+    // If the file cannot be sent, the client must send an error packet
+    // to the server to unlock it, as it is waiting for a file.
     if (!Packet::send_file(socket_upload, filepath))
         Packet::send_error(socket_upload);
-    
 }
 
 void ClientCommunicationManager::download_file(const std::string filename) {
@@ -240,7 +239,7 @@ void ClientCommunicationManager::handle_server_delete(const std::string filename
         ignored_files.insert(filename);
     }
     access_ignored_files.unlock();
-    // TESTAR COM DOCKER
+    // TEST WITH DOCKER
     ClientFileManager::delete_local_file(filename);
 }
 
@@ -250,7 +249,7 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
         ignored_files.insert(filename);
     }
     access_ignored_files.unlock();
-    // TESTAR COM DOCKER
+    // TEST WITH DOCKER
     std::string tmp = "./tmp/";
     std::filesystem::create_directory(tmp);
     Packet::receive_file(socket_download, filename, tmp, total_packets);
@@ -261,7 +260,7 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
 
 void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
     std::string payload = command;
-    if(filename != "") payload += " " + filename; //segredo TODO ta ruim feio
+    if(filename != "") payload += " " + filename; //secret TODO ugly bad
     Packet command_packet(static_cast<uint16_t>(Packet::Type::CMD), 0, 1, payload.size(), payload);
     command_packet.send(socket_cmd);
 }
@@ -326,13 +325,13 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     serv_addr.sin_port = htons(*port);
 
     if (inet_pton(AF_INET, server_ip.c_str(), &serv_addr.sin_addr) <= 0) {
-        std::cerr << "Endereço IP inválido: " << server_ip << std::endl;
+        std::cerr << "Invalid IP address: " << server_ip << std::endl;
         return false;
     }
-    std::cout << "server ip" << server_ip << std::endl;
+    std::cout << "server ip: " << server_ip << std::endl;
 
     if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "Erro ao conectar ao servidor";
+        std::cerr << "Error connecting to server";
         return false;
     }
 
@@ -349,15 +348,15 @@ bool ClientCommunicationManager::confirm_connection() {
     FD_SET(socket_cmd, &readfds);
 
     if (select(socket_cmd + 1, &readfds, NULL, NULL, &tv) > 0) {
-        // Há dados para ler no socket_cmd
+        // There is data to read on socket_cmd
         try {
             Packet errorCheck = Packet::receive(socket_cmd);
             if (errorCheck.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-                std::cerr << "O servidor negou a conexão: " << errorCheck.payload << std::endl;
+                std::cerr << "Server denied connection: " << errorCheck.payload << std::endl;
                 return false;
             }
         } catch (const std::exception& e) {
-            // Ignora exceções aqui, pq não é obrigatório ter um erro
+            // Ignore exceptions here because an error is not mandatory
         }
     }
     return true;

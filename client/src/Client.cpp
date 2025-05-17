@@ -2,9 +2,8 @@
 #include <Packet.hpp>
 #include <filesystem>
 
-
 // ======================================== //
-// ================ PUBLIC ================ //
+// ================= PUBLIC =============== //
 // ======================================== //
 
 void Client::run() {
@@ -27,7 +26,7 @@ void Client::run() {
 }
 
 // ========================================= //
-// ================ THREADS ================ //
+// ================= THREADS ============== //
 // ========================================= //
 
 void Client::sync_local() {
@@ -52,7 +51,7 @@ void Client::user_interface() {
 }
 
 // ========================================= //
-// ================ PRIVATE ================ //
+// ================= PRIVATE ============== //
 // ========================================= //
 
 vector<string> Client::split_command(const string &command) {
@@ -75,17 +74,17 @@ void Client::process_command(const std::vector<string> &tokens) {
 
     if (command == "upload" && tokens.size() == 2) {
         if (file_manager.upload_local_file(tokens[1])) {
-            std::cout << "arquivo enviado pelo comando" << std::endl;
+            std::cout << "File uploaded via command" << std::endl;
             comm_manager.upload_file(tokens[1]);
         }
     } else if (command == "download" && tokens.size() == 2) {
         if (file_manager.download_local_file(tokens[1])) {
-            std::cout << "arquivo baixado pelo comando" << std::endl;
+            std::cout << "File downloaded via command" << std::endl;
             comm_manager.download_file(tokens[1]);
         }
     } else if (command == "delete" && tokens.size() == 2) {
         if (file_manager.delete_local_file(tokens[1])) {
-            std::cout << "arquivo deletado pelo comando" << std::endl;
+            std::cout << "File deleted via command" << std::endl;
             comm_manager.delete_file(tokens[1]);
         }
     } else if (command == "list_server") {
@@ -96,7 +95,7 @@ void Client::process_command(const std::vector<string> &tokens) {
 
     } else if (command == "get_sync_dir") {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;
-        // Pode chamar alguma função de criação aqui se necessário
+        // You may call some creation function here if necessary
 
     } else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;

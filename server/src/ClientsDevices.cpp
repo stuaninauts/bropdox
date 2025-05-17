@@ -1,14 +1,13 @@
 #include <ClientsDevices.hpp>
 
-
 bool ClientsDevices::add_client_socket(const std::string& username, int sockfd)
 {
     auto it = clients_sockets.find(username);
     if (it != clients_sockets.end()) {
         if (clients_sockets[username].size() >= 2) {
-            std::cout << "Máximo de 2 conexões alcançado para o usuário " << username << ".\n";
+            std::cout << "Maximum of 2 connections reached for user " << username << ".\n";
             close(sockfd);
-            // MANDAR MSG PRA MATAR CLIENTE
+            // SEND MESSAGE TO TERMINATE CLIENT
             return false;
         }
         clients_sockets[username].push_back(sockfd);
@@ -16,7 +15,7 @@ bool ClientsDevices::add_client_socket(const std::string& username, int sockfd)
         clients_sockets[username].push_back(sockfd);
     }
 
-    print_clients_sockets();  // <-- PERIGOSO SE USAR O MESMO MUTEX
+    print_clients_sockets();  // <-- DANGEROUS IF USING THE SAME MUTEX
     return true;
 }
 
@@ -26,35 +25,35 @@ void ClientsDevices::remove_client_socket(const std::string& username, int sockf
     if (it != clients_sockets.end()) {
         auto& sockets = it->second;
 
-        // Remove o sockfd do vetor
+        // Remove sockfd from vector
         sockets.erase(std::remove(sockets.begin(), sockets.end(), sockfd), sockets.end());
 
-        std::cout << "Socket " << sockfd << " removido do usuário " << username << ".\n";
+        std::cout << "Socket " << sockfd << " removed from user " << username << ".\n";
 
-        // Se não restarem mais sockets, remove o usuário do mapa
+        // If no sockets remain, remove the user from the map
         if (sockets.empty()) {
             clients_sockets.erase(it);
-            std::cout << "Usuário " << username << " removido do mapa (sem conexões ativas).\n";
+            std::cout << "User " << username << " removed from map (no active connections).\n";
         }
     } else {
-        std::cout << "Usuário " << username << " não encontrado para remoção.\n";
+        std::cout << "User " << username << " not found for removal.\n";
     }
 
     print_clients_sockets();
 }
 
 void ClientsDevices::print_clients_sockets() {
-    // Verifica se o mapa está vazio
+    // Check if the map is empty
     if (clients_sockets.empty()) {
-        std::cout << "O mapa de clientes está vazio!" << std::endl;
+        std::cout << "The client map is empty!" << std::endl;
     }
 
-    // Itera sobre o unordered_map
+    // Iterate through the unordered_map
     for (const auto& pair : clients_sockets) {
         const std::string& username = pair.first;
         const std::vector<int>& sockets = pair.second;
 
-        std::cout << "Usuário: " << username << " - Conexões de download: ";
+        std::cout << "User: " << username << " - Download connections: ";
 
         for (int socket : sockets) {
             std::cout << socket << " ";

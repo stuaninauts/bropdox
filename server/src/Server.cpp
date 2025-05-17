@@ -5,7 +5,6 @@
 
 #define PORT 8085
 
-
 void Server::handle_client(int socket) {
     char buffer[256];
     bzero(buffer, 256);
@@ -13,10 +12,10 @@ void Server::handle_client(int socket) {
     int n = read(socket, buffer, 255);
     
     if(n <= 0) {
-        std::cerr << "Erro ao ler username do cliente" << std::endl;
+        std::cerr << "Error reading client's username" << std::endl;
         return;
     }
-    username = std::string(buffer); // <-- corrigido: atribuição em vez de nova declaração
+    username = std::string(buffer); // <-- fixed: assignment instead of redeclaration
     std::cout << "Username: " << username << std::endl;
     
     try {
@@ -27,17 +26,17 @@ void Server::handle_client(int socket) {
         comm_manager->run_client_session(socket, username, devices);
 
     } catch(const std::exception& e) {
-        std::cerr << "Erro ao criar o gerenciador de arquivos do servidor: " << e.what() << std::endl;
+        std::cerr << "Error creating server file manager: " << e.what() << std::endl;
     }
 }
 
 bool Server::setup() {
-    std::cout << "Setup server..." << endl;
+    std::cout << "Setting up server..." << std::endl;
 
     struct sockaddr_in server_address;
     
     if ((initial_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        std::cout << "SETUP ERROR opening socket" << std::endl;
+        std::cout << "SETUP ERROR: Failed to open socket" << std::endl;
         return false;
     }
 
@@ -47,14 +46,14 @@ bool Server::setup() {
     bzero(&(server_address.sin_zero), 8);
 
     if (bind(initial_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
-        std::cout << "SETUP ERROR on binding" << std::endl;
+        std::cout << "SETUP ERROR: Failed to bind socket" << std::endl;
         return false;
     }
     
-    std::cout << "Server waiting connections..." << endl;
+    std::cout << "Server waiting for connections..." << std::endl;
 
     if (listen(initial_socket, 5) < 0) {
-        std::cerr << "SETUP ERROR on listen" << std::endl;
+        std::cerr << "SETUP ERROR: Failed to listen on socket" << std::endl;
         return false;
     }
 
@@ -76,10 +75,10 @@ void Server::run() {
         client_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
 
         if (client_socket == -1)
-            std::cout << "ERROR on accept new client" << std::endl;
+            std::cout << "ERROR: Failed to accept new client" << std::endl;
         
         if (client_socket >= 0) {
-            std::cout << "Client conected" << std::endl; 
+            std::cout << "Client connected" << std::endl; 
             std::thread client_thread(&Server::handle_client, this, client_socket);
             client_thread.detach();
         }

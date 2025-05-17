@@ -3,22 +3,22 @@
 
 void ServerFileManager::create_sync_dir() {
     int status;
-    
-    // cria pasta do bropdox
+
+    // creates bropdox folder
     std::string folder_name = "./sync_dir_server";
     status = mkdir(folder_name.c_str(), 0777);
-    if(status !=0) {
+    if (status != 0) {
         if (errno != EEXIST) {
-             std::cerr << "[ERRO] Falha ao criar pasta " << std::endl;
+            std::cerr << "[ERROR] Failed to create folder." << std::endl;
         } 
     }
 
-    // cria sync_dir do usuário
+    // creates user's sync_dir
     folder_name += "/sync_dir_" + username;
     status = mkdir(folder_name.c_str(), 0777);
-    if(status !=0) {
+    if (status != 0) {
         if (errno != EEXIST) {
-             std::cerr << "[ERRO] Falha ao criar pasta " << std::endl;
+            std::cerr << "[ERROR] Failed to create folder." << std::endl;
         } 
     }
 }
@@ -26,15 +26,15 @@ void ServerFileManager::create_sync_dir() {
 ServerFileManager::ServerFileManager(const std::string& username_) {
     username = username_;
     server_dir_path = "./sync_dir_server/sync_dir_" + username_;
-    
-    // Verifica se o diretório existe, se não, cria
+
+    // Checks if directory exists; if not, creates it
     try {
         if (!fs::exists(server_dir_path)) {
             fs::create_directories(server_dir_path);
-            std::cout << "Diretório do usuário criado: " << server_dir_path << std::endl;
+            std::cout << "User directory created: " << server_dir_path << std::endl;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Erro ao verificar/criar diretório do usuário: " << e.what() << std::endl;
+        std::cerr << "Error checking/creating user directory: " << e.what() << std::endl;
     }
 }
 
@@ -46,18 +46,18 @@ void ServerFileManager::delete_file(const std::string filename) {
     std::string filepath = server_dir_path + "/" + filename;
 
     if (std::remove(filepath.c_str()) == 0) {
-        std::cout << "Arquivo " << filepath << " deletado com sucesso." << std::endl;
+        std::cout << "File " << filepath << " successfully deleted." << std::endl;
     } else {
-        std::cerr << "Erro ao deletar arquivo: " << filepath << std::endl;
+        std::cerr << "Error deleting file: " << filepath << std::endl;
     }
 }
 
 void ServerFileManager::list_files() {
     std::string user_dir = "./sync_dir_server/sync_dir_" + username;
-    std::cout << "Listando arquivos no diretório: " << user_dir << std::endl;
-    
+    std::cout << "Listing files in directory: " << user_dir << std::endl;
+
     if (!fs::exists(user_dir) || !fs::is_directory(user_dir)) {
-        std::cerr << "Diretório do usuário não encontrado: " << user_dir << std::endl;
+        std::cerr << "User directory not found: " << user_dir << std::endl;
         return;
     }
 
@@ -72,9 +72,9 @@ void ServerFileManager::list_files() {
 
 std::string ServerFileManager::get_files_list() {
     std::string user_dir = "./sync_dir_server/sync_dir_" + username;
-    
+
     if (!fs::exists(user_dir) || !fs::is_directory(user_dir)) {
-        return "Diretório do usuário não encontrado: " + user_dir;
+        return "User directory not found: " + user_dir;
     }
 
     std::stringstream ss;

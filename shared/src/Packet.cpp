@@ -148,13 +148,12 @@ string Packet::to_string() const {
 bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
     std::string dir_path = "./sync_dir_server/sync_dir_" + username;
 
-    // Diretório não existe ou está vazio — envia "empty"
     Packet empty_packet(
-        static_cast<uint16_t>(Packet::Type::EMPTY), // type
-        0,                                            // seqn
-        1,                                            // total_size
-        static_cast<uint16_t>(std::string("empty").size()), // length
-        "empty"                                     // payload
+        static_cast<uint16_t>(Packet::Type::EMPTY),
+        0,
+        1,
+        static_cast<uint16_t>(std::string("empty").size()),
+        "empty"
     );
 
     if (!fs::exists(dir_path) || fs::is_empty(dir_path)) {
@@ -167,7 +166,7 @@ bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
         if (fs::is_regular_file(entry.path())) {
             bool result = Packet::send_file(socket_fd, entry.path().string());
             if (!result) {
-                cerr << "Falha ao enviar o arquivo: " << entry.path() << endl;
+                cerr << "Failed to send file: " << entry.path() << endl;
                 all_sent = false;
             }
         }
@@ -179,28 +178,23 @@ bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
 
 bool Packet::receive_multiple_files(int socket_fd, const std::string& output_dir) {
     while (true) {
-        // Receive metadata packet
         Packet metaPacket = Packet::receive(socket_fd);
 
-        // End-of-stream marker
         if (metaPacket.type == static_cast<uint16_t>(Packet::Type::EMPTY)
             && metaPacket.payload == "empty") {
             std::cout << "All remote files received." << std::endl;
             return true;
         }
 
-        // Expecting metadata packet type
         if (metaPacket.type != static_cast<uint16_t>(Packet::Type::DATA)) {
-            std::cerr << "Esperado pacote de metadados (type METADATA), recebido type "
+            std::cerr << "Expected metadata packet (type METADATA), but received type "
                       << metaPacket.type << std::endl;
             return false;
         }
 
-        // Extract file information
         std::string fileName = metaPacket.payload;
         uint32_t totalPackets = metaPacket.total_size;
 
-        // Receive actual file packets
         bool ok = receive_file(socket_fd, fileName, output_dir, totalPackets);
         if (!ok) {
             return false;
@@ -211,68 +205,57 @@ bool Packet::receive_multiple_files(int socket_fd, const std::string& output_dir
 bool Packet::send_file(int socket_fd, const string& filePath) {
     ifstream file(filePath, ios::binary);
     if (!file) {
-        cerr << "Erro ao abrir o arquivo: " << filePath << endl;
+        cerr << "Error opening file: " << filePath << endl;
         return false;
     }
-    
-    // Obtém o nome do arquivo
+
     string fileName = filePath.substr(filePath.find_last_of("/\\") + 1);
-    
-    // Tamanho máximo do payload
     const size_t MAX_PAYLOAD_SIZE = 4096;
-    
-    // Primeiro pacote com o nome do arquivo
+
     Packet metaPacket;
-    metaPacket.type = 1; // Tipo metadados
+    metaPacket.type = 1;
     metaPacket.seqn = 0;
     metaPacket.payload = fileName;
     metaPacket.length = fileName.length();
-    metaPacket.total_size = 0; // Será calculado depois
-    
-    // Buffer para ler o arquivo
+    metaPacket.total_size = 0;
+
     vector<char> buffer(MAX_PAYLOAD_SIZE);
     vector<Packet> packets;
     uint16_t seqn = 1;
-    
-    // Lê o arquivo em partes e cria pacotes
+
     while (file) {
         file.read(buffer.data(), MAX_PAYLOAD_SIZE);
         size_t bytesRead = file.gcount();
-        
+
         if (bytesRead > 0) {
             Packet dataPacket;
-            dataPacket.type = 2; // Tipo dados
+            dataPacket.type = 2;
             dataPacket.seqn = seqn++;
             dataPacket.payload = string(buffer.data(), bytesRead);
             dataPacket.length = bytesRead;
-            
             packets.push_back(dataPacket);
         }
-        
+
         if (bytesRead < MAX_PAYLOAD_SIZE) {
-            break; // Fim do arquivo
+            break;
         }
     }
-    
-    // Atualiza o total de pacotes
+
     metaPacket.total_size = packets.size();
     for (auto& packet : packets) {
         packet.total_size = packets.size();
     }
-    
-    // Envia o pacote de metadados
+
     try {
         metaPacket.send(socket_fd);
-        
-        // Envia os pacotes de dados
         for (const auto& packet : packets) {
             packet.send(socket_fd);
         }
-        
-        cout << "Arquivo " << fileName << " enviado com sucesso em " << packets.size() << " pacotes." << endl;
+
+        cout << "File " << fileName << " successfully sent in " << packets.size() << " packets." << endl;
         return true;
     } catch (const std::runtime_error& e) {
-        cerr << "Erro ao enviar arquivo: " << e.what() << endl;
+        cerr << "Error sending file: " << e.what() << endl;
         return false;
     }
 }
@@ -282,7 +265,7 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
     ofstream outFile(outputPath, ios::binary);
 
     if (!outFile) {
-        cerr << "Erro ao criar arquivo de saída: " << outputPath << endl;
+        cerr << "Error creating output file: " << outputPath << endl;
         return false;
     }
 
@@ -290,13 +273,13 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
         Packet dataPacket = Packet::receive(socket_fd);
 
         if (dataPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            cerr << "Erro ao receber arquivo: " << dataPacket.payload << endl;
+            cerr << "Error receiving file: " << dataPacket.payload << endl;
             return false;
         }
 
         if (dataPacket.seqn != i + 1) {
-            cerr << "Erro: Pacote fora de ordem. Esperado " << i + 1
-                 << ", recebido " << dataPacket.seqn << endl;
+            cerr << "Error: Out-of-order packet. Expected " << i + 1
+                 << ", but received " << dataPacket.seqn << endl;
             outFile.close();
             return false;
         }
@@ -305,7 +288,7 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
     }
 
     outFile.close();
-    cout << "Arquivo " << fileName << " recebido com sucesso e salvo em " << outputPath << endl;
+    cout << "File " << fileName << " successfully received and saved to " << outputPath << endl;
     return true;
 }
 
@@ -317,10 +300,10 @@ bool Packet::delete_file(const string& fileName, const string& outputDir) {
     filePath += fileName;
 
     if (std::remove(filePath.c_str()) == 0) {
-        cout << "Arquivo " << filePath << " deletado com sucesso." << endl;
+        cout << "File " << filePath << " successfully deleted." << endl;
         return true;
     } else {
-        cerr << "Erro ao deletar arquivo: " << filePath << endl;
+        cerr << "Error deleting file: " << filePath << endl;
         return false;
     }
 }
@@ -334,14 +317,13 @@ string Packet::build_output_path(const string& fileName, const string& outputDir
     return outputPath;
 }
 
-
 void Packet::send_error(int socket_fd) {
     Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, 5, "ERROR");
     std::cout << errorPacket.to_string() << std::endl;
     try {
         errorPacket.send(socket_fd);
     } catch (const std::exception& e) {
-        std::cerr << "ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! ADSFASFDSA Error sending error packet: " << e.what() << std::endl;
+        std::cerr << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending error packet: " << e.what() << std::endl;
     }
 }
 
@@ -350,6 +332,6 @@ void Packet::send_ack(int socket_fd) {
     try {
         ackPacket.send(socket_fd);
     } catch (const std::exception& e) {
-        std::cerr << "ATENCAO!!!! DEBUGAR TODO CÓDIGO!!! Error sending ack packet: " << e.what() << std::endl;
+        std::cerr << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending ack packet: " << e.what() << std::endl;
     }
 }

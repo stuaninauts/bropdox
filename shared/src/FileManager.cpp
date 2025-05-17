@@ -6,7 +6,7 @@ bool FileManager::copy_file(const fs::path& source_path, const fs::path& destina
         fs::copy_file(source_path, destination_path, fs::copy_options::overwrite_existing);
         return true;
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Erro ao copiar arquivo: " << e.what() << '\n';
+        std::cerr << "Error copying file: " << e.what() << '\n';
         return false;
     }
 }
@@ -15,7 +15,7 @@ bool FileManager::delete_file(const fs::path& file_path) {
     try {
         return fs::remove(file_path);
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Erro ao deletar arquivo: " << e.what() << '\n';
+        std::cerr << "Error deleting file: " << e.what() << '\n';
         return false;
     }
 }
@@ -23,7 +23,7 @@ bool FileManager::delete_file(const fs::path& file_path) {
 bool FileManager::delete_all_files_in_directory(const fs::path& directory_path) {
     try {
         if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
-            std::cerr << "Caminho inválido ou não é um diretório: " << directory_path << '\n';
+            std::cerr << "Invalid path or not a directory: " << directory_path << '\n';
             return false;
         }
 
@@ -34,7 +34,7 @@ bool FileManager::delete_all_files_in_directory(const fs::path& directory_path) 
         }
         return true;
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Erro ao deletar arquivos do diretório: " << e.what() << '\n';
+        std::cerr << "Error deleting files from directory: " << e.what() << '\n';
         return false;
     }
 }
@@ -44,7 +44,7 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
 
     try {
         if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
-            ss << "Caminho inválido ou não é um diretório: " << directory_path << '\n';
+            ss << "Invalid path or not a directory: " << directory_path << '\n';
             return ss.str();
         }
 
@@ -56,7 +56,7 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
             }
         }
     } catch (const fs::filesystem_error& e) {
-        ss << "Erro ao listar arquivos: " << e.what() << '\n';
+        ss << "Error listing files: " << e.what() << '\n';
     }
 
     return ss.str();
