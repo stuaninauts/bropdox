@@ -32,6 +32,7 @@ public:
 
 // private:
     std::string username;
+    std::string session_name;
     
     // sockets
     int socket_upload;
@@ -46,7 +47,7 @@ public:
     void close_sockets();
 
     void handle_client_download(const std::string filename);    
-    void handle_client_upload(const std::string filename);
+    void handle_client_upload(const std::string filename, uint32_t total_packets);
     void handle_client_delete(const std::string filename);
     void handle_exit();
     void handle_get_sync_dir();

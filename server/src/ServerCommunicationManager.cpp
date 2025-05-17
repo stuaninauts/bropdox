@@ -31,6 +31,8 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
         return;
     }
 
+    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") : ";
+
     access_devices.lock();
     {
         suicide = !devices->add_client_socket(username, socket_download);
@@ -114,9 +116,9 @@ void ServerCommunicationManager::read_cmd() {
         std::vector<string> tokens = split_command(packet.payload);
         std::string command = tokens[0];
         
-        if (command == "upload")
-            handle_client_upload(tokens[1]);
-        else if (command == "download")
+        //if (command == "upload")
+            //handle_client_upload(tokens[1]);
+        if (command == "download")
             handle_client_download(tokens[1]);
         else if (command == "delete")
             handle_client_delete(tokens[1]);
@@ -133,7 +135,33 @@ void ServerCommunicationManager::read_cmd() {
 }
 
 void ServerCommunicationManager::sync_client() {
-    // server_dir_path
+    try {
+        Packet meta_packet = Packet::receive(socket_upload);
+
+        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+            std::cerr << session_name << "Received error packet from client: " << meta_packet.payload << std::endl;
+            return;
+        }
+
+        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+            handle_client_delete(meta_packet.payload);
+            return;
+        }
+
+        if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+            handle_client_upload(meta_packet.payload, meta_packet.total_size);
+            return;
+        }
+
+        throw std::runtime_error(
+            "Unexpected packet type " + std::to_string(meta_packet.type) + 
+            " received from client (expected DATA, DELETE, or ERROR)"
+        );
+
+    } catch (const std::runtime_error& e) {
+        std::cerr << session_name << "Client synchronization failed - " << e.what() << std::endl;
+        return;
+    }
 }
 
 // ========================================= //
@@ -206,12 +234,12 @@ void ServerCommunicationManager::handle_client_download(const std::string filena
 
 }
 
-void ServerCommunicationManager::handle_client_upload(const std::string filename) {
+void ServerCommunicationManager::handle_client_upload(const std::string filename, uint32_t total_packets) {
     int socket_download_other_device;
-    std::cout << "[ FILENAME ]: " << filename << std::endl;
+    std::cout << session_name << "handle_client_upload " << filename << std::endl;
     access_files.lock();
     {
-        file_manager.write_file(socket_upload);
+        file_manager.write_file(socket_upload, filename, total_packets);
     }
     access_files.unlock();
     access_devices.lock();
@@ -220,8 +248,8 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
     }
     access_devices.unlock();
     // Se não existe outra sessão do cliente, não envia o arquivo
-    std::cout << "[ SOCKET OTHER DEVICE ]: " << socket_download_other_device << std::endl;
-    if(socket_download_other_device < 0)
+    std::cout << session_name << "get_other_device_socket " << socket_download_other_device << std::endl;
+    if(socket_download_other_device == -1)
         return;
     access_download.lock();
     {
@@ -229,10 +257,12 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
             Packet::send_error(socket_download_other_device);
     }
     access_download.unlock();
+    std::cout << session_name << "repropagate " << filename << std::endl;
 }
 
 void ServerCommunicationManager::handle_client_delete(const std::string filename) {
     int socket_download_other_device;
+    std::cout << session_name << "handle_client_delete " << filename << std::endl;
     access_files.lock();
     {
         file_manager.delete_file(filename);
@@ -243,8 +273,8 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
         socket_download_other_device = devices->get_other_device_socket(username, socket_download);
     }
     access_devices.unlock();
-    std::cout << "[ SOCKET OTHER DEVICE ]: " << socket_download_other_device << std::endl;
-    if(socket_download_other_device < 0)
+    std::cout << session_name << "get_other_device_socket " << socket_download_other_device << std::endl;
+    if(socket_download_other_device == -1)
         return;
     access_download.lock();
     {
@@ -252,12 +282,15 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
         delete_packet.send(socket_download_other_device);
     }
     access_download.unlock();
+    std::cout << session_name << "repropagate delete " << filename << std::endl;
 }
 
 void ServerCommunicationManager::handle_get_sync_dir(){
     access_download.lock();
-    if(!Packet::send_multiple_files(socket_download, username)){
-        std::cout << "Erro ao enviar múltiplos arquivos" << std::endl;
+    {
+        if(!Packet::send_multiple_files(socket_download, username))
+            std::cout << "Erro ao enviar múltiplos arquivos" << std::endl;
+    
     }
     access_download.unlock();
 
@@ -266,34 +299,18 @@ void ServerCommunicationManager::handle_get_sync_dir(){
 void ServerCommunicationManager::handle_exit() {
     close_sockets();
     access_devices.lock();
-    devices->remove_client_socket(username, socket_download);
+    {
+        devices->remove_client_socket(username, socket_download);
+    }
     access_devices.unlock();
 }
 
 void ServerCommunicationManager::handle_list_server() {
-    std::cout << "[Server] Listando arquivos no servidor:" << std::endl;
-    // Primeiro, lista os arquivos no console do servidor
+    std::cout << session_name << "handle_list_server" << std::endl;
     file_manager.list_files();
-    
-    // Em seguida, obtém a lista formatada para enviar ao cliente
     std::string file_list = file_manager.get_files_list();
     
-    // Cria um pacote com a lista de arquivos
-    Packet response_packet;
-    response_packet.type = static_cast<uint16_t>(Packet::Type::DATA); // Tipo DATA
-    response_packet.total_size = 1;          // Apenas um pacote para a lista
-    response_packet.length = file_list.size();
-    response_packet.payload = file_list;
-    
-    try {
-        // Valida o pacote antes de enviar
-        response_packet.validate_length();
-        
-        // Envia a resposta para o cliente pelo socket de download
-        response_packet.send(socket_cmd);
-        std::cout << "[Server] Lista de arquivos enviada ao cliente." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "[Server] Erro ao enviar lista de arquivos: " << e.what() << std::endl;
-    }
+    Packet response_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 1, file_list.size(), file_list);
+    response_packet.send(socket_download);
 }
 

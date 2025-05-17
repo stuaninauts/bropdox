@@ -16,24 +16,16 @@ std::mutex access_sync_dir;
 std::mutex access_files_changed;
 
 void ClientCommunicationManager::watch(const std::string sync_dir_path) {
-    int fd = inotify_init();
-    if (fd < 0) {
+    int inotify_fd = inotify_init();
+    if (inotify_fd < 0) {
         std::cerr << "Erro ao inicializar inotify\n";
         return;
     }
     
-    // Verificação se o diretório existe
-    struct stat st;
-    if (stat(sync_dir_path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) {
-        std::cerr << "Erro: O diretório " << sync_dir_path << " não existe ou não é um diretório válido\n";
-        close(fd);
-        return;
-    }
-    
-    int wd = inotify_add_watch(fd, sync_dir_path.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE);
+    int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
     if (wd < 0) {
         std::cerr << "Erro ao adicionar watch para " << sync_dir_path << ": " << strerror(errno) << "\n";
-        close(fd);
+        close(inotify_fd);
         return;
     }
     
@@ -43,7 +35,7 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     std::cout << "Monitorando diretório: " << sync_dir_path << std::endl;
     
     while (true) {
-        int length = read(fd, buffer, BUF_LEN);
+        int length = read(inotify_fd, buffer, BUF_LEN);
         if (length < 0) {
             std::cerr << "Erro na leitura do inotify\n";
             break;
@@ -52,23 +44,42 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
         int i = 0;
         while (i < length) {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
-            // TODO -> Possivelmente necessario utilizacao de lock
-            if (event->len) {
-                // Correção na lógica do operador
-                if (event->mask & IN_CREATE) {
-                    std::cout << "[INOTIFY] Arquivo criado: " << event->name << std::endl;
-                } else if (event->mask & IN_CLOSE_WRITE) {
-                    std::cout << "[INOTIFY] Arquivo modificado: " << event->name << std::endl;
-                } else if (event->mask & IN_DELETE) {
-                    std::cout << "[INOTIFY] Arquivo deletado: " << event->name << std::endl;
-                }
+            if (!event->len) continue;
+
+            if (event->mask & IN_CREATE) {
+                std::cout << "[INOTIFY] IN_CREATE: " << event->name << std::endl;
+            }
+            if (event->mask & IN_DELETE) {
+                std::cout << "[INOTIFY] IN_DELETE: " << event->name << std::endl;
+            }
+            if (event->mask & IN_CLOSE_WRITE) {
+                std::cout << "[INOTIFY] IN_CLOSE_WRITE / SEND_FILE: " << event->name << std::endl;
+            }
+            if (event->mask & IN_MOVED_FROM) {
+                std::cout << "[INOTIFY] IN_MOVED_FROM: " << event->name << std::endl;
+            }
+            if (event->mask & IN_MOVED_TO) {
+                std::cout << "[INOTIFY] IN_MOVED_TO: " << event->name << std::endl;
+            }
+            if (event->mask & IN_DELETE_SELF) {
+                std::cout << "[INOTIFY] IN_DELETE_SELF: " << event->name << std::endl;
+                close(inotify_fd);
+            }
+            if (event->mask & IN_MOVED_FROM || event->mask & IN_DELETE) {
+                std::cout << "[INOTIFY] SEND_DELETE: " << event->name << std::endl;
+                Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, strlen(event->name), event->name);
+                packet.send(socket_upload);
+            }
+            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_CREATE || event->mask & IN_MOVED_TO) {
+                std::cout << "[INOTIFY] SEND_FILE: " << event->name << std::endl;
+                Packet::send_file(socket_upload, sync_dir_path + event->name);
             }
             i += EVENT_SIZE + event->len;
         }
     }
     
-    inotify_rm_watch(fd, wd);
-    close(fd);
+    inotify_rm_watch(inotify_fd, wd);
+    close(inotify_fd);
 }
 
 // ======================================== //

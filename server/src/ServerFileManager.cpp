@@ -38,8 +38,8 @@ ServerFileManager::ServerFileManager(const std::string& username_) {
     }
 }
 
-void ServerFileManager::write_file(int socket_receive) {
-    Packet::process_file_instruction(socket_receive, server_dir_path);
+void ServerFileManager::write_file(int socket_fd, const std::string filename, uint32_t total_packets) {
+    Packet::receive_file(socket_fd, filename, server_dir_path, total_packets);
 }
 
 void ServerFileManager::delete_file(const std::string filename) {
