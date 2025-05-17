@@ -35,9 +35,7 @@ void Client::sync_local() {
 }
 
 void Client::sync_remote() {
-    while(true) {
-        comm_manager.fetch();
-    }
+    comm_manager.handle_server_update();
 }
 
 void Client::user_interface() {

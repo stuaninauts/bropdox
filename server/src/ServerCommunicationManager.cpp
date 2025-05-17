@@ -114,7 +114,7 @@ void ServerCommunicationManager::handle_client_update() {
             std::cout << session_name << "receiving client pushes" << std::endl;
             Packet meta_packet = Packet::receive(socket_upload);
 
-            std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl;
+            std::cout << session_name << "received meta_packet from client: " << meta_packet.payload << std::endl;
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
                 continue;
@@ -131,7 +131,7 @@ void ServerCommunicationManager::handle_client_update() {
             }
 
             throw std::runtime_error(
-                "Unexpected packet type " + std::to_string(meta_packet.type) + 
+                "unexpected packet type " + std::to_string(meta_packet.type) + 
                 " received from client (expected DATA, DELETE, or ERROR)"
             );
 

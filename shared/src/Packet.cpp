@@ -334,26 +334,6 @@ string Packet::build_output_path(const string& fileName, const string& outputDir
     return outputPath;
 }
 
-bool Packet::process_file_instruction(int socket_fd, const string& outputDir) {
-    try {
-        Packet metaPacket = Packet::receive(socket_fd);
-
-        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            cerr << "Erro ao receber propagação: " << metaPacket.payload << endl;
-            return false;
-        }
-
-        if (metaPacket.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
-            return delete_file(metaPacket.payload, outputDir);
-        }
-
-        return receive_file(socket_fd, metaPacket.payload, outputDir, metaPacket.total_size);
-
-    } catch (const std::runtime_error& e) {
-        cerr << "Erro ao receber arquivo: " << e.what() << endl;
-        return false;
-    }
-}
 
 void Packet::send_error(int socket_fd) {
     Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, 5, "ERROR");

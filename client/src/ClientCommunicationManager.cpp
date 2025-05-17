@@ -10,9 +10,10 @@
 #include <sys/inotify.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <ClientFileManager.hpp>
 
 
-std::mutex access_socket_upload;
+std::mutex access_ignored_files;
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -80,6 +81,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
 }
 
 void ClientCommunicationManager::watch(const std::string sync_dir_path) {
+    bool ignore = false;
     int inotify_fd = inotify_init();
     if (inotify_fd < 0) {
         std::cerr << "Erro ao inicializar inotify\n";
@@ -125,6 +127,18 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
                 close(inotify_fd);
             }
 
+            access_ignored_files.lock();
+            {
+                auto it = ignored_files.find(event->name);
+                if(ignore = it != ignored_files.end()) {
+                    ignored_files.erase(it);
+                    std::cout << "removed file from ignored_files: " << *it << std::endl;
+                }
+            }
+            access_ignored_files.unlock();
+
+            if (ignore) continue;
+
             if (event->mask & IN_MOVED_FROM || event->mask & IN_DELETE) {
                 std::cout << "[INOTIFY] SEND_DELETE: " << event->name << std::endl;
                 Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, strlen(event->name), event->name);
@@ -142,16 +156,45 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     close(inotify_fd);
 }
 
-void ClientCommunicationManager::fetch() {
-    Packet::process_file_instruction(socket_download, "./sync_dir/");
+void ClientCommunicationManager::handle_server_update() {
+    while (socket_upload != -1) {
+        try {
+            std::cout << "receiving server pushes" << std::endl;
+            Packet meta_packet = Packet::receive(socket_download);
+
+            std::cout << "received meta_packet from client: " << meta_packet.payload << std::endl;
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+                handle_server_delete(meta_packet.payload);
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+                handle_server_upload(meta_packet.payload, meta_packet.total_size);
+                continue;
+            }
+
+            throw std::runtime_error(
+                "unexpected packet type " + std::to_string(meta_packet.type) + 
+                " received from client (expected DATA, DELETE, or ERROR)"
+            );
+
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Session update failed: " << e.what() << std::endl;
+            return;
+        }
+    }
 }
 
 void ClientCommunicationManager::get_sync_dir(){
     std::string file_path = "./sync_dir/";
     send_command("get_sync_dir");
-    if(!Packet::receive_multiple_files(socket_download, file_path)){
+    if(!Packet::receive_multiple_files(socket_download, file_path))
         std::cout << "Erro ao realizar o get_sync_dir" << std::endl;
-    }
 }
 
 void ClientCommunicationManager::exit_server() {
@@ -163,12 +206,12 @@ void ClientCommunicationManager::exit_server() {
 
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::string filename = std::filesystem::path(filepath).filename().string();
-    std::cout << "Uploading file: " << filename << " to server's sync_dir" << std::endl;
     send_command("upload", filename);
     // Se não é possível enviar o arquivo, o cliente deve enviar um pacote de erro
     // para o servidor para desbloquea-lo, pois ele está esperando um arquivo.
     if (!Packet::send_file(socket_upload, filepath))
         Packet::send_error(socket_upload);
+    
 }
 
 void ClientCommunicationManager::download_file(const std::string filename) {
@@ -176,7 +219,6 @@ void ClientCommunicationManager::download_file(const std::string filename) {
 }
 
 void ClientCommunicationManager::delete_file(const std::string filename) {
-    std::cout << "Deleting file: " << filename << " from sync_dir" << std::endl;
     send_command("delete", filename);
 }
 
@@ -190,6 +232,31 @@ void ClientCommunicationManager::list_server() {
 // ========================================= //
 // ================ PRIVATE ================ //
 // ========================================= //
+
+void ClientCommunicationManager::handle_server_delete(const std::string filename) {
+    access_ignored_files.lock();
+    {
+        ignored_files.insert(filename);
+    }
+    access_ignored_files.unlock();
+    // TESTAR COM DOCKER
+    ClientFileManager::delete_local_file(filename);
+}
+
+void ClientCommunicationManager::handle_server_upload(const std::string filename, uint32_t total_packets) {
+    access_ignored_files.lock();
+    {
+        ignored_files.insert(filename);
+    }
+    access_ignored_files.unlock();
+    // TESTAR COM DOCKER
+    std::string tmp = "./tmp/";
+    std::filesystem::create_directory(tmp);
+    Packet::receive_file(socket_download, filename, tmp, total_packets);
+    std::string tmp_filepath = tmp + filename;
+    std::string filepath = "./sync_dir/" + filename;
+    rename(tmp_filepath.c_str(), filepath.c_str());
+}
 
 void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
     std::string payload = command;
@@ -209,6 +276,7 @@ bool ClientCommunicationManager::send_username() {
 
 bool ClientCommunicationManager::connect_socket_cmd() {
     struct hostent* server;
+    struct sockaddr_in serv_addr{};
 
     if ((server = gethostbyname(server_ip.c_str())) == nullptr) {
         std::cerr << "ERROR: No such host\n";
@@ -220,7 +288,6 @@ bool ClientCommunicationManager::connect_socket_cmd() {
         return false;
     }
 
-    struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port_cmd);
     serv_addr.sin_addr = *((struct in_addr*)server->h_addr);
