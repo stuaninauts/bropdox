@@ -12,8 +12,72 @@
 #include <sys/stat.h>
 
 
-std::mutex access_sync_dir;
-std::mutex access_files_changed;
+std::mutex access_socket_upload;
+
+// ======================================== //
+// ================ PUBLIC ================ //
+// ======================================== //
+
+bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username) {
+    this->server_ip = server_ip;
+    this->port_cmd = port;
+    this->username = username;
+    try {
+        // Inicialização da conexão principal
+        if (!connect_socket_cmd()) {
+            close_sockets();
+            return false;
+        }
+
+        if (!send_username()) {
+            close_sockets();
+            return false;
+        }
+
+        // Cria socket de upload
+        if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            std::cerr << "Erro ao criar socket de upload";
+            close_sockets();
+            return false;
+        }
+
+        // Cria socket de download
+        if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            std::cerr << "Erro ao criar socket de download";
+            close_sockets();
+            return false;
+        }
+
+        // Conecta socket de upload
+        if (!connect_socket_to_server(socket_upload, &port_upload)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
+
+        // Conecta socket de download
+        if (!connect_socket_to_server(socket_download, &port_download)){
+            std::cerr << "Erro ao conectar socket de download";
+            close_sockets();
+            return false;
+        }
+
+        // Verificação de erros e recebimento de confirmação
+        if (!confirm_connection()) {
+            close_sockets();
+            return false;
+        }
+
+        get_sync_dir();
+
+        return true;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Exceção: " << e.what() << std::endl;
+        close_sockets(); // TODO: revisar
+        return false;
+    }
+}
 
 void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     int inotify_fd = inotify_init();
@@ -46,25 +110,21 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
             if (!event->len) continue;
 
-            if (event->mask & IN_CREATE) {
+            if (event->mask & IN_CREATE)
                 std::cout << "[INOTIFY] IN_CREATE: " << event->name << std::endl;
-            }
-            if (event->mask & IN_DELETE) {
+            if (event->mask & IN_DELETE)
                 std::cout << "[INOTIFY] IN_DELETE: " << event->name << std::endl;
-            }
-            if (event->mask & IN_CLOSE_WRITE) {
+            if (event->mask & IN_CLOSE_WRITE)
                 std::cout << "[INOTIFY] IN_CLOSE_WRITE / SEND_FILE: " << event->name << std::endl;
-            }
-            if (event->mask & IN_MOVED_FROM) {
+            if (event->mask & IN_MOVED_FROM)
                 std::cout << "[INOTIFY] IN_MOVED_FROM: " << event->name << std::endl;
-            }
-            if (event->mask & IN_MOVED_TO) {
+            if (event->mask & IN_MOVED_TO)
                 std::cout << "[INOTIFY] IN_MOVED_TO: " << event->name << std::endl;
-            }
             if (event->mask & IN_DELETE_SELF) {
                 std::cout << "[INOTIFY] IN_DELETE_SELF: " << event->name << std::endl;
                 close(inotify_fd);
             }
+
             if (event->mask & IN_MOVED_FROM || event->mask & IN_DELETE) {
                 std::cout << "[INOTIFY] SEND_DELETE: " << event->name << std::endl;
                 Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, strlen(event->name), event->name);
@@ -82,78 +142,9 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     close(inotify_fd);
 }
 
-// ======================================== //
-// ================ PUBLIC ================ //
-// ======================================== //
-
-bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username) {
-    this->server_ip = server_ip;
-    this->port_cmd = port;
-    this->username = username;
-    try {
-        // Inicialização da conexão principal
-        if (!connect_socket_cmd()) {
-            close_sockets();
-            return false;
-        }
-
-        if (!send_username()) {
-            close_sockets();
-            return false;
-        }
-
-        // if (!get_sockets_ports()) {
-        //     close_sockets();
-        //     return false;
-        // }
-
-        // Cria socket de upload
-        if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Erro ao criar socket de upload";
-            close_sockets();
-            return false;
-        }
-
-        // Cria socket de download
-        if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cerr << "Erro ao criar socket de download";
-            close_sockets();
-            return false;
-        }
-
-        // Conecta socket de upload
-        if (!connect_socket_to_server(socket_upload, &port_upload)){
-            std::cerr << "Erro ao conectar socket de download";
-            close_sockets();
-            return false;
-        }
-
-        // Conecta socket de download
-        if (!connect_socket_to_server(socket_download, &port_download)){
-            std::cerr << "Erro ao conectar socket de download";
-            close_sockets();
-            return false;
-        }
-
-        // Verificação de erros e recebimento de confirmação
-        if (!connection_accepted()) {
-            close_sockets();
-            return false;
-        }
-
-        return true;
-
-    } catch (const std::exception& e) {
-        std::cerr << "Exceção: " << e.what() << std::endl;
-        close_sockets(); // TODO: revisar
-        return false;
-    }
-}
-
 void ClientCommunicationManager::fetch() {
     Packet::process_file_instruction(socket_download, "./sync_dir/");
 }
-
 
 void ClientCommunicationManager::get_sync_dir(){
     std::string file_path = "./sync_dir/";
@@ -173,9 +164,7 @@ void ClientCommunicationManager::exit_server() {
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::string filename = std::filesystem::path(filepath).filename().string();
     std::cout << "Uploading file: " << filename << " to server's sync_dir" << std::endl;
-    
     send_command("upload", filename);
-
     // Se não é possível enviar o arquivo, o cliente deve enviar um pacote de erro
     // para o servidor para desbloquea-lo, pois ele está esperando um arquivo.
     if (!Packet::send_file(socket_upload, filepath))
@@ -197,29 +186,17 @@ void ClientCommunicationManager::list_server() {
     Packet packet = Packet::receive(socket_cmd);
     std::cout << packet.payload << std::endl;
 }
+
 // ========================================= //
 // ================ PRIVATE ================ //
 // ========================================= //
 
 void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
     std::string payload = command;
-    if(filename != ""){
-        payload += " " + filename; //segredo TODO ta ruim feio
-    }
-
-    Packet command_packet;
-    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD);
-    command_packet.total_size = 1;
-    command_packet.payload = payload;
-    command_packet.length = command_packet.payload.size();
-
-    try {
-        command_packet.send(socket_cmd);
-    } catch (const std::exception& e) {
-        std::cerr << "Error sending list_server command: " << e.what() << std::endl;
-    }
+    if(filename != "") payload += " " + filename; //segredo TODO ta ruim feio
+    Packet command_packet(static_cast<uint16_t>(Packet::Type::CMD), 0, 1, payload.size(), payload);
+    command_packet.send(socket_cmd);
 }
-
 
 bool ClientCommunicationManager::send_username() {
     int n = write(socket_cmd, username.c_str(), username.length());
@@ -257,28 +234,6 @@ bool ClientCommunicationManager::connect_socket_cmd() {
     return true;
 }
 
-bool ClientCommunicationManager::get_sockets_ports() {
-    char buffer_upload[256];
-    bzero(buffer_upload, 256);
-    if (read(socket_cmd, buffer_upload, 255) <= 0) {
-        std::cerr << "ERROR: Can't read upload port\n";
-        return false;
-    }
-    port_upload = std::stoi(buffer_upload);
-    // std::cout << "Upload port: " << port_upload << std::endl;
-
-    char buffer_download[256];
-    bzero(buffer_download, 256);
-    if (read(socket_cmd, buffer_download, 255) <= 0) {
-        std::cerr << "ERROR: Can't read download port\n";
-        return false;
-    }
-    port_download = std::stoi(buffer_download);
-    std::cout << "Download port: " << port_download << std::endl;
-
-    return true;
-}
-
 void ClientCommunicationManager::close_sockets() {
     if (socket_cmd > 0) close(socket_cmd);
     if (socket_download > 0) close(socket_download);
@@ -297,7 +252,6 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     }
 
     *port = std::stoi(buffer);
-  //  std::cout << "Upload port: " << *port << std::endl;
 
     std::memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -317,7 +271,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     return true;
 }
 
-bool ClientCommunicationManager::connection_accepted() {
+bool ClientCommunicationManager::confirm_connection() {
     fd_set readfds;
     struct timeval tv;
     tv.tv_sec = 0;

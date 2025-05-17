@@ -19,15 +19,14 @@
 class ServerCommunicationManager {
 
 public:
-    ServerCommunicationManager(ServerFileManager& file_manager_) 
-        : file_manager(file_manager_) {
+    ServerCommunicationManager(ServerFileManager& file_manager) 
+        : file_manager(file_manager) {
     }
     
-    void setup_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
-    void receive_packet();
-    void sync_client();
-    
-    void read_cmd();
+    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
+    void handle_client_update();
+    void handle_client_cmd();
+
     std::shared_ptr<ClientsDevices> devices;
 
 // private:
@@ -52,6 +51,8 @@ public:
     void handle_exit();
     void handle_get_sync_dir();
     void handle_list_server();
+
+    vector<string> split_command(const string &command);
 
 
     ServerFileManager& file_manager;

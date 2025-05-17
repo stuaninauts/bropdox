@@ -13,7 +13,7 @@ std::mutex access_download;
 // ======================================== //
 
 // Retornar o download_socket para ser salvo na hash de usuários
-void ServerCommunicationManager::setup_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
+void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
     this->socket_cmd = socket_cmd;
     this->devices = devices;
     this->username = username;
@@ -31,7 +31,7 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
         return;
     }
 
-    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") : ";
+    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
 
     access_devices.lock();
     {
@@ -42,12 +42,8 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
     // mata
     if (suicide) {
         // Cria e envia um pacote de erro pelo socket_cmd (que já está estabelecido)
-        Packet errorPacket;
-        errorPacket.type = static_cast<uint16_t>(Packet::Type::ERROR);
-        errorPacket.seqn = 0;
-        errorPacket.total_size = 1;
-        errorPacket.payload = "USER_MAX_CONNECTIONS_REACHED";
-        errorPacket.length = errorPacket.payload.size();
+        std::string error_msg= "USER_MAX_CONNECTIONS_REACHED";
+        Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, error_msg.size(), error_msg);
         
         try {
             // Envie o erro pelo socket_cmd que já está estabelecido
@@ -68,73 +64,51 @@ void ServerCommunicationManager::setup_client_session(int socket_cmd, std::strin
         }
     }
 
-    //Packet::send_ack(socket_download);
 
-    std::thread thread_cmd(&ServerCommunicationManager::read_cmd, this);
-    std::thread thread_sync_client(&ServerCommunicationManager::sync_client, this);
+    std::thread thread_cmd(&ServerCommunicationManager::handle_client_cmd, this);
+    std::thread thread_sync_client(&ServerCommunicationManager::handle_client_update, this);
     
     thread_cmd.join();
     thread_sync_client.join();
 }
 
-void ServerCommunicationManager::receive_packet() {
-    Packet packet;
-    try {
-        packet = Packet::receive(socket_upload);
-        std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
-        return;
-    }
-}
+// ========================================= //
+// ================ THREADS ================ //
+// ========================================= //
 
-vector<string> split_command(const string &command) {
-    vector<string> tokens;
-    string token;
-    istringstream tokenStream(command);
-    
-    while (tokenStream >> token) {
-        tokens.push_back(token);
-    }
-    
-    return tokens;
-}
-
-void ServerCommunicationManager::read_cmd() {
+void ServerCommunicationManager::handle_client_cmd() {
     while (socket_cmd > 0) {
-        Packet packet;
-
-        try {
-            packet = Packet::receive(socket_cmd);
-            std::cout << "Pacote recebido: " << packet.to_string() << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Erro ao receber pacote: " << e.what() << std::endl;
-            return;
-        }
+        Packet packet = Packet::receive(socket_cmd);
+        std::cout << session_name << "Pacote recebido: " << packet.to_string() << std::endl;
 
         // Extrair comando do payload
         std::vector<string> tokens = split_command(packet.payload);
         std::string command = tokens[0];
         
-        //if (command == "upload")
+        if (command == "upload") {
+            std::cout << session_name << "{CMD} client upload" << std::endl;
             //handle_client_upload(tokens[1]);
-        if (command == "download")
+        }
+        else if (command == "download") {
+            std::cout << session_name << "{CMD} client download" << std::endl;
             handle_client_download(tokens[1]);
-        else if (command == "delete")
+        } else if (command == "delete") {
+            std::cout << session_name << "{CMD} client delete" << std::endl;
             handle_client_delete(tokens[1]);
-        else if (command == "list_server")
+        } else if (command == "list_server") {
             handle_list_server();
-        else if (command == "exit")
+        } else if (packet.payload == "exit") {
             handle_exit();
-        else if (command == "get_sync_dir")
+        } else if (packet.payload == "get_sync_dir") {
             handle_get_sync_dir();        
-        else
-            std::cerr << "[Server] Comando desconhecido: " << command << std::endl;
+        } else {
+            std::cerr << session_name << "Comando desconhecido: " << packet.payload << std::endl;
+        }
     }
     
 }
 
-void ServerCommunicationManager::sync_client() {
+void ServerCommunicationManager::handle_client_update() {
     while (socket_upload != -1) {
         try {
             std::cout << session_name << "receiving client pushes" << std::endl;
@@ -162,7 +136,7 @@ void ServerCommunicationManager::sync_client() {
             );
 
         } catch (const std::runtime_error& e) {
-            std::cerr << session_name << "Client synchronization failed - " << e.what() << std::endl;
+            std::cerr << session_name << "Client update failed: " << e.what() << std::endl;
             return;
         }
     }
@@ -318,3 +292,15 @@ void ServerCommunicationManager::handle_list_server() {
     response_packet.send(socket_download);
 }
 
+
+vector<string> ServerCommunicationManager::split_command(const string &command) {
+    vector<string> tokens;
+    string token;
+    istringstream tokenStream(command);
+    
+    while (tokenStream >> token) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
+}

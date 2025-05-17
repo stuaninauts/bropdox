@@ -16,7 +16,6 @@ class ClientCommunicationManager {
 public:
 
     bool connect_to_server(const std::string server_ip, int port, const std::string username);
-    void receive_packet();
     void send_command(const std::string command, const std::string filename = "");
 
     void fetch();
@@ -51,10 +50,9 @@ public:
     void close_sockets();
 
     bool send_username();
-    bool get_sockets_ports();
     bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
-    bool connection_accepted();
+    bool confirm_connection();
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP

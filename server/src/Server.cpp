@@ -24,7 +24,7 @@ void Server::handle_client(int socket) {
         std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>(*file_manager);
 
         file_manager->create_sync_dir();
-        comm_manager->setup_client_session(socket, username, devices);
+        comm_manager->run_client_session(socket, username, devices);
 
     } catch(const std::exception& e) {
         std::cerr << "Erro ao criar o gerenciador de arquivos do servidor: " << e.what() << std::endl;
