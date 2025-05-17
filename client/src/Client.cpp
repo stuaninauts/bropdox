@@ -73,34 +73,23 @@ void Client::process_command(const std::vector<string> &tokens) {
     transform(command.begin(), command.end(), command.begin(), ::tolower);
 
     if (command == "upload" && tokens.size() == 2) {
-        if (file_manager.upload_local_file(tokens[1])) {
-            std::cout << "File uploaded via command" << std::endl;
-            comm_manager.upload_file(tokens[1]);
-        }
+        file_manager.upload_local_file(tokens[1]);
+        std::cout << "File uploaded via command" << std::endl;
     } else if (command == "download" && tokens.size() == 2) {
-        if (file_manager.download_local_file(tokens[1])) {
-            std::cout << "File downloaded via command" << std::endl;
-            comm_manager.download_file(tokens[1]);
-        }
+        file_manager.download_local_file(tokens[1]);
+        std::cout << "File downloaded via command" << std::endl;
     } else if (command == "delete" && tokens.size() == 2) {
-        if (file_manager.delete_local_file(tokens[1])) {
-            std::cout << "File deleted via command" << std::endl;
-            comm_manager.delete_file(tokens[1]);
-        }
+        file_manager.delete_local_file(tokens[1]);
+        std::cout << "File deleted via command" << std::endl;
     } else if (command == "list_server") {
         comm_manager.list_server();
-
     } else if (command == "list_client") {
         file_manager.list_files();
-
     } else if (command == "get_sync_dir") {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;
-        // You may call some creation function here if necessary
-
     } else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;
         comm_manager.exit_server();
-
     } else {
         std::cerr << "Invalid command or missing arguments. Available commands:" << std::endl;
         std::cerr << "# upload <path/filename.ext>" << std::endl;
