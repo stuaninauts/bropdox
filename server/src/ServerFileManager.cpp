@@ -5,7 +5,7 @@ void ServerFileManager::create_sync_dir() {
     int status;
     
     // cria pasta do bropdox
-    std::string folder_name = "./server/bropdox";
+    std::string folder_name = "./sync_dir_server";
     status = mkdir(folder_name.c_str(), 0777);
     if(status !=0) {
         if (errno != EEXIST) {
@@ -25,7 +25,7 @@ void ServerFileManager::create_sync_dir() {
 
 ServerFileManager::ServerFileManager(const std::string& username_) {
     username = username_;
-    server_dir_path = "./server/bropdox/sync_dir_" + username_;
+    server_dir_path = "./sync_dir_server/sync_dir_" + username_;
     
     // Verifica se o diretório existe, se não, cria
     try {
@@ -53,7 +53,7 @@ void ServerFileManager::delete_file(const std::string filename) {
 }
 
 void ServerFileManager::list_files() {
-    std::string user_dir = "./server/bropdox/sync_dir_" + username;
+    std::string user_dir = "./sync_dir_server/sync_dir_" + username;
     std::cout << "Listando arquivos no diretório: " << user_dir << std::endl;
     
     if (!fs::exists(user_dir) || !fs::is_directory(user_dir)) {
@@ -71,7 +71,7 @@ void ServerFileManager::list_files() {
 }
 
 std::string ServerFileManager::get_files_list() {
-    std::string user_dir = "./server/bropdox/sync_dir_" + username;
+    std::string user_dir = "./sync_dir_server/sync_dir_" + username;
     
     if (!fs::exists(user_dir) || !fs::is_directory(user_dir)) {
         return "Diretório do usuário não encontrado: " + user_dir;

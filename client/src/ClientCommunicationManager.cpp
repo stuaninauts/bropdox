@@ -55,8 +55,10 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             // TODO -> Possivelmente necessario utilizacao de lock
             if (event->len) {
                 // Correção na lógica do operador
-                if (event->mask & IN_CREATE || event->mask & IN_MODIFY) {
-                    std::cout << "[INOTIFY] Arquivo criado ou modificado: " << event->name << std::endl;
+                if (event->mask & IN_CREATE) {
+                    std::cout << "[INOTIFY] Arquivo criado: " << event->name << std::endl;
+                } else if (event->mask & IN_CLOSE_WRITE) {
+                    std::cout << "[INOTIFY] Arquivo modificado: " << event->name << std::endl;
                 } else if (event->mask & IN_DELETE) {
                     std::cout << "[INOTIFY] Arquivo deletado: " << event->name << std::endl;
                 }
@@ -138,12 +140,12 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
 }
 
 void ClientCommunicationManager::fetch() {
-    Packet::process_file_instruction(socket_download, "./client/sync_dir/");
+    Packet::process_file_instruction(socket_download, "./sync_dir/");
 }
 
 
 void ClientCommunicationManager::get_sync_dir(){
-    std::string file_path = "./client/sync_dir";
+    std::string file_path = "./sync_dir/";
     send_command("get_sync_dir");
     if(!Packet::receive_multiple_files(socket_download, file_path)){
         std::cout << "Erro ao realizar o get_sync_dir" << std::endl;

@@ -146,7 +146,7 @@ string Packet::to_string() const {
 // }
 
 bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
-    std::string dir_path = "./server/bropdox/sync_dir_" + username;
+    std::string dir_path = "./sync_dir_server/sync_dir_" + username;
 
     // Diretório não existe ou está vazio — envia "empty"
     Packet empty_packet(

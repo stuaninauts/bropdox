@@ -14,7 +14,7 @@ void Client::run() {
         cerr << "Error connecting to server" << endl;
         exit(1);
     }
-    std::string aaa("./client/sync_dir/");
+    std::string aaa("./sync_dir/");
     // Remove o sync_dir antigo
     // Cria novo sync_dir zerado
     file_manager.create_sync_dir(aaa);
