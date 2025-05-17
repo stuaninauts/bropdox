@@ -10,64 +10,10 @@
 #include <sys/inotify.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <ClientFileManager.hpp>
 
 
-std::mutex access_sync_dir;
-std::mutex access_files_changed;
-
-void ClientCommunicationManager::watch(const std::string sync_dir_path) {
-    int fd = inotify_init();
-    if (fd < 0) {
-        std::cerr << "Erro ao inicializar inotify\n";
-        return;
-    }
-    
-    // Verificação se o diretório existe
-    struct stat st;
-    if (stat(sync_dir_path.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) {
-        std::cerr << "Erro: O diretório " << sync_dir_path << " não existe ou não é um diretório válido\n";
-        close(fd);
-        return;
-    }
-    
-    int wd = inotify_add_watch(fd, sync_dir_path.c_str(), IN_CREATE | IN_MODIFY | IN_DELETE);
-    if (wd < 0) {
-        std::cerr << "Erro ao adicionar watch para " << sync_dir_path << ": " << strerror(errno) << "\n";
-        close(fd);
-        return;
-    }
-    
-    const size_t EVENT_SIZE = sizeof(struct inotify_event);
-    const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
-    char buffer[BUF_LEN];
-    std::cout << "Monitorando diretório: " << sync_dir_path << std::endl;
-    
-    while (true) {
-        int length = read(fd, buffer, BUF_LEN);
-        if (length < 0) {
-            std::cerr << "Erro na leitura do inotify\n";
-            break;
-        }
-        
-        int i = 0;
-        while (i < length) {
-            struct inotify_event *event = (struct inotify_event *) &buffer[i];
-            // TODO -> Possivelmente necessario utilizacao de lock
-            if (event->len) {
-                // Correção na lógica do operador
-                if (event->mask & IN_CREATE || event->mask & IN_MODIFY) {
-                    std::cout << "[INOTIFY] Arquivo criado ou modificado: " << event->name << std::endl;
-                } else if (event->mask & IN_DELETE) {
-                    std::cout << "[INOTIFY] Arquivo deletado: " << event->name << std::endl;
-                }
-            }
-            i += EVENT_SIZE + event->len;
-        }
-    }
-    
-    inotify_rm_watch(fd, wd);
-    close(fd);
-}
+std::mutex access_ignored_files;
 
 // ======================================== //
 // ================ PUBLIC ================ //
@@ -88,11 +34,6 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             close_sockets();
             return false;
         }
-
-        // if (!get_sockets_ports()) {
-        //     close_sockets();
-        //     return false;
-        // }
 
         // Cria socket de upload
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -123,10 +64,12 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
         }
 
         // Verificação de erros e recebimento de confirmação
-        if (!connection_accepted()) {
+        if (!confirm_connection()) {
             close_sockets();
             return false;
         }
+
+        get_sync_dir();
 
         return true;
 
@@ -137,17 +80,122 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
-void ClientCommunicationManager::fetch() {
-    Packet::process_file_instruction(socket_download, "./client/sync_dir/");
+void ClientCommunicationManager::watch(const std::string sync_dir_path) {
+    bool ignore = false;
+    int inotify_fd = inotify_init();
+    if (inotify_fd < 0) {
+        std::cerr << "Erro ao inicializar inotify\n";
+        return;
+    }
+    
+    int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
+    if (wd < 0) {
+        std::cerr << "Erro ao adicionar watch para " << sync_dir_path << ": " << strerror(errno) << "\n";
+        close(inotify_fd);
+        return;
+    }
+    
+    const size_t EVENT_SIZE = sizeof(struct inotify_event);
+    const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
+    char buffer[BUF_LEN];
+    std::cout << "Monitorando diretório: " << sync_dir_path << std::endl;
+    
+    while (true) {
+        int length = read(inotify_fd, buffer, BUF_LEN);
+        if (length < 0) {
+            std::cerr << "Erro na leitura do inotify\n";
+            break;
+        }
+        
+        int i = 0;
+        while (i < length) {
+            struct inotify_event *event = (struct inotify_event *) &buffer[i];
+            if (!event->len) continue;
+
+            if (event->mask & IN_CREATE)
+                std::cout << "[INOTIFY] IN_CREATE: " << event->name << std::endl;
+            if (event->mask & IN_DELETE)
+                std::cout << "[INOTIFY] IN_DELETE: " << event->name << std::endl;
+            if (event->mask & IN_CLOSE_WRITE)
+                std::cout << "[INOTIFY] IN_CLOSE_WRITE: " << event->name << std::endl;
+            if (event->mask & IN_MOVED_FROM)
+                std::cout << "[INOTIFY] IN_MOVED_FROM: " << event->name << std::endl;
+            if (event->mask & IN_MOVED_TO)
+                std::cout << "[INOTIFY] IN_MOVED_TO: " << event->name << std::endl;
+            if (event->mask & IN_DELETE_SELF) {
+                std::cout << "[INOTIFY] IN_DELETE_SELF: " << event->name << std::endl;
+                close(inotify_fd);
+            }
+
+            access_ignored_files.lock();
+            {
+                auto it = ignored_files.find(event->name);
+                if(ignore = it != ignored_files.end()) {
+                    ignored_files.erase(it);
+                    std::cout << "removed file from ignored_files: " << *it << std::endl;
+                }
+            }
+            access_ignored_files.unlock();
+
+            i += EVENT_SIZE + event->len;
+
+            if (ignore) continue;
+
+            if (event->mask & IN_MOVED_FROM || event->mask & IN_DELETE) {
+                std::cout << "[INOTIFY] SEND_DELETE: " << event->name << std::endl;
+                Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, strlen(event->name), event->name);
+                packet.send(socket_upload);
+            }
+            if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
+                std::cout << "[INOTIFY] SEND_FILE: " << event->name << std::endl;
+                Packet::send_file(socket_upload, sync_dir_path + event->name);
+            }
+        }
+    }
+    
+    inotify_rm_watch(inotify_fd, wd);
+    close(inotify_fd);
 }
 
+void ClientCommunicationManager::handle_server_update() {
+    while (socket_upload != -1) {
+        try {
+            std::cout << "receiving server pushes" << std::endl;
+            Packet meta_packet = Packet::receive(socket_download);
+
+            std::cout << "received meta_packet from client: " << meta_packet.payload << std::endl;
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+                handle_server_delete(meta_packet.payload);
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+                handle_server_upload(meta_packet.payload, meta_packet.total_size);
+                continue;
+            }
+
+            throw std::runtime_error(
+                "unexpected packet type " + std::to_string(meta_packet.type) + 
+                " received from client (expected DATA, DELETE, or ERROR)"
+            );
+
+        } catch (const std::runtime_error& e) {
+            std::cerr << "Session update failed: " << e.what() << std::endl;
+            return;
+        }
+    }
+}
 
 void ClientCommunicationManager::get_sync_dir(){
-    std::string file_path = "./client/sync_dir";
+    std::string file_path = "./sync_dir/";
     send_command("get_sync_dir");
-    if(!Packet::receive_multiple_files(socket_download, file_path)){
+    if(!Packet::receive_multiple_files(socket_download, file_path))
         std::cout << "Erro ao realizar o get_sync_dir" << std::endl;
-    }
 }
 
 void ClientCommunicationManager::exit_server() {
@@ -159,14 +207,12 @@ void ClientCommunicationManager::exit_server() {
 
 void ClientCommunicationManager::upload_file(const std::string filepath) {
     std::string filename = std::filesystem::path(filepath).filename().string();
-    std::cout << "Uploading file: " << filename << " to server's sync_dir" << std::endl;
-    
     send_command("upload", filename);
-
     // Se não é possível enviar o arquivo, o cliente deve enviar um pacote de erro
     // para o servidor para desbloquea-lo, pois ele está esperando um arquivo.
     if (!Packet::send_file(socket_upload, filepath))
         Packet::send_error(socket_upload);
+    
 }
 
 void ClientCommunicationManager::download_file(const std::string filename) {
@@ -174,7 +220,6 @@ void ClientCommunicationManager::download_file(const std::string filename) {
 }
 
 void ClientCommunicationManager::delete_file(const std::string filename) {
-    std::cout << "Deleting file: " << filename << " from sync_dir" << std::endl;
     send_command("delete", filename);
 }
 
@@ -184,29 +229,42 @@ void ClientCommunicationManager::list_server() {
     Packet packet = Packet::receive(socket_cmd);
     std::cout << packet.payload << std::endl;
 }
+
 // ========================================= //
 // ================ PRIVATE ================ //
 // ========================================= //
 
-void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
-    std::string payload = command;
-    if(filename != ""){
-        payload += " " + filename; //segredo TODO ta ruim feio
+void ClientCommunicationManager::handle_server_delete(const std::string filename) {
+    access_ignored_files.lock();
+    {
+        ignored_files.insert(filename);
     }
-
-    Packet command_packet;
-    command_packet.type = static_cast<uint16_t>(Packet::Type::CMD);
-    command_packet.total_size = 1;
-    command_packet.payload = payload;
-    command_packet.length = command_packet.payload.size();
-
-    try {
-        command_packet.send(socket_cmd);
-    } catch (const std::exception& e) {
-        std::cerr << "Error sending list_server command: " << e.what() << std::endl;
-    }
+    access_ignored_files.unlock();
+    // TESTAR COM DOCKER
+    ClientFileManager::delete_local_file(filename);
 }
 
+void ClientCommunicationManager::handle_server_upload(const std::string filename, uint32_t total_packets) {
+    access_ignored_files.lock();
+    {
+        ignored_files.insert(filename);
+    }
+    access_ignored_files.unlock();
+    // TESTAR COM DOCKER
+    std::string tmp = "./tmp/";
+    std::filesystem::create_directory(tmp);
+    Packet::receive_file(socket_download, filename, tmp, total_packets);
+    std::string tmp_filepath = tmp + filename;
+    std::string filepath = "./sync_dir/" + filename;
+    rename(tmp_filepath.c_str(), filepath.c_str());
+}
+
+void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
+    std::string payload = command;
+    if(filename != "") payload += " " + filename; //segredo TODO ta ruim feio
+    Packet command_packet(static_cast<uint16_t>(Packet::Type::CMD), 0, 1, payload.size(), payload);
+    command_packet.send(socket_cmd);
+}
 
 bool ClientCommunicationManager::send_username() {
     int n = write(socket_cmd, username.c_str(), username.length());
@@ -219,6 +277,7 @@ bool ClientCommunicationManager::send_username() {
 
 bool ClientCommunicationManager::connect_socket_cmd() {
     struct hostent* server;
+    struct sockaddr_in serv_addr{};
 
     if ((server = gethostbyname(server_ip.c_str())) == nullptr) {
         std::cerr << "ERROR: No such host\n";
@@ -230,7 +289,6 @@ bool ClientCommunicationManager::connect_socket_cmd() {
         return false;
     }
 
-    struct sockaddr_in serv_addr{};
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port_cmd);
     serv_addr.sin_addr = *((struct in_addr*)server->h_addr);
@@ -240,28 +298,6 @@ bool ClientCommunicationManager::connect_socket_cmd() {
         std::cerr << "ERROR: Connecting to server\n";
         return false;
     }
-
-    return true;
-}
-
-bool ClientCommunicationManager::get_sockets_ports() {
-    char buffer_upload[256];
-    bzero(buffer_upload, 256);
-    if (read(socket_cmd, buffer_upload, 255) <= 0) {
-        std::cerr << "ERROR: Can't read upload port\n";
-        return false;
-    }
-    port_upload = std::stoi(buffer_upload);
-    // std::cout << "Upload port: " << port_upload << std::endl;
-
-    char buffer_download[256];
-    bzero(buffer_download, 256);
-    if (read(socket_cmd, buffer_download, 255) <= 0) {
-        std::cerr << "ERROR: Can't read download port\n";
-        return false;
-    }
-    port_download = std::stoi(buffer_download);
-    std::cout << "Download port: " << port_download << std::endl;
 
     return true;
 }
@@ -284,7 +320,6 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     }
 
     *port = std::stoi(buffer);
-  //  std::cout << "Upload port: " << *port << std::endl;
 
     std::memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
@@ -304,7 +339,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     return true;
 }
 
-bool ClientCommunicationManager::connection_accepted() {
+bool ClientCommunicationManager::confirm_connection() {
     fd_set readfds;
     struct timeval tv;
     tv.tv_sec = 0;

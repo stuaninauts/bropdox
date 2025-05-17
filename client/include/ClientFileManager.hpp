@@ -25,7 +25,7 @@ public:
     
     // Monitora mudanças no diretório de sincronização
     
-    bool delete_local_file(const std::string filename);
+    static bool delete_local_file(const std::string filename);
 
     bool upload_local_file(const std::string& file_path);
 

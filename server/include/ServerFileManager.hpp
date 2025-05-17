@@ -14,7 +14,7 @@ public:
     ServerFileManager(const std::string& username);
     void create_sync_dir();
     void list_files();
-    void write_file(int socket_receive);
+    void write_file(int socket_fd, const std::string filename, uint32_t total_packets);
     void delete_file(const std::string filename);
 
     std::string get_files_list();

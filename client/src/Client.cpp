@@ -2,23 +2,21 @@
 #include <Packet.hpp>
 #include <filesystem>
 
-using namespace std;
 
 // ======================================== //
 // ================ PUBLIC ================ //
 // ======================================== //
 
 void Client::run() {
+    std::string sync_dir_path("./sync_dir/");
+    file_manager.create_sync_dir(sync_dir_path);
+
     cout << "Connecting to server..." << endl;
     if (!comm_manager.connect_to_server(server_ip, port, username)) {
         cerr << "Error connecting to server" << endl;
         exit(1);
     }
-    std::string aaa("./client/sync_dir/");
-    // Remove o sync_dir antigo
-    // Cria novo sync_dir zerado
-    file_manager.create_sync_dir(aaa);
-    comm_manager.get_sync_dir();
+
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
@@ -28,23 +26,25 @@ void Client::run() {
     thread_user_interface.join();
 }
 
+// ========================================= //
+// ================ THREADS ================ //
+// ========================================= //
+
 void Client::sync_local() {
     comm_manager.watch(file_manager.sync_dir_path);
 }
 
 void Client::sync_remote() {
-    while(true) {
-        comm_manager.fetch();
-    }
+    comm_manager.handle_server_update();
 }
 
 void Client::user_interface() {
     while (true) {
-        string input;
+        std::string input;
         cout << "> ";
         getline(cin, input);
         
-        vector<string> tokens = split_command(input);
+        std::vector<string> tokens = split_command(input);
         if (!tokens.empty()) {
             process_command(tokens);
         }
@@ -56,9 +56,9 @@ void Client::user_interface() {
 // ========================================= //
 
 vector<string> Client::split_command(const string &command) {
-    vector<string> tokens;
-    string token;
-    istringstream tokenStream(command);
+    std::vector<string> tokens;
+    std::string token;
+    std::istringstream tokenStream(command);
     
     while (tokenStream >> token) {
         tokens.push_back(token);
@@ -67,22 +67,25 @@ vector<string> Client::split_command(const string &command) {
     return tokens;
 }
 
-void Client::process_command(const vector<string> &tokens) {
+void Client::process_command(const std::vector<string> &tokens) {
     if (tokens.empty()) return;
 
-    string command = tokens[0];
+    std::string command = tokens[0];
     transform(command.begin(), command.end(), command.begin(), ::tolower);
 
     if (command == "upload" && tokens.size() == 2) {
         if (file_manager.upload_local_file(tokens[1])) {
+            std::cout << "arquivo enviado pelo comando" << std::endl;
             comm_manager.upload_file(tokens[1]);
         }
     } else if (command == "download" && tokens.size() == 2) {
         if (file_manager.download_local_file(tokens[1])) {
+            std::cout << "arquivo baixado pelo comando" << std::endl;
             comm_manager.download_file(tokens[1]);
         }
     } else if (command == "delete" && tokens.size() == 2) {
         if (file_manager.delete_local_file(tokens[1])) {
+            std::cout << "arquivo deletado pelo comando" << std::endl;
             comm_manager.delete_file(tokens[1]);
         }
     } else if (command == "list_server") {

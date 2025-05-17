@@ -73,7 +73,7 @@ void ClientFileManager::remove_sync_dir(){
 };
 
 bool ClientFileManager::delete_local_file(const std::string filename) {
-    std::filesystem::path filePath = "./client/sync_dir";
+    std::filesystem::path filePath = "./sync_dir";
     filePath /= filename;
 
     try {
@@ -92,7 +92,7 @@ bool ClientFileManager::delete_local_file(const std::string filename) {
 
 bool ClientFileManager::upload_local_file(const std::string& file_path) {
     std::filesystem::path sourcePath(file_path);
-    std::filesystem::path destinationDir = "./client/sync_dir";
+    std::filesystem::path destinationDir = "./sync_dir/";
     std::filesystem::path destinationPath = destinationDir / sourcePath.filename(); // Copia com o mesmo nome
 
     try {
@@ -117,7 +117,7 @@ bool ClientFileManager::upload_local_file(const std::string& file_path) {
 }
 
 bool ClientFileManager::download_local_file(const std::string& filename) {
-    std::filesystem::path sourcePath = "./client/sync_dir";
+    std::filesystem::path sourcePath = "./sync_dir/";
     sourcePath /= filename;
 
     std::filesystem::path destinationPath = std::filesystem::current_path() / filename;

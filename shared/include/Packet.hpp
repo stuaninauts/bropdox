@@ -59,14 +59,12 @@ public:
     }
 
     static bool send_file(int socket_fd, const std::string& filePath);
-    static bool process_file_instruction(int socket_fd, const std::string& outputDir);
     static bool delete_file(const std::string& fileName, const std::string& outputDir);
     static std::string build_output_path(const std::string& fileName, const std::string& outputDir);
     static bool receive_file(int socket_fd, const std::string& fileName, const std::string& outputDir, uint32_t totalPackets);
     static bool send_multiple_files(int socket_fd, const std::string& username);
     
     static bool receive_multiple_files(int socket_fd, const std::string& output_dir);
-    static bool receive_file(int socket_fd, const std::string& outputDir);
 
     // TODO mensagem de erro?
     static void send_error(int socket_fd);
