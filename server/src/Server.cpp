@@ -13,7 +13,7 @@ void Server::handle_client(int socket) {
     int n = read(socket, buffer, 255);
     
     if(n <= 0) {
-        std::cout << "Error reading client's username" << std::endl;
+        std::cerr << "Error reading client's username" << std::endl;
         close(socket);
         accept_connections.unlock();
         return;
@@ -38,7 +38,7 @@ bool Server::setup() {
     struct sockaddr_in server_address;
     
     if ((initial_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        std::cout << "SETUP ERROR: Failed to open socket" << std::endl;
+        std::cerr << "SETUP ERROR: Failed to open socket" << std::endl;
         return false;
     }
 
@@ -49,14 +49,14 @@ bool Server::setup() {
     std::cout << "Server listening on port " << port << std::endl;
 
     if (bind(initial_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
-        std::cout << "SETUP ERROR: Failed to bind socket" << std::endl;
+        std::cerr << "SETUP ERROR: Failed to bind socket" << std::endl;
         return false;
     }
     
     std::cout << "Server waiting for connections..." << std::endl;
 
     if (listen(initial_socket, 5) < 0) {
-        std::cout << "SETUP ERROR: Failed to listen on socket" << std::endl;
+        std::cerr << "SETUP ERROR: Failed to listen on socket" << std::endl;
         return false;
     }
 
@@ -78,7 +78,7 @@ void Server::run() {
         client_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
 
         if (client_socket == -1)
-            std::cout << "ERROR: Failed to accept new client" << std::endl;
+            std::cerr << "ERROR: Failed to accept new client" << std::endl;
         
         if (client_socket >= 0) {
             accept_connections.lock();

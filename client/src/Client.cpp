@@ -11,7 +11,7 @@ void Client::run() {
 
     std::cout << "Connecting to server..." << std::endl;
     if (!communicator.connect_to_server()) {
-        std::cout << "Error connecting to server" << endl;
+        std::cerr << "Error connecting to server" << endl;
         exit(1);
     }
 
@@ -82,24 +82,18 @@ void Client::process_command(const std::vector<string> &tokens) {
 
     if (command == "upload" && tokens.size() == 2) {
         FileManager::copy_file(file_path, sync_dir_path / file_path.filename());
-        std::cout << "File uploaded via command" << std::endl;
 
     } else if (command == "download" && tokens.size() == 2) {
         FileManager::copy_file(sync_dir_path / file_path.filename(), std::filesystem::current_path() / file_path.filename());
-        std::cout << "File downloaded via command" << std::endl;
 
     } else if (command == "delete" && tokens.size() == 2) {
         FileManager::delete_file(sync_dir_path / file_path.filename());
-        std::cout << "File deleted via command" << std::endl;
 
     } else if (command == "list_server") {
         communicator.list_server();
 
     } else if (command == "list_client") {
         std::cout << FileManager::get_formatted_file_list(sync_dir_path) << std::endl;
-
-    } else if (command == "get_sync_dir") {
-        std::cout << "Creating sync_dir and starting synchronization" << std::endl;
 
     } else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;
@@ -112,7 +106,6 @@ void Client::process_command(const std::vector<string> &tokens) {
         std::cout << "# delete <filename.ext>" << std::endl;
         std::cout << "# list_server" << std::endl;
         std::cout << "# list_client" << std::endl;
-        std::cout << "# get_sync_dir" << std::endl;
         std::cout << "# exit" << std::endl;
     }
 }

@@ -19,13 +19,13 @@ void ClientSession::connect_sockets() {
     this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
-        std::cout << "Failed to connect upload socket" << std::endl;
+        std::cerr << "Failed to connect upload socket" << std::endl;
         close_sockets();
         return;
     }
     
     if(!connect_socket_to_client(&socket_download, &port_download)) {
-        std::cout << "Failed to connect download socket" << std::endl;
+        std::cerr << "Failed to connect download socket" << std::endl;
         close_sockets();
         return;
     }
@@ -40,7 +40,7 @@ void ClientSession::connect_sockets() {
             close(socket_upload);
             return;
         } catch (const std::exception& e) {
-            std::cout << "Failed to send error packet: " << e.what() << std::endl;
+            std::cerr << "Failed to send error packet: " << e.what() << std::endl;
             close(socket_download);
             close(socket_upload);
             return;
@@ -156,22 +156,22 @@ bool ClientSession::connect_socket_to_client(int *sockfd, int *port) {
     serv_addr.sin_port = 0;
 
     if ((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cout << "Failed to create socket" << std::endl;
+        std::cerr << "Failed to create socket" << std::endl;
         return false;
     }
 
     if (bind(*sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cout << "Bind error" << std::endl;
+        std::cerr << "Bind error" << std::endl;
         return false;
     }
 
     if (listen(*sockfd, 5) < 0) {
-        std::cout << "Listen error" << std::endl;
+        std::cerr << "Listen error" << std::endl;
         return false;
     }
 
     if (getsockname(*sockfd, (struct sockaddr *)&serv_addr, &len) == -1) {
-        std::cout << "getsockname error" << std::endl;
+        std::cerr << "getsockname error" << std::endl;
         return false;
     }
 
@@ -188,7 +188,7 @@ bool ClientSession::connect_socket_to_client(int *sockfd, int *port) {
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(struct sockaddr_in);
     if((*sockfd = accept(*sockfd, (struct sockaddr*) &client_address, &client_address_len)) < 0){
-        std::cout << "Failed to accept client" << std::endl;
+        std::cerr << "Failed to accept client" << std::endl;
         return false;
     }
     return true;
@@ -258,7 +258,7 @@ void ClientSession::handle_get_sync_dir(){
     access_download.lock();
     {
         if(!Packet::send_multiple_files(socket_download, username))
-            std::cout << "Failed to send multiple files" << std::endl;
+            std::cerr << "Failed to send multiple files" << std::endl;
     }
     access_download.unlock();
 }

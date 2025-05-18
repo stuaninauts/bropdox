@@ -23,7 +23,7 @@ bool FileDisplayFormatter::get_file_stat(const fs::path& path, struct stat& st) 
 void FileDisplayFormatter::print_file_info(const fs::directory_entry& entry, std::ostream& out) {
     struct stat st{};
     if (!get_file_stat(entry.path(), st)) {
-        out << "Error accessing: " << entry.path() << std::endl;
+        std::cerr << "Error accessing: " << entry.path() << std::endl;
         return;
     }
 

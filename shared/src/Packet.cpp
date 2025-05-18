@@ -148,7 +148,7 @@ bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
         if (fs::is_regular_file(entry.path())) {
             bool result = Packet::send_file(socket_fd, entry.path().string());
             if (!result) {
-                cout << "Failed to send file: " << entry.path() << endl;
+                cerr << "Failed to send file: " << entry.path() << endl;
                 all_sent = false;
             }
         }
@@ -169,7 +169,7 @@ bool Packet::receive_multiple_files(int socket_fd, const std::string& output_dir
         }
 
         if (metaPacket.type != static_cast<uint16_t>(Packet::Type::DATA)) {
-            std::cout << "Expected metadata packet (type METADATA), but received type "
+            std::cerr << "Expected metadata packet (type METADATA), but received type "
                       << metaPacket.type << std::endl;
             return false;
         }
@@ -237,7 +237,7 @@ bool Packet::send_file(int socket_fd, const string& filePath) {
         cout << "File " << fileName << " successfully sent in " << packets.size() << " packets." << endl;
         return true;
     } catch (const std::runtime_error& e) {
-        cout << "Error sending file: " << e.what() << endl;
+        cerr << "Error sending file: " << e.what() << endl;
         return false;
     }
 }
@@ -247,7 +247,7 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
     ofstream outFile(outputPath, ios::binary);
 
     if (!outFile) {
-        cout << "Error creating output file: " << outputPath << endl;
+        cerr << "Error creating output file: " << outputPath << endl;
         return false;
     }
 
@@ -255,12 +255,12 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
         Packet dataPacket = Packet::receive(socket_fd);
 
         if (dataPacket.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-            cout << "Error receiving file: " << dataPacket.payload << endl;
+            cerr << "Error receiving file: " << dataPacket.payload << endl;
             return false;
         }
 
         if (dataPacket.seqn != i + 1) {
-            cout << "Error: Out-of-order packet. Expected " << i + 1
+            cerr << "Error: Out-of-order packet. Expected " << i + 1
                  << ", but received " << dataPacket.seqn << endl;
             outFile.close();
             return false;
@@ -289,6 +289,6 @@ void Packet::send_error(int socket_fd) {
     try {
         errorPacket.send(socket_fd);
     } catch (const std::exception& e) {
-        std::cout << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending error packet: " << e.what() << std::endl;
+        std::cerr << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending error packet: " << e.what() << std::endl;
     }
 }
