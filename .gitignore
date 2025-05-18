@@ -61,3 +61,5 @@ build/*
 *.mp4
 
 *.txt
+
+.vscode

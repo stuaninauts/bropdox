@@ -21,7 +21,10 @@ class ServerCommunicationManager {
 
 public:
     ServerCommunicationManager() = default;
-
+    ~ServerCommunicationManager() {
+        close_sockets();
+    }
+    
     void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, std::string user_dir_path);
     void handle_client_update();
     void handle_client_cmd();
