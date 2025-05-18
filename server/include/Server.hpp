@@ -25,13 +25,14 @@ namespace fs = std::filesystem;
 class Server {
 
 public:
-    Server() : initial_socket(-1) {};
+    Server(int port) : port(port), initial_socket(-1) {};
 
     void run();
 
 private:
 
     int initial_socket;
+    int port;
 
     bool setup();
     void handle_client(int socket);

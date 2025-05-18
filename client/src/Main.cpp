@@ -1,11 +1,9 @@
 #include <Client.hpp>
 #include <iostream>
 
-using namespace std;
-
 int main(int argc, char* argv[]) {
     if (argc != 4) {
-        cout << "Uso: ./client <username> <ip_servidor> <porta>\n";
+        std::cout << "Usage: ./client <username> <server_ip> <port>" << std::endl;
         return 1;
     }
 
@@ -14,7 +12,7 @@ int main(int argc, char* argv[]) {
     int port = stoi(argv[3]);
 
     Client client(ip, port, username, "./sync_dir/");
-    cout << "Iniciando cliente com username: " << username << ", ip: " << ip << ", porta: " << port << endl;
+    std::cout << "Starting client with username: " << username << ", ip: " << ip << ", port: " << port << std::endl;
     client.run();
 
     return 0;

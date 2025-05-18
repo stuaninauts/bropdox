@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <FileManager.hpp>
 
-#define PORT 8083
-
 std::mutex accept_connections;
 
 void Server::handle_client(int socket) {
@@ -44,9 +42,10 @@ bool Server::setup() {
     }
 
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(PORT);
+    server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
     bzero(&(server_address.sin_zero), 8);
+    std::cout << "Server listening on port " << port << std::endl;
 
     if (bind(initial_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
         std::cout << "SETUP ERROR: Failed to bind socket" << std::endl;
