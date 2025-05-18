@@ -10,14 +10,14 @@
 void Client::run() {
 
     std::cout << "Connecting to server..." << std::endl;
-    if (!comm_manager.connect_to_server()) {
-        std::cout << "Error connecting to server" << std::endl;
+    if (!communicator.connect_to_server()) {
+        std::cout << "Error connecting to server" << endl;
         exit(1);
     }
 
     FileManager::delete_all_files_in_directory(sync_dir_path);
     FileManager::create_directory(sync_dir_path);
-    comm_manager.get_sync_dir();
+    communicator.get_sync_dir();
 
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
@@ -33,11 +33,11 @@ void Client::run() {
 // ========================================= //
 
 void Client::sync_local() {
-    comm_manager.watch();
+    communicator.watch_directory();
 }
 
 void Client::sync_remote() {
-    comm_manager.handle_server_update();
+    communicator.handle_server_update();
 }
 
 void Client::user_interface() {
@@ -93,7 +93,7 @@ void Client::process_command(const std::vector<string> &tokens) {
         std::cout << "File deleted via command" << std::endl;
 
     } else if (command == "list_server") {
-        comm_manager.list_server();
+        communicator.list_server();
 
     } else if (command == "list_client") {
         std::cout << FileManager::get_formatted_file_list(sync_dir_path) << std::endl;
@@ -103,7 +103,7 @@ void Client::process_command(const std::vector<string> &tokens) {
 
     } else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;
-        comm_manager.exit_server();
+        communicator.exit_server();
 
     } else {
         std::cout << "Invalid command or missing arguments. Available commands:" << std::endl;

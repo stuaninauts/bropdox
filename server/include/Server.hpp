@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
-#include <ServerCommunicationManager.hpp>
+#include <ClientSession.hpp>
 #include <ClientsDevices.hpp>
 
 using namespace std;

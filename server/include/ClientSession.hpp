@@ -1,5 +1,5 @@
-#ifndef SERVERCOMMUNICATIONMANAGER_HPP
-#define SERVERCOMMUNICATIONMANAGER_HPP
+#ifndef CLIENTSESSION_HPP
+#define CLIENTSESSION_HPP
 
 #include <iostream>
 #include <stdexcept>
@@ -17,17 +17,17 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
-class ServerCommunicationManager {
+class ClientSession {
 
 public:
-    ServerCommunicationManager(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, fs::path user_dir_path)
+    ClientSession(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, fs::path user_dir_path)
         :   socket_cmd(socket_cmd), username(username), devices(devices), user_dir_path(user_dir_path) {};
         
-    ~ServerCommunicationManager() {
+    ~ClientSession() {
         close_sockets();
     }
     
-    void run_client_session();
+    void run();
     void handle_client_update();
     void handle_client_cmd();
 
@@ -58,4 +58,4 @@ private:
     void handle_list_server();
 };
 
-#endif // SERVERCOMMUNICATIONMANAGER_HPP
+#endif // CLIENTSESSION_HPP

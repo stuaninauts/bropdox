@@ -22,12 +22,12 @@ void Server::handle_client(int socket) {
     std::cout << "Username: " << username << std::endl;
     std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
     
-    std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>(socket, username, devices, user_dir_path);
+    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket, username, devices, user_dir_path);
 
     FileManager::create_directory(server_dir_path);
     FileManager::create_directory(user_dir_path);
 
-    comm_manager->run_client_session();
+    client_session->run();
     accept_connections.unlock();
 }
 

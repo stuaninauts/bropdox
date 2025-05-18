@@ -16,8 +16,7 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
-
-#include <ClientCommunicationManager.hpp>
+#include <Communicator.hpp>
 
 namespace fs = std::filesystem;
 
@@ -25,12 +24,12 @@ class Client {
 public:
     Client(const std::string& server_ip, int port, const std::string& username, const std::string sync_dir_path)
           : sync_dir_path(sync_dir_path),
-            comm_manager(server_ip, port, username, sync_dir_path) {}
+            communicator(server_ip, port, username, sync_dir_path) {}
 
     void run();
 
 private:
-    ClientCommunicationManager comm_manager;
+    Communicator communicator;
 
     void sync_local();
     void sync_remote();

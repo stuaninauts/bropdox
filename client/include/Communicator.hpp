@@ -1,5 +1,5 @@
-#ifndef CLIENTCOMMUNICATIONMANAGER_HPP
-#define CLIENTCOMMUNICATIONMANAGER_HPP
+#ifndef COMMUNICATOR_HPP
+#define COMMUNICATOR_HPP
 
 #include <iostream>
 #include <stdexcept>
@@ -15,15 +15,17 @@
 #include <filesystem>
 
 using namespace std;
+
 namespace fs = std::filesystem;
-class ClientCommunicationManager {
+
+class Communicator {
     
 public:
-    ~ClientCommunicationManager() {
+    ~Communicator() {
         close_sockets();
     }
 
-    ClientCommunicationManager(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path)
+    Communicator(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path)
         :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path),
             socket_upload(-1), socket_download(-1), port_upload(0), port_download(0) {};
 
@@ -33,7 +35,7 @@ public:
     void get_sync_dir();
     void exit_server();
     void list_server();
-    void watch();
+    void watch_directory();
 
 private:
     void close_sockets();
@@ -72,4 +74,4 @@ private:
     bool confirm_connection();
 };
 
-#endif // CLIENTCOMMUNICATIONMANAGER_HPP
+#endif // COMMUNICATOR_HPP

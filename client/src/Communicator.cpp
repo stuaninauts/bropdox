@@ -1,4 +1,4 @@
-#include <ClientCommunicationManager.hpp>
+#include <Communicator.hpp>
 #include <iostream>
 #include <cstring>
 #include <unistd.h>
@@ -12,14 +12,13 @@
 #include <sys/stat.h>
 #include <FileManager.hpp>
 
-
 std::mutex access_ignored_files;
 
 // ======================================== //
 // ================ PUBLIC ================ //
 // ======================================== //
 
-bool ClientCommunicationManager::connect_to_server() {
+bool Communicator::connect_to_server() {
     try {
         // Initialization of the main connection
 
@@ -76,7 +75,7 @@ bool ClientCommunicationManager::connect_to_server() {
     }
 }
 
-void ClientCommunicationManager::watch() {
+void Communicator::watch_directory() {
     bool ignore = false;
     int inotify_fd = inotify_init();
     if (inotify_fd < 0) {
@@ -155,7 +154,7 @@ void ClientCommunicationManager::watch() {
     close(inotify_fd);
 }
 
-void ClientCommunicationManager::handle_server_update() {
+void Communicator::handle_server_update() {
     while (socket_upload != -1) {
         try {
             std::cout << "Receiving server pushes" << std::endl;
@@ -189,22 +188,21 @@ void ClientCommunicationManager::handle_server_update() {
     }
 }
 
-void ClientCommunicationManager::get_sync_dir(){
+void Communicator::get_sync_dir(){
     send_command("get_sync_dir");
     if(!Packet::receive_multiple_files(socket_download, sync_dir_path)) {
         std::cout << "Error performing get_sync_dir" << std::endl;
     }
 }
 
-void ClientCommunicationManager::exit_server() {
+void Communicator::exit_server() {
     std::cout << "Disconnecting from server..." << std::endl;
     send_command("exit");
     close_sockets();
     exit(0);
 }
 
-
-void ClientCommunicationManager::list_server() {
+void Communicator::list_server() {
     std::cout << "Listing files on server:" << std::endl;
     send_command("list_server");
     std::string file_list = "";
@@ -220,7 +218,7 @@ void ClientCommunicationManager::list_server() {
 // ================ PRIVATE ================ //
 // ========================================= //
 
-void ClientCommunicationManager::handle_server_delete(const std::string filename) {
+void Communicator::handle_server_delete(const std::string filename) {
     access_ignored_files.lock();
     {
         ignored_files.insert(filename);
@@ -230,7 +228,7 @@ void ClientCommunicationManager::handle_server_delete(const std::string filename
     FileManager::delete_file(sync_dir_path / filename);
 }
 
-void ClientCommunicationManager::handle_server_upload(const std::string filename, uint32_t total_packets) {
+void Communicator::handle_server_upload(const std::string filename, uint32_t total_packets) {
     access_ignored_files.lock();
     {
         ignored_files.insert(filename);
@@ -245,13 +243,13 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
     rename(tmp_filepath.c_str(), filepath.c_str());
 }
 
-void ClientCommunicationManager::send_command(const std::string command) {
+void Communicator::send_command(const std::string command) {
     std::string payload = command;
     Packet command_packet(static_cast<uint16_t>(Packet::Type::CMD), 0, 1, payload.size(), payload);
     command_packet.send(socket_cmd);
 }
 
-bool ClientCommunicationManager::send_username() {
+bool Communicator::send_username() {
     int n = write(socket_cmd, username.c_str(), username.length());
     if (n < 0) {
         std::cout << "ERROR: Writing username to socket\n";
@@ -260,7 +258,7 @@ bool ClientCommunicationManager::send_username() {
     return true;
 }
 
-bool ClientCommunicationManager::connect_socket_cmd() {
+bool Communicator::connect_socket_cmd() {
     struct hostent* server;
     struct sockaddr_in serv_addr{};
 
@@ -287,13 +285,13 @@ bool ClientCommunicationManager::connect_socket_cmd() {
     return true;
 }
 
-void ClientCommunicationManager::close_sockets() {
+void Communicator::close_sockets() {
     if (socket_cmd > 0) close(socket_cmd);
     if (socket_download > 0) close(socket_download);
     if (socket_upload > 0) close(socket_upload);
 }
 
-bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port) {    
+bool Communicator::connect_socket_to_server(int sockfd, int* port) {    
     struct sockaddr_in serv_addr;
 
     char buffer[256];
@@ -324,7 +322,7 @@ bool ClientCommunicationManager::connect_socket_to_server(int sockfd, int* port)
     return true;
 }
 
-bool ClientCommunicationManager::confirm_connection() {
+bool Communicator::confirm_connection() {
     fd_set readfds;
     struct timeval tv;
     tv.tv_sec = 0;

@@ -1,4 +1,4 @@
-#include "ServerCommunicationManager.hpp"
+#include "ClientSession.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -13,7 +13,7 @@ std::mutex access_download;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ServerCommunicationManager::run_client_session() {
+void ClientSession::run() {
     bool suicide;
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
@@ -53,8 +53,8 @@ void ServerCommunicationManager::run_client_session() {
         }
     }
 
-    std::thread thread_cmd(&ServerCommunicationManager::handle_client_cmd, this);
-    std::thread thread_sync_client(&ServerCommunicationManager::handle_client_update, this);
+    std::thread thread_cmd(&ClientSession::handle_client_cmd, this);
+    std::thread thread_sync_client(&ClientSession::handle_client_update, this);
     
     thread_cmd.join();
     thread_sync_client.join();
@@ -64,7 +64,7 @@ void ServerCommunicationManager::run_client_session() {
 // ================ THREADS ================ //
 // ========================================= //
 
-void ServerCommunicationManager::handle_client_cmd() {
+void ClientSession::handle_client_cmd() {
     try {
         while (socket_cmd > 0) {
             Packet packet = Packet::receive(socket_cmd);
@@ -88,7 +88,7 @@ void ServerCommunicationManager::handle_client_cmd() {
     }
 }
 
-void ServerCommunicationManager::handle_client_update() {
+void ClientSession::handle_client_update() {
     try {
         while (socket_upload > 0) { // TODO: revisar antes tava -1
             Packet meta_packet = Packet::receive(socket_upload);
@@ -128,7 +128,7 @@ void ServerCommunicationManager::handle_client_update() {
 // ================ PRIVATE ================ //
 // ========================================= //
 
-void ServerCommunicationManager::close_sockets() {
+void ClientSession::close_sockets() {
     std::cout << session_name << "Closing sockets." << std::endl;
     if (socket_cmd > 0) {
         close(socket_cmd);
@@ -144,7 +144,7 @@ void ServerCommunicationManager::close_sockets() {
     }
 }
 
-bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
+bool ClientSession::connect_socket_to_client(int *sockfd, int *port) {
     struct sockaddr_in serv_addr;
     socklen_t len = sizeof(serv_addr);
 
@@ -192,7 +192,7 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
     return true;
 }
 
-void ServerCommunicationManager::handle_client_download(const std::string filename) {
+void ClientSession::handle_client_download(const std::string filename) {
     access_download.lock();
     {
         if(!Packet::send_file(socket_download, user_dir_path / filename))
@@ -201,7 +201,7 @@ void ServerCommunicationManager::handle_client_download(const std::string filena
     access_download.unlock();
 }
 
-void ServerCommunicationManager::handle_client_upload(const std::string filename, uint32_t total_packets) {
+void ClientSession::handle_client_upload(const std::string filename, uint32_t total_packets) {
     int socket_download_other_device;
     std::cout << session_name << "handle_client_upload " << filename << std::endl;
     access_files.lock();
@@ -227,7 +227,7 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
     std::cout << session_name << "repropagate " << filename << std::endl;
 }
 
-void ServerCommunicationManager::handle_client_delete(const std::string filename) {
+void ClientSession::handle_client_delete(const std::string filename) {
     int socket_download_other_device;
     std::cout << session_name << "handle_client_delete " << filename << std::endl;
     access_files.lock();
@@ -252,7 +252,7 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
     std::cout << session_name << "repropagate delete " << filename << std::endl;
 }
 
-void ServerCommunicationManager::handle_get_sync_dir(){
+void ClientSession::handle_get_sync_dir(){
     access_download.lock();
     {
         if(!Packet::send_multiple_files(socket_download, username))
@@ -261,7 +261,7 @@ void ServerCommunicationManager::handle_get_sync_dir(){
     access_download.unlock();
 }
 
-void ServerCommunicationManager::handle_exit() {
+void ClientSession::handle_exit() {
     // TODO: revisar
     // Capture the download socket descriptor used for device registration before closing.
     // This assumes this->socket_download holds the relevant descriptor.
@@ -284,7 +284,7 @@ void ServerCommunicationManager::handle_exit() {
     }
 }
 
-void ServerCommunicationManager::handle_list_server() {
+void ClientSession::handle_list_server() {
     const size_t max_payload = 4096;
 
     std::cout << session_name << "handle_list_server" << std::endl;
