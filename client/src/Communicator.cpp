@@ -83,7 +83,7 @@ void Communicator::watch_directory() {
         return;
     }
     
-    int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_CREATE | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF);
+    int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO);
     if (wd < 0) {
         std::cout << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
         close(inotify_fd);
@@ -106,18 +106,7 @@ void Communicator::watch_directory() {
             struct inotify_event *event = (struct inotify_event *) &buffer[i];
             if (!event->len) continue;
 
-            if (event->mask & IN_CREATE)
-                std::cout << "[INOTIFY] IN_CREATE: " << event->name << std::endl;
-            if (event->mask & IN_DELETE)
-                std::cout << "[INOTIFY] IN_DELETE: " << event->name << std::endl;
-            if (event->mask & IN_CLOSE_WRITE)
-                std::cout << "[INOTIFY] IN_CLOSE_WRITE: " << event->name << std::endl;
-            if (event->mask & IN_MOVED_FROM)
-                std::cout << "[INOTIFY] IN_MOVED_FROM: " << event->name << std::endl;
-            if (event->mask & IN_MOVED_TO)
-                std::cout << "[INOTIFY] IN_MOVED_TO: " << event->name << std::endl;
             if (event->mask & IN_DELETE_SELF) {
-                std::cout << "[INOTIFY] IN_DELETE_SELF: " << event->name << std::endl;
                 close(inotify_fd);
             }
 
