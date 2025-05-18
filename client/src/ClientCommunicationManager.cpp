@@ -98,7 +98,6 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
     const size_t EVENT_SIZE = sizeof(struct inotify_event);
     const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
     char buffer[BUF_LEN];
-    std::cout << "Watching directory: " << sync_dir_path << std::endl;
     
     while (true) {
         int length = read(inotify_fd, buffer, BUF_LEN);
@@ -228,8 +227,13 @@ void ClientCommunicationManager::delete_file(const std::string filename) {
 void ClientCommunicationManager::list_server() {
     std::cout << "Listing files on server:" << std::endl;
     send_command("list_server");
-    Packet packet = Packet::receive(socket_cmd);
-    std::cout << packet.payload << std::endl;
+    std::string file_list = "";
+    Packet packet;
+    do {
+        packet = Packet::receive(socket_cmd);
+        file_list += packet.payload;
+    } while (packet.total_size <= packet.seqn);
+    std::cout << file_list << std::endl;
 }
 
 // ========================================= //
