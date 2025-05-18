@@ -19,8 +19,6 @@
 
 #include <ClientCommunicationManager.hpp>
 
-using namespace std;
-
 namespace fs = std::filesystem;
 
 class Client {

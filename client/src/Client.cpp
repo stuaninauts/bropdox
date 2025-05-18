@@ -9,9 +9,9 @@
 
 void Client::run() {
 
-    cout << "Connecting to server..." << endl;
+    std::cout << "Connecting to server..." << std::endl;
     if (!comm_manager.connect_to_server()) {
-        cout << "Error connecting to server" << endl;
+        std::cout << "Error connecting to server" << std::endl;
         exit(1);
     }
 
@@ -43,7 +43,7 @@ void Client::sync_remote() {
 void Client::user_interface() {
     while (true) {
         std::string input;
-        cout << "> ";
+        std::cout << "> ";
         getline(cin, input);
         
         std::vector<string> tokens = split_command(input);
