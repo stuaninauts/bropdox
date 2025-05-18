@@ -27,8 +27,9 @@ void Server::handle_client(int socket) {
     FileManager::create_directory(server_dir_path);
     FileManager::create_directory(user_dir_path);
 
-    client_session->run();
+    client_session->connect_sockets();
     accept_connections.unlock();
+    client_session->run();
 }
 
 bool Server::setup() {

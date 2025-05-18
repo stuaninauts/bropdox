@@ -13,8 +13,10 @@ std::mutex access_download;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ClientSession::run() {
+void ClientSession::connect_sockets() {
     bool suicide;
+
+    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cout << "Failed to connect upload socket" << std::endl;
@@ -27,14 +29,6 @@ void ClientSession::run() {
         close_sockets();
         return;
     }
-
-    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
-
-    access_devices.lock();
-    {
-        suicide = !devices->add_client_socket(username, socket_download);
-    }
-    access_devices.unlock();
 
     if (suicide) {
         std::string error_msg = "USER_MAX_CONNECTIONS_REACHED";
@@ -53,6 +47,14 @@ void ClientSession::run() {
         }
     }
 
+    access_devices.lock();
+    {
+        suicide = !devices->add_client_socket(username, socket_download);
+    }
+    access_devices.unlock();
+}
+
+void ClientSession::run() {
     std::thread thread_cmd(&ClientSession::handle_client_cmd, this);
     std::thread thread_sync_client(&ClientSession::handle_client_update, this);
     

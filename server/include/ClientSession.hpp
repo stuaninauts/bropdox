@@ -27,6 +27,7 @@ public:
         close_sockets();
     }
     
+    void connect_sockets();
     void run();
     void handle_client_update();
     void handle_client_cmd();
