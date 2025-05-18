@@ -260,7 +260,7 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
     std::filesystem::create_directory(tmp);
     Packet::receive_file(socket_download, filename, tmp, total_packets);
     std::string tmp_filepath = tmp + filename;
-    std::string filepath = "./sync_dir/" + filename;
+    std::string filepath = sync_dir_path / filename;
     rename(tmp_filepath.c_str(), filepath.c_str());
 }
 
