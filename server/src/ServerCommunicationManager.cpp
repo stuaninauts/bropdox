@@ -269,9 +269,19 @@ void ServerCommunicationManager::handle_list_server() {
     std::cout << session_name << "handle_list_server" << std::endl;
     file_manager.list_files();
     std::string file_list = file_manager.get_files_list();
-    
-    Packet response_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 1, file_list.size(), file_list);
-    response_packet.send(socket_download);
+
+    const size_t max_payload = 4096;
+    size_t total_size = file_list.size();
+    int total_packets = total_size / max_payload + 1;
+
+    for (int seqn = 0; seqn < total_packets; seqn++) {
+        size_t start = seqn * max_payload;
+        size_t end = std::min(start + max_payload, total_size);
+        std::string payload = file_list.substr(start, end - start);
+
+        Packet response_packet(static_cast<uint16_t>(Packet::Type::DATA), seqn, total_packets, payload.size(), payload);
+        response_packet.send(socket_cmd);
+    }
 }
 
 vector<string> ServerCommunicationManager::split_command(const string &command) {
