@@ -7,7 +7,7 @@
 int main(int argc, char* argv[]) {
    int port;
    if (argc == 1) {
-      port = 8080;
+      port = PORT;
    } else if (argc == 2) {
       port = stoi(argv[1]);
    } else {
