@@ -9,12 +9,12 @@ class Packet {
 public:
     // Tipos de pacote como enum class para maior segurança
     enum class Type : uint16_t {
-        DATA = 1,      // Pacote de dados
-        CMD = 2,       // Pacote de comando
-        ACK = 3,      // Pacote de confirmação
-        ERROR = 4,  // Pacote de erro
-        DELETE = 5,      // Pacote de delete
-        EMPTY = 6      // Pacote de empty
+        DATA = 1,
+        CMD = 2, 
+        ACK = 3,
+        ERROR = 4,
+        DELETE = 5, 
+        EMPTY = 6
     };
 
     // Construtor
@@ -23,11 +23,11 @@ public:
     
     Packet() = default;
 
-    uint16_t type;         // Tipo do pacote (convertível para Type)
-    uint16_t seqn;         // Número de sequência
-    uint32_t total_size;   // Número total de fragmentos
-    uint16_t length;       // Comprimento do payload
-    std::string payload;   // Dados do pacote
+    uint16_t type;
+    uint16_t seqn;
+    uint32_t total_size;
+    uint16_t length;
+    std::string payload;
 
     static bool send_file(int socket_fd, const std::string& filePath);
     static std::string build_output_path(const std::string& fileName, const std::string& outputDir);

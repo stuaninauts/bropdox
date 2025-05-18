@@ -31,9 +31,8 @@ public:
     void handle_client_update();
     void handle_client_cmd();
 
+private:
     std::shared_ptr<ClientsDevices> devices;
-
-// private:
     std::string username;
     std::string session_name;
     fs::path user_dir_path;
@@ -42,6 +41,7 @@ public:
     int socket_upload;
     int socket_download;
     int socket_cmd;
+
     // ports
     int port_upload;
     int port_download;
@@ -56,8 +56,6 @@ public:
     void handle_exit();
     void handle_get_sync_dir();
     void handle_list_server();
-
-    vector<string> split_command(const string &command);
 };
 
 #endif // SERVERCOMMUNICATIONMANAGER_HPP

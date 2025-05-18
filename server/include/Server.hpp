@@ -25,13 +25,13 @@ namespace fs = std::filesystem;
 class Server {
 
 public:
-    Server() = default;
+    Server() : initial_socket(-1) {};
 
     void run();
 
 private:
 
-    int initial_socket = -1;
+    int initial_socket;
 
     bool setup();
     void handle_client(int socket);

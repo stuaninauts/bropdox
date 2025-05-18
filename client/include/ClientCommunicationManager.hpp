@@ -29,8 +29,6 @@ public:
 
     bool connect_to_server();
 
-    void send_command(const std::string command, const std::string filename = "");
-
     void handle_server_update();
     void get_sync_dir();
     void exit_server();
@@ -63,6 +61,9 @@ private:
     // handle server update
     void handle_server_delete(const std::string filename);
     void handle_server_upload(const std::string filename, uint32_t total_packets);
+
+    // command
+    void send_command(const std::string command);
 
     // connection setup
     bool send_username();

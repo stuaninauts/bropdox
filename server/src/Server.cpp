@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <FileManager.hpp>
 
-#define PORT 8080
+#define PORT 8083
 
 std::mutex accept_connections;
 
@@ -16,6 +16,8 @@ void Server::handle_client(int socket) {
     
     if(n <= 0) {
         std::cout << "Error reading client's username" << std::endl;
+        close(socket);
+        accept_connections.unlock();
         return;
     }
     username = std::string(buffer); // <-- fixed: assignment instead of redeclaration

@@ -245,9 +245,8 @@ void ClientCommunicationManager::handle_server_upload(const std::string filename
     rename(tmp_filepath.c_str(), filepath.c_str());
 }
 
-void ClientCommunicationManager::send_command(const std::string command, const std::string filename) {
+void ClientCommunicationManager::send_command(const std::string command) {
     std::string payload = command;
-    if(filename != "") payload += " " + filename; //secret TODO ugly bad
     Packet command_packet(static_cast<uint16_t>(Packet::Type::CMD), 0, 1, payload.size(), payload);
     command_packet.send(socket_cmd);
 }

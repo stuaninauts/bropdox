@@ -70,25 +70,14 @@ void ServerCommunicationManager::handle_client_cmd() {
             Packet packet = Packet::receive(socket_cmd);
             std::cout << session_name << "Packet received: " << packet.to_string() << std::endl;
 
-            std::vector<string> tokens = split_command(packet.payload);
-            std::string command = tokens[0];
-            
-            if (command == "upload") {
-                std::cout << session_name << "{CMD} client upload " << std::endl;
-            } else if (command == "download") {
-                std::cout << session_name << "{CMD} client download" << std::endl;
-                handle_client_download(tokens[1]);
-            } else if (command == "delete") {
-                std::cout << session_name << "{CMD} client delete" << std::endl;
-                handle_client_delete(tokens[1]);
-            } else if (command == "list_server") {
+            if (packet.payload == "list_server") {
                 std::cout << session_name << "{CMD} client list_server" << std::endl;
                 handle_list_server();
-            } else if (command == "exit") {
+            } else if (packet.payload == "exit") {
                 std::cout << session_name << "{CMD} client exit" << std::endl;
                 handle_exit(); // garante cleanup
                 break;         
-            } else if (command == "get_sync_dir") {
+            } else if (packet.payload == "get_sync_dir") {
                 handle_get_sync_dir();        
             } else {
                 std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
@@ -312,16 +301,4 @@ void ServerCommunicationManager::handle_list_server() {
         Packet response_packet(static_cast<uint16_t>(Packet::Type::DATA), seqn, total_packets, payload.size(), payload);
         response_packet.send(socket_cmd);
     }
-}
-
-vector<string> ServerCommunicationManager::split_command(const string &command) {
-    vector<string> tokens;
-    string token;
-    istringstream tokenStream(command);
-    
-    while (tokenStream >> token) {
-        tokens.push_back(token);
-    }
-    
-    return tokens;
 }
