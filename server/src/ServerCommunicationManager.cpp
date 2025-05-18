@@ -13,11 +13,7 @@ std::mutex access_download;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, std::string user_dir_path) {
-    this->socket_cmd = socket_cmd;
-    this->devices = devices;
-    this->username = username;
-    this->user_dir_path = user_dir_path;
+void ServerCommunicationManager::run_client_session() {
     bool suicide;
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {

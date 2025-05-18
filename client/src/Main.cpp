@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     string ip = argv[2];
     int port = stoi(argv[3]);
 
-    Client client(ip, port, username);
+    Client client(ip, port, username, "./sync_dir/");
     cout << "Iniciando cliente com username: " << username << ", ip: " << ip << ", porta: " << port << endl;
     client.run();
 

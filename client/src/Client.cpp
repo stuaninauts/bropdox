@@ -8,14 +8,16 @@
 // ======================================== //
 
 void Client::run() {
-    FileManager::delete_all_files_in_directory(sync_dir_path);
-    FileManager::create_directory(sync_dir_path);
 
     cout << "Connecting to server..." << endl;
-    if (!comm_manager.connect_to_server(server_ip, port, username, sync_dir_path)) {
+    if (!comm_manager.connect_to_server()) {
         cout << "Error connecting to server" << endl;
         exit(1);
     }
+
+    FileManager::delete_all_files_in_directory(sync_dir_path);
+    FileManager::create_directory(sync_dir_path);
+    comm_manager.get_sync_dir();
 
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);

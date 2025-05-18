@@ -23,7 +23,12 @@ public:
         close_sockets();
     }
 
-    bool connect_to_server(const std::string server_ip, int port, const std::string username, const std::string sync_dir_path);
+    ClientCommunicationManager(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path)
+        :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path),
+            socket_upload(-1), socket_download(-1), port_upload(0), port_download(0) {};
+
+    bool connect_to_server();
+
     void send_command(const std::string command, const std::string filename = "");
 
     void handle_server_update();
@@ -32,8 +37,9 @@ public:
     void list_server();
     void watch();
 
-
-// private:
+private:
+    void close_sockets();
+    
     // ip
     std::string server_ip;
 
@@ -50,18 +56,19 @@ public:
     // username
     std::string username;
     fs::path sync_dir_path;
-
+    
+    // ignored files inotify
     std::set<std::string> ignored_files;
 
-    void close_sockets();
+    // handle server update
+    void handle_server_delete(const std::string filename);
+    void handle_server_upload(const std::string filename, uint32_t total_packets);
 
+    // connection setup
     bool send_username();
     bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
     bool confirm_connection();
-
-    void handle_server_delete(const std::string filename);
-    void handle_server_upload(const std::string filename, uint32_t total_packets);
 };
 
 #endif // CLIENTCOMMUNICATIONMANAGER_HPP

@@ -19,12 +19,7 @@ std::mutex access_ignored_files;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username, const std::string sync_dir_path) {
-    this->server_ip = server_ip;
-    this->port_cmd = port;
-    this->username = username;
-    this->sync_dir_path = fs::path(sync_dir_path);
-
+bool ClientCommunicationManager::connect_to_server() {
     try {
         // Initialization of the main connection
 
@@ -40,28 +35,28 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
 
         // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cout << "Error creating upload socket";
+            std::cout << "Error creating upload socket" << std::endl;
             close_sockets();
             return false;
         }
 
         // Create download socket
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            std::cout << "Error creating download socket";
+            std::cout << "Error creating download socket" << std::endl;
             close_sockets();
             return false;
         }
 
         // Connect upload socket
         if (!connect_socket_to_server(socket_upload, &port_upload)){
-            std::cout << "Error connecting upload socket";
+            std::cout << "Error connecting upload socket" << std::endl;
             close_sockets();
             return false;
         }
 
         // Connect download socket
         if (!connect_socket_to_server(socket_download, &port_download)){
-            std::cout << "Error connecting download socket";
+            std::cout << "Error connecting download socket" << std::endl;
             close_sockets();
             return false;
         }
@@ -71,8 +66,6 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
             close_sockets();
             return false;
         }
-
-        get_sync_dir();
 
         return true;
 

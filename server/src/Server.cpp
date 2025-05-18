@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <FileManager.hpp>
 
-#define PORT 8081
+#define PORT 8080
+
+std::mutex accept_connections;
 
 void Server::handle_client(int socket) {
     char buffer[256];
@@ -20,17 +22,13 @@ void Server::handle_client(int socket) {
     std::cout << "Username: " << username << std::endl;
     std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
     
-    try {
-        std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>();
+    std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>(socket, username, devices, user_dir_path);
 
-        FileManager::create_directory(server_dir_path);
-        FileManager::create_directory(user_dir_path);
+    FileManager::create_directory(server_dir_path);
+    FileManager::create_directory(user_dir_path);
 
-        comm_manager->run_client_session(socket, username, devices, user_dir_path);
-
-    } catch(const std::exception& e) {
-        std::cout << "Error creating server file manager: " << e.what() << std::endl;
-    }
+    comm_manager->run_client_session();
+    accept_connections.unlock();
 }
 
 bool Server::setup() {
@@ -81,6 +79,7 @@ void Server::run() {
             std::cout << "ERROR: Failed to accept new client" << std::endl;
         
         if (client_socket >= 0) {
+            accept_connections.lock();
             std::cout << "Client connected" << std::endl; 
             std::thread client_thread(&Server::handle_client, this, client_socket);
             client_thread.detach();

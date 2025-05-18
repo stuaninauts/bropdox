@@ -14,34 +14,32 @@
 #include <netdb.h> 
 #include <thread> 
 #include <iostream>
-#include <unistd.h>
 #include <algorithm>
+#include <filesystem>
 
 #include <ClientCommunicationManager.hpp>
 
 using namespace std;
+
 namespace fs = std::filesystem;
+
 class Client {
 public:
-Client(const std::string& server_ip, int port, const std::string& username)
-    : server_ip(server_ip),
-      port(port),
-      username(username),
-      sync_dir_path("./client/sync_dir/") {
-}
+    Client(const std::string& server_ip, int port, const std::string& username, const std::string sync_dir_path)
+          : sync_dir_path(sync_dir_path),
+            comm_manager(server_ip, port, username, sync_dir_path) {}
 
     void run();
 
-    int port;
-    std::string username;
-    std::string server_ip;
-    fs::path sync_dir_path;
-
+private:
     ClientCommunicationManager comm_manager;
 
     void sync_local();
     void sync_remote();
     void user_interface();
+
+    fs::path sync_dir_path;
+
     vector<string> split_command(const string &command);
     void process_command(const vector<string> &tokens);
 };

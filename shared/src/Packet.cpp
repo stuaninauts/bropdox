@@ -127,24 +127,6 @@ string Packet::to_string() const {
     return ss.str();
 }
 
-// void Packet::set_type(uint16_t type) {
-//     this->type = type;
-// }
-
-// void Packet::set_length(uint16_t length) {
-//     if (payload.size() != length) {
-//         throw std::invalid_argument("New length doesn't match current payload size");
-//     }
-//     this->length = length;
-// }
-
-// void Packet::set_payload(const std::string& payload) {
-//     if (payload.size() != length) {
-//         throw std::invalid_argument("Payload length doesn't match specified length");
-//     }
-//     this->payload = payload;
-// }
-
 bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
     std::string dir_path = "./sync_dir_server/sync_dir_" + username;
 
@@ -292,22 +274,6 @@ bool Packet::receive_file(int socket_fd, const string& fileName, const string& o
     return true;
 }
 
-bool Packet::delete_file(const string& fileName, const string& outputDir) {
-    string filePath = outputDir;
-    if (!outputDir.empty() && outputDir.back() != '/') {
-        filePath += '/';
-    }
-    filePath += fileName;
-
-    if (std::remove(filePath.c_str()) == 0) {
-        cout << "File " << filePath << " successfully deleted." << endl;
-        return true;
-    } else {
-        cout << "Error deleting file: " << filePath << endl;
-        return false;
-    }
-}
-
 string Packet::build_output_path(const string& fileName, const string& outputDir) {
     string outputPath = outputDir;
     if (!outputDir.empty() && outputDir.back() != '/') {
@@ -324,14 +290,5 @@ void Packet::send_error(int socket_fd) {
         errorPacket.send(socket_fd);
     } catch (const std::exception& e) {
         std::cout << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending error packet: " << e.what() << std::endl;
-    }
-}
-
-void Packet::send_ack(int socket_fd) {
-    Packet ackPacket(static_cast<uint16_t>(Packet::Type::ACK), 0, 0, 3, "ACK");
-    try {
-        ackPacket.send(socket_fd);
-    } catch (const std::exception& e) {
-        std::cout << "WARNING!!! DEBUG THE ENTIRE CODE!!! Error sending ack packet: " << e.what() << std::endl;
     }
 }
