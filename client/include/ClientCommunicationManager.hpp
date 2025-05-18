@@ -24,14 +24,10 @@ public:
     }
 
     bool connect_to_server(const std::string server_ip, int port, const std::string username, const std::string sync_dir_path);
-    bool connect_to_server(const std::string server_ip, int port, const std::string username);
     void send_command(const std::string command, const std::string filename = "");
 
     void handle_server_update();
     void get_sync_dir();
-    void upload_file(const std::string filename);
-    void download_file(const std::string filename);
-    void delete_file(const std::string filename);
     void exit_server();
     void list_server();
     void watch();
