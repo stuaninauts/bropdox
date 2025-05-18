@@ -10,20 +10,19 @@
 #include <unistd.h>
 #include <string>
 #include <Packet.hpp>
-#include <ServerFileManager.hpp>
 #include <ClientsDevices.hpp>
 #include <mutex>
 #include <thread>
 #include <memory>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 class ServerCommunicationManager {
 
 public:
-    ServerCommunicationManager(ServerFileManager& file_manager) 
-        : file_manager(file_manager) {
-    }
-    
-    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
+    ServerCommunicationManager() = default;
+
+    void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, std::string user_dir_path);
     void handle_client_update();
     void handle_client_cmd();
 
@@ -32,6 +31,7 @@ public:
 // private:
     std::string username;
     std::string session_name;
+    fs::path user_dir_path;
     
     // sockets
     int socket_upload;
@@ -53,9 +53,6 @@ public:
     void handle_list_server();
 
     vector<string> split_command(const string &command);
-
-
-    ServerFileManager& file_manager;
 };
 
 #endif // SERVERCOMMUNICATIONMANAGER_HPP

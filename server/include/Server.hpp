@@ -17,11 +17,11 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
-#include <ServerFileManager.hpp>
 #include <ServerCommunicationManager.hpp>
 #include <ClientsDevices.hpp>
 
 using namespace std;
+namespace fs = std::filesystem;
 class Server {
 
 public:
@@ -37,6 +37,7 @@ private:
     void handle_client(int socket);
 
     std::shared_ptr<ClientsDevices> devices;
+    fs::path server_dir_path = "./sync_dir_server";
 };
 
 #endif // SERVER_HPP

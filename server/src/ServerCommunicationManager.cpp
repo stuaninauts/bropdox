@@ -3,6 +3,7 @@
 #include <cctype>
 #include <sstream>
 #include <vector>
+#include <FileManager.hpp>
 
 std::mutex access_devices;
 std::mutex access_files;
@@ -12,10 +13,11 @@ std::mutex access_download;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices) {
+void ServerCommunicationManager::run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, std::string user_dir_path) {
     this->socket_cmd = socket_cmd;
     this->devices = devices;
     this->username = username;
+    this->user_dir_path = user_dir_path;
     bool suicide;
 
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
@@ -190,7 +192,7 @@ bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port
 void ServerCommunicationManager::handle_client_download(const std::string filename) {
     access_download.lock();
     {
-        if(!Packet::send_file(socket_download, file_manager.server_dir_path + "/" + filename))
+        if(!Packet::send_file(socket_download, user_dir_path / filename))
             Packet::send_error(socket_download);
     }
     access_download.unlock();
@@ -201,7 +203,7 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
     std::cout << session_name << "handle_client_upload " << filename << std::endl;
     access_files.lock();
     {
-        file_manager.write_file(socket_upload, filename, total_packets);
+        Packet::receive_file(socket_upload, filename, user_dir_path, total_packets);
     }
     access_files.unlock();
     access_devices.lock();
@@ -215,7 +217,7 @@ void ServerCommunicationManager::handle_client_upload(const std::string filename
         return;
     access_download.lock();
     {
-        if(!Packet::send_file(socket_download_other_device, file_manager.server_dir_path + "/" + filename))
+        if(!Packet::send_file(socket_download_other_device, user_dir_path / filename))
             Packet::send_error(socket_download_other_device);
     }
     access_download.unlock();
@@ -227,7 +229,7 @@ void ServerCommunicationManager::handle_client_delete(const std::string filename
     std::cout << session_name << "handle_client_delete " << filename << std::endl;
     access_files.lock();
     {
-        file_manager.delete_file(filename);
+        FileManager::delete_file(user_dir_path / filename);
     }
     access_files.unlock();
     access_devices.lock();
@@ -267,9 +269,7 @@ void ServerCommunicationManager::handle_exit() {
 
 void ServerCommunicationManager::handle_list_server() {
     std::cout << session_name << "handle_list_server" << std::endl;
-    file_manager.list_files();
-    std::string file_list = file_manager.get_files_list();
-    
+    std::string file_list = FileManager::get_formatted_file_list(user_dir_path);
     Packet response_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 1, file_list.size(), file_list);
     response_packet.send(socket_download);
 }

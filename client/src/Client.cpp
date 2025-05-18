@@ -94,7 +94,7 @@ void Client::process_command(const std::vector<string> &tokens) {
         comm_manager.list_server();
 
     } else if (command == "list_client") {
-        FileManager::get_formatted_file_list(sync_dir_path);
+        std::cout << FileManager::get_formatted_file_list(sync_dir_path) << std::endl;
 
     } else if (command == "get_sync_dir") {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;

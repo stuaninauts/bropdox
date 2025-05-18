@@ -2,8 +2,9 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <FileManager.hpp>
 
-#define PORT 8081
+#define PORT 8080
 
 void Server::handle_client(int socket) {
     char buffer[256];
@@ -17,13 +18,15 @@ void Server::handle_client(int socket) {
     }
     username = std::string(buffer); // <-- fixed: assignment instead of redeclaration
     std::cout << "Username: " << username << std::endl;
+    std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
     
     try {
-        std::unique_ptr<ServerFileManager> file_manager = std::make_unique<ServerFileManager>(username);
-        std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>(*file_manager);
+        std::unique_ptr<ServerCommunicationManager> comm_manager = std::make_unique<ServerCommunicationManager>();
 
-        file_manager->create_sync_dir();
-        comm_manager->run_client_session(socket, username, devices);
+        FileManager::create_directory(server_dir_path);
+        FileManager::create_directory(user_dir_path);
+
+        comm_manager->run_client_session(socket, username, devices, user_dir_path);
 
     } catch(const std::exception& e) {
         std::cout << "Error creating server file manager: " << e.what() << std::endl;
