@@ -22,6 +22,9 @@ public:
     ServerCommunicationManager(ServerFileManager& file_manager) 
         : file_manager(file_manager) {
     }
+    ~ServerCommunicationManager() {
+        close_sockets();
+    }
     
     void run_client_session(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices);
     void handle_client_update();

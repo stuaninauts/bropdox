@@ -14,8 +14,12 @@
 #include <set>
 
 class ClientCommunicationManager {
+    
 public:
-
+    ~ClientCommunicationManager() {
+        close_sockets();
+    }
+    
     bool connect_to_server(const std::string server_ip, int port, const std::string username);
     void send_command(const std::string command, const std::string filename = "");
 

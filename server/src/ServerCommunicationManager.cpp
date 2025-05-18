@@ -67,43 +67,49 @@ void ServerCommunicationManager::run_client_session(int socket_cmd, std::string 
 // ========================================= //
 
 void ServerCommunicationManager::handle_client_cmd() {
-    while (socket_cmd > 0) {
-        Packet packet = Packet::receive(socket_cmd);
-        std::cout << session_name << "Packet received: " << packet.to_string() << std::endl;
+    try {
+        while (socket_cmd > 0) {
+            Packet packet = Packet::receive(socket_cmd);
+            std::cout << session_name << "Packet received: " << packet.to_string() << std::endl;
 
-        std::vector<string> tokens = split_command(packet.payload);
-        std::string command = tokens[0];
-        
-        if (command == "upload") {
-            std::cout << session_name << "{CMD} client upload" << std::endl;
+            std::vector<string> tokens = split_command(packet.payload);
+            std::string command = tokens[0];
+            
+            if (command == "upload") {
+                std::cout << session_name << "{CMD} client upload " << std::endl;
+            } else if (command == "download") {
+                std::cout << session_name << "{CMD} client download" << std::endl;
+                handle_client_download(tokens[1]);
+            } else if (command == "delete") {
+                std::cout << session_name << "{CMD} client delete" << std::endl;
+                handle_client_delete(tokens[1]);
+            } else if (command == "list_server") {
+                std::cout << session_name << "{CMD} client list_server" << std::endl;
+                handle_list_server();
+            } else if (command == "exit") {
+                std::cout << session_name << "{CMD} client exit" << std::endl;
+                handle_exit(); // garante cleanup
+                break;         
+            } else if (command == "get_sync_dir") {
+                handle_get_sync_dir();        
+            } else {
+                std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
+            }
         }
-        else if (command == "download") {
-            std::cout << session_name << "{CMD} client download" << std::endl;
-            handle_client_download(tokens[1]);
-        } else if (command == "delete") {
-            std::cout << session_name << "{CMD} client delete" << std::endl;
-            handle_client_delete(tokens[1]);
-        } else if (command == "list_server") {
-            handle_list_server();
-        } else if (packet.payload == "exit") {
-            handle_exit();
-        } else if (packet.payload == "get_sync_dir") {
-            handle_get_sync_dir();        
-        } else {
-            std::cout << session_name << "Unknown command: " << packet.payload << std::endl;
-        }
+    } catch (const std::runtime_error& e) {
+        handle_exit(); // garante cleanup em qualquer erro
     }
 }
 
 void ServerCommunicationManager::handle_client_update() {
-    while (socket_upload != -1) {
-        try {
-            std::cout << session_name << "Receiving client pushes" << std::endl;
+    try {
+        while (socket_upload > 0) { // TODO: revisar antes tava -1
             Packet meta_packet = Packet::receive(socket_upload);
 
-            std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl;
+            std::cout << session_name << "Received meta_packet from client: " << meta_packet.payload << std::endl; // opcional
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cout << session_name << "Received ERROR packet on update socket: " << meta_packet.payload << std::endl;
                 continue;
             }
 
@@ -116,16 +122,18 @@ void ServerCommunicationManager::handle_client_update() {
                 handle_client_upload(meta_packet.payload, meta_packet.total_size);
                 continue;
             }
-
+            
+            // se for apenas printar erro
+            // std::cout << session_name << "Unexpected packet type " << meta_packet.type 
+            //           << " on update socket. Payload: " << meta_packet.payload << std::endl;
+            // se for erro fatal pra fechar
             throw std::runtime_error(
                 "Unexpected packet type " + std::to_string(meta_packet.type) + 
                 " received from client (expected DATA, DELETE, or ERROR)"
             );
-
-        } catch (const std::runtime_error& e) {
-            std::cout << session_name << "Client update failed: " << e.what() << std::endl;
-            return;
         }
+    } catch (const std::runtime_error& e) {
+        handle_exit(); // Ensure cleanup on any error
     }
 }
 
@@ -134,9 +142,19 @@ void ServerCommunicationManager::handle_client_update() {
 // ========================================= //
 
 void ServerCommunicationManager::close_sockets() {
-    if (socket_cmd > 0) close(socket_cmd);
-    if (socket_download > 0) close(socket_download);
-    if (socket_upload > 0) close(socket_upload);
+    std::cout << session_name << "Closing sockets." << std::endl;
+    if (socket_cmd > 0) {
+        close(socket_cmd);
+        socket_cmd = 0;
+    }
+    if (socket_download > 0) {
+        close(socket_download);
+        socket_download = 0;
+    }
+    if (socket_upload > 0) {
+        close(socket_upload);
+        socket_upload = 0;
+    }
 }
 
 bool ServerCommunicationManager::connect_socket_to_client(int *sockfd, int *port) {
@@ -257,12 +275,26 @@ void ServerCommunicationManager::handle_get_sync_dir(){
 }
 
 void ServerCommunicationManager::handle_exit() {
+    // TODO: revisar
+    // Capture the download socket descriptor used for device registration before closing.
+    // This assumes this->socket_download holds the relevant descriptor.
+    // If close_sockets() has already run, this->socket_download might be 0.
+    // It's better if remove_client_socket could be called with the original descriptor
+    // or if ClientsDevices handles already closed sockets gracefully.
+    // For now, we rely on the fact that socket_download was added.
+    int download_socket_id_for_removal = this->socket_download;
+
     close_sockets();
-    access_devices.lock();
-    {
-        devices->remove_client_socket(username, socket_download);
+
+    if (download_socket_id_for_removal > 0) { // apenas tenta remover se é um socket válido
+        access_devices.lock();
+        {
+            if (devices) { // Ensure devices pointer is valid
+                devices->remove_client_socket(this->username, download_socket_id_for_removal);
+            }
+        }
+        access_devices.unlock();
     }
-    access_devices.unlock();
 }
 
 void ServerCommunicationManager::handle_list_server() {
