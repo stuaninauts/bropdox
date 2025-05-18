@@ -73,24 +73,36 @@ void Client::process_command(const std::vector<string> &tokens) {
     std::string command = tokens[0];
     transform(command.begin(), command.end(), command.begin(), ::tolower);
 
+    std::filesystem::path file_path;
+    if (tokens.size() == 2) {
+        file_path = tokens[1];
+    }
+
     if (command == "upload" && tokens.size() == 2) {
-        file_manager.upload_local_file(tokens[1]);
+        FileManager::copy_file(file_path, sync_dir_path / file_path.filename());
         std::cout << "File uploaded via command" << std::endl;
+
     } else if (command == "download" && tokens.size() == 2) {
-        file_manager.download_local_file(tokens[1]);
+        FileManager::copy_file(sync_dir_path / file_path.filename(), std::filesystem::current_path() / file_path.filename());
         std::cout << "File downloaded via command" << std::endl;
+
     } else if (command == "delete" && tokens.size() == 2) {
-        file_manager.delete_local_file(tokens[1]);
+        FileManager::delete_file(sync_dir_path / file_path.filename());
         std::cout << "File deleted via command" << std::endl;
+
     } else if (command == "list_server") {
         comm_manager.list_server();
+
     } else if (command == "list_client") {
-        FileManager::get_formatted_file_list(file_manager.sync_dir_path);
+        FileManager::get_formatted_file_list(sync_dir_path);
+
     } else if (command == "get_sync_dir") {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;
+
     } else if (command == "exit") {
         std::cout << "Closing session with server" << std::endl;
         comm_manager.exit_server();
+
     } else {
         std::cout << "Invalid command or missing arguments. Available commands:" << std::endl;
         std::cout << "# upload <path/filename.ext>" << std::endl;

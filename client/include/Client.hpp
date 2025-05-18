@@ -17,7 +17,6 @@
 #include <unistd.h>
 #include <algorithm>
 
-#include <ClientFileManager.hpp>
 #include <ClientCommunicationManager.hpp>
 
 using namespace std;
@@ -38,7 +37,6 @@ Client(const std::string& server_ip, int port, const std::string& username)
     std::string server_ip;
     fs::path sync_dir_path;
 
-    ClientFileManager file_manager;
     ClientCommunicationManager comm_manager;
 
     void sync_local();

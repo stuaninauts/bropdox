@@ -10,7 +10,7 @@
 #include <sys/inotify.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <ClientFileManager.hpp>
+#include <FileManager.hpp>
 
 
 std::mutex access_ignored_files;
@@ -246,7 +246,7 @@ void ClientCommunicationManager::handle_server_delete(const std::string filename
     }
     access_ignored_files.unlock();
     // TEST WITH DOCKER
-    ClientFileManager::delete_local_file(filename);
+    FileManager::delete_file(sync_dir_path / filename);
 }
 
 void ClientCommunicationManager::handle_server_upload(const std::string filename, uint32_t total_packets) {
