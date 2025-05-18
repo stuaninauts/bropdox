@@ -97,12 +97,6 @@ void ServerCommunicationManager::handle_client_cmd() {
             }
         }
     } catch (const std::runtime_error& e) {
-        std::string error_msg = e.what();
-        if (error_msg == "Connection closed by peer" || error_msg == "Error reading from socket") {
-            std::cout << session_name << "Client command socket closed unexpectedly: " << error_msg << std::endl;
-        } else {
-            std::cout << session_name << "Runtime error in handle_client_cmd: " << error_msg << std::endl;
-        }
         handle_exit(); // garante cleanup em qualquer erro
     }
 }
@@ -139,12 +133,6 @@ void ServerCommunicationManager::handle_client_update() {
             );
         }
     } catch (const std::runtime_error& e) {
-        std::string error_msg = e.what();
-        if (error_msg == "Connection closed by peer" || error_msg == "Error reading from socket") {
-            std::cout << session_name << "Client update socket closed unexpectedly: " << error_msg << std::endl;
-        } else {
-            std::cout << session_name << "Runtime error in client update: " << error_msg << std::endl;
-        }
         handle_exit(); // Ensure cleanup on any error
     }
 }
@@ -296,9 +284,9 @@ void ServerCommunicationManager::handle_exit() {
     // For now, we rely on the fact that socket_download was added.
     int download_socket_id_for_removal = this->socket_download;
 
-    close_sockets(); // Close all sockets for this session.
+    close_sockets();
 
-    if (download_socket_id_for_removal > 0) { // apenas tenta remover Only attempt removal if it was a valid socket
+    if (download_socket_id_for_removal > 0) { // apenas tenta remover se é um socket válido
         access_devices.lock();
         {
             if (devices) { // Ensure devices pointer is valid
@@ -307,8 +295,6 @@ void ServerCommunicationManager::handle_exit() {
         }
         access_devices.unlock();
     }
-    // The loops in handle_client_cmd and handle_client_update will now terminate
-    // because their respective socket variables (e.g., this->socket_cmd) are set to 0.
 }
 
 void ServerCommunicationManager::handle_list_server() {
