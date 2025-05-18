@@ -30,6 +30,12 @@ void ClientSession::connect_sockets() {
         return;
     }
 
+    access_devices.lock();
+    {
+        suicide = !devices->add_client_socket(username, socket_download);
+    }
+    access_devices.unlock();
+    
     if (suicide) {
         std::string error_msg = "USER_MAX_CONNECTIONS_REACHED";
         Packet errorPacket(static_cast<uint16_t>(Packet::Type::ERROR), 0, 0, error_msg.size(), error_msg);
@@ -46,12 +52,6 @@ void ClientSession::connect_sockets() {
             return;
         }
     }
-
-    access_devices.lock();
-    {
-        suicide = !devices->add_client_socket(username, socket_download);
-    }
-    access_devices.unlock();
 }
 
 void ClientSession::run() {
