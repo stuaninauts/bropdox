@@ -211,22 +211,6 @@ void ClientCommunicationManager::exit_server() {
     exit(0);
 }
 
-void ClientCommunicationManager::upload_file(const std::string filepath) {
-    std::string filename = std::filesystem::path(filepath).filename().string();
-    send_command("upload", filename);
-    // If the file cannot be sent, the client must send an error packet
-    // to the server to unlock it, as it is waiting for a file.
-    if (!Packet::send_file(socket_upload, filepath))
-        Packet::send_error(socket_upload);
-}
-
-void ClientCommunicationManager::download_file(const std::string filename) {
-    send_command("download", filename);
-}
-
-void ClientCommunicationManager::delete_file(const std::string filename) {
-    send_command("delete", filename);
-}
 
 void ClientCommunicationManager::list_server() {
     std::cout << "Listing files on server:" << std::endl;
