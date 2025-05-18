@@ -12,7 +12,7 @@ void Client::run() {
     FileManager::create_directory(sync_dir_path);
 
     cout << "Connecting to server..." << endl;
-    if (!comm_manager.connect_to_server(server_ip, port, username)) {
+    if (!comm_manager.connect_to_server(server_ip, port, username, sync_dir_path)) {
         cout << "Error connecting to server" << endl;
         exit(1);
     }
@@ -31,7 +31,7 @@ void Client::run() {
 // ========================================= //
 
 void Client::sync_local() {
-    comm_manager.watch(file_manager.sync_dir_path);
+    comm_manager.watch();
 }
 
 void Client::sync_remote() {
@@ -85,7 +85,7 @@ void Client::process_command(const std::vector<string> &tokens) {
     } else if (command == "list_server") {
         comm_manager.list_server();
     } else if (command == "list_client") {
-        file_manager.list_files();
+        FileManager::get_formatted_file_list(file_manager.sync_dir_path);
     } else if (command == "get_sync_dir") {
         std::cout << "Creating sync_dir and starting synchronization" << std::endl;
     } else if (command == "exit") {

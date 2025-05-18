@@ -19,12 +19,15 @@ std::mutex access_ignored_files;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username) {
+bool ClientCommunicationManager::connect_to_server(const std::string server_ip, int port, const std::string username, const std::string sync_dir_path) {
     this->server_ip = server_ip;
     this->port_cmd = port;
     this->username = username;
+    this->sync_dir_path = fs::path(sync_dir_path);
+
     try {
         // Initialization of the main connection
+
         if (!connect_socket_cmd()) {
             close_sockets();
             return false;
@@ -80,7 +83,7 @@ bool ClientCommunicationManager::connect_to_server(const std::string server_ip, 
     }
 }
 
-void ClientCommunicationManager::watch(const std::string sync_dir_path) {
+void ClientCommunicationManager::watch() {
     bool ignore = false;
     int inotify_fd = inotify_init();
     if (inotify_fd < 0) {
@@ -151,7 +154,7 @@ void ClientCommunicationManager::watch(const std::string sync_dir_path) {
             }
             if (event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO) {
                 std::cout << "[INOTIFY] SEND_FILE: " << event->name << std::endl;
-                Packet::send_file(socket_upload, sync_dir_path + event->name);
+                Packet::send_file(socket_upload, sync_dir_path / event->name);
             }
         }
     }
@@ -195,10 +198,10 @@ void ClientCommunicationManager::handle_server_update() {
 }
 
 void ClientCommunicationManager::get_sync_dir(){
-    std::string file_path = "./sync_dir/";
     send_command("get_sync_dir");
-    if(!Packet::receive_multiple_files(socket_download, file_path))
+    if(!Packet::receive_multiple_files(socket_download, sync_dir_path)) {
         std::cout << "Error performing get_sync_dir" << std::endl;
+    }
 }
 
 void ClientCommunicationManager::exit_server() {

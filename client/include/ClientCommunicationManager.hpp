@@ -12,11 +12,14 @@
 #include <vector>
 #include <mutex>
 #include <set>
+#include <filesystem>
 
+using namespace std;
+namespace fs = std::filesystem;
 class ClientCommunicationManager {
 public:
 
-    bool connect_to_server(const std::string server_ip, int port, const std::string username);
+    bool connect_to_server(const std::string server_ip, int port, const std::string username, const std::string sync_dir_path);
     void send_command(const std::string command, const std::string filename = "");
 
     void handle_server_update();
@@ -26,7 +29,7 @@ public:
     void delete_file(const std::string filename);
     void exit_server();
     void list_server();
-    void watch(const std::string sync_dir_path);
+    void watch();
 
 
 // private:
@@ -45,6 +48,7 @@ public:
 
     // username
     std::string username;
+    fs::path sync_dir_path;
 
     std::set<std::string> ignored_files;
 

@@ -28,7 +28,7 @@ Client(const std::string& server_ip, int port, const std::string& username)
     : server_ip(server_ip),
       port(port),
       username(username),
-      sync_dir_path("./sync_dir/") {
+      sync_dir_path("./client/sync_dir/") {
 }
 
     void run();
