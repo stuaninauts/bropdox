@@ -1,0 +1,31 @@
+Propagação: antes de propagar para os clientes, propaga antes para os servidores secundários
+
+Assumir: 
+- Assume que o front-end nunca cai
+- Replicacao passiva, tem um servidor (especial) que é o primário
+- Enquanto tiver rolando eleição, cliente não vai mandar nada
+ 
+Testes: 
+1. 2 clientes, 3 servidores. 5 máquinas (stuani workstation not sufficient)
+2. servidor primário pode cair, então outro tenq assumir (algoritmo anel ou outro, trocar mensagens de eleição para decidir quem é o novo primário). Simplificação: primário não morre enquanto está propagando/transferindo, só vai morrer em momentos seguros 
+
+Inicialização dos servers: Quando disparar server parâmetro -p para o primário e para os secundários ip do primário e -b para backup
+
+Inicialização dos clientes: Cliente pode conhecer onde está o primário desda linha de comando.
+
+Saber da morte do servidor primário: Heartbeat primário manda pros secundários, to vivo to vivo to vivo, se secundários não receber ai assumem que o primário morreu
+ 
+Falha do primário: Primário antes de falhar tenq compartilhar metadados com backups antes da falha. Backups tenq conhecer tudo que o primário sabe
+
+Soluções pro cliente saber oq fazer depois que a conexão do primário for perdida: 
+1. Tabela "DNS" que guarda {Primario: ip}. Fluxo: primário morreu, alg. eleição acontece, novo servidor primário atualiza tabela dns com o novo ip. Clientes ficam consultando o primário, se perceber que morreu começam a consultar a tabela. 
+Opções: cliente comunica primário e dps morre consulta tabela. Cliente sempre consulta tabela (problema performance)
+Contras: a tabela é mais alguma coisa que pode falhar. Nova máquinaaaaaaaaaaaaa!!!!!!!!!
+2. Cliente tem novo accept. Fluxo: primário morreu, alg. eleição acontece, novo servidor primário avisa os clientes. Porta especial 666 cliente esperava a conexão de um novo primário.
+Contras: é mais um socket 
+
+Não vale: 
+cliente conhecer todos ips de todos servidores. Trapaça!
+ 
+
+Dica do bebeto: vo implementa um negocio aqui, ah mas nao quero esse if aqui: não faça. Aquele if ta la por algum motivo.
