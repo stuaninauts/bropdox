@@ -32,12 +32,11 @@ void Server::handle_client_session(int socket) {
     client_session->run();
 }
 
-bool Server::setup() {
-    std::cout << "Setting up server..." << std::endl;
-
+int Server::setup_socket(int port) {
+    int new_socket;
     struct sockaddr_in server_address;
     
-    if ((initial_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+    if ((new_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         std::cerr << "SETUP ERROR: Failed to open socket" << std::endl;
         return false;
     }
@@ -48,29 +47,29 @@ bool Server::setup() {
     bzero(&(server_address.sin_zero), 8);
     std::cout << "Server listening on port " << port << std::endl;
 
-    if (bind(initial_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
+    if (bind(new_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
         std::cerr << "SETUP ERROR: Failed to bind socket" << std::endl;
-        return false;
+        return -1;
     }
     
     std::cout << "Server waiting for connections..." << std::endl;
 
-    if (listen(initial_socket, 5) < 0) {
+    if (listen(new_socket, 5) < 0) {
         std::cerr << "SETUP ERROR: Failed to listen on socket" << std::endl;
-        return false;
+        return -1;
     }
 
-    return true;
+    return new_socket;
 }
 
 void Server::handle_beta_connection() {
     int beta_socket;
     struct sockaddr_in beta_address;
     socklen_t beta_address_len = sizeof(struct sockaddr_in);
-    std::cout << "Handling Beta Connections!!" << std::endl;
+    std::cout << "Handling Beta Connection..." << std::endl;
 
     while (true) {
-        beta_socket = accept(initial_socket, (struct sockaddr*) &beta_address, &beta_address_len);
+        beta_socket = accept(initial_socket_beta, (struct sockaddr*) &beta_address, &beta_address_len);
 
         if (beta_socket == -1)
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
@@ -86,10 +85,10 @@ void Server::handle_client_connection() {
     int client_session_socket;
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(struct sockaddr_in);
-    std::cout << "Handling Alfa Connections!!" << std::endl;
+    std::cout << "Handling Client Connection..." << std::endl;
 
     while (true) {
-        client_session_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
+        client_session_socket = accept(initial_socket_client, (struct sockaddr*) &client_address, &client_address_len);
 
         if (client_session_socket == -1)
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
@@ -120,13 +119,18 @@ void Server::run_beta() {
 }
 
 void Server::run() {
-    if (!setup())
+    std::cout << "Setting up server..." << std::endl;
+
+    initial_socket_client = setup_socket(port_client);
+    initial_socket_beta = setup_socket(port_beta);
+
+    if (initial_socket_beta == -1 || initial_socket_client == -1)
         exit(1);
 
-    if(alfa)
+    if(current_role == ServerRole::ALFA)
         run_alfa();
 
-    if(!alfa)
+    if(current_role == ServerRole::BETA)
         run_beta();
 
 }

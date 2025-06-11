@@ -20,30 +20,48 @@
 #include <ClientSession.hpp>
 #include <ClientsDevices.hpp>
 
-using namespace std;
+enum class ServerRole {
+    ALFA, 
+    BETA
+};
+
 namespace fs = std::filesystem;
 class Server {
 
 public:
-    Server(int port) : port(port), initial_socket(-1), alfa(true) {};
-    Server(int port, std::string ip_primary_server) : port(port), ip_primary_server(ip_primary_server), alfa(false), initial_socket(-1) {};
+    Server(int port_client) :
+        current_role(ServerRole::ALFA),
+        port_client(port_client),
+        port_beta(8081), // HARD CODED
+        initial_socket_client(-1),
+        initial_socket_beta(-1) {};
+
+    Server(int port_client, std::string ip_primary_server) :
+        current_role(ServerRole::BETA),    
+        port_client(port_client),
+        port_beta(8081),
+        ip_primary_server(ip_primary_server),
+        initial_socket_client(-1),
+        initial_socket_beta(-1) {};
 
     void run();
 
 private:
 
-    int initial_socket;
-    int port;
+    int initial_socket_client;
+    int initial_socket_beta;
+    int port_client;
+    int port_beta;
     std::string ip_primary_server;
 
-    bool alfa;
+    ServerRole current_role;
 
-    bool setup();
     void handle_client_session(int socket);
     void run_alfa();
     void run_beta();
     void handle_beta_connection();
     void handle_client_connection();
+    int setup_socket(int port);
 
     std::shared_ptr<ClientsDevices> devices;
     fs::path server_dir_path = "./sync_dir_server";

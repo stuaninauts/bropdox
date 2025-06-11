@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
    // Alfa
    if (argc < 3) {
       port = argc == 1 ? PORT : stoi(argv[1]);
+      std::cout << port << std::endl;
       Server server(port);
       server.run();
       return 0;
@@ -19,6 +20,7 @@ int main(int argc, char* argv[]) {
    // Beta
    if (argc == 3) {
       port = stoi(argv[1]);
+      std::cout << port << std::endl;
       ip_primary_server = argv[2];
       Server server(port, ip_primary_server);
       server.run();
