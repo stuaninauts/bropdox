@@ -1,5 +1,5 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#ifndef ALFASERVER_HPP
+#define ALFASERVER_HPP
 
 #include <cstdint>
 #include <string>
@@ -20,29 +20,16 @@
 #include <ClientSession.hpp>
 #include <ClientsDevices.hpp>
 
-enum class ServerRole {
-    ALFA, 
-    BETA
-};
-
 namespace fs = std::filesystem;
-class Server {
+class AlfaServer {
 
 public:
-    Server(int port_client) :
-        current_role(ServerRole::ALFA),
+    AlfaServer(int port_client) :
         port_client(port_client),
         port_beta(8081), // HARD CODED
         initial_socket_client(-1),
         initial_socket_beta(-1) {};
 
-    Server(int port_client, std::string ip_primary_server) :
-        current_role(ServerRole::BETA),    
-        port_client(port_client),
-        port_beta(8081),
-        ip_primary_server(ip_primary_server),
-        initial_socket_client(-1),
-        initial_socket_beta(-1) {};
 
     void run();
 
@@ -52,13 +39,9 @@ private:
     int initial_socket_beta;
     int port_client;
     int port_beta;
-    std::string ip_primary_server;
-
-    ServerRole current_role;
 
     void handle_client_session(int socket);
-    void run_alfa();
-    void run_beta();
+    void handle_beta_session(int socket);
     void handle_beta_connection();
     void handle_client_connection();
     int setup_socket(int port);
@@ -68,4 +51,4 @@ private:
     
 };
 
-#endif // SERVER_HPP
+#endif // ALFASERVER_HPP
