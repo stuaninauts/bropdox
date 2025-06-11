@@ -22,7 +22,7 @@ void AlfaServer::handle_client_session(int socket) {
     std::cout << "Username: " << username << std::endl;
     std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
     
-    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket, username, devices, user_dir_path);
+    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket, username, devices, betas, user_dir_path);
 
     FileManager::create_directory(server_dir_path);
     FileManager::create_directory(user_dir_path);
@@ -87,6 +87,7 @@ void AlfaServer::run() {
         exit(1);
 
     devices = std::make_shared<ClientsDevices>();
+    betas = std::make_shared<BetaManager>();
 
     std::thread handle_beta_thread(&AlfaServer::handle_beta_connection, this);
     std::thread handle_client_thread(&AlfaServer::handle_client_connection, this);

@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <ClientSession.hpp>
 #include <ClientsDevices.hpp>
+#include <BetaManager.hpp>
 
 namespace fs = std::filesystem;
 class AlfaServer {
@@ -47,6 +48,7 @@ private:
     int setup_socket(int port);
 
     std::shared_ptr<ClientsDevices> devices;
+    std::shared_ptr<BetaManager> betas;
     fs::path server_dir_path = "./sync_dir_server";
     
 };

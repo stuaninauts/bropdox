@@ -211,6 +211,9 @@ void ClientSession::handle_client_upload(const std::string filename, uint32_t to
         Packet::receive_file(socket_upload, filename, user_dir_path, total_packets);
     }
     access_files.unlock();
+
+    // UPDATE BETAS (send_file)
+
     access_devices.lock();
     {
         socket_download_other_device = devices->get_other_device_socket(username, socket_download);
@@ -237,6 +240,9 @@ void ClientSession::handle_client_delete(const std::string filename) {
         FileManager::delete_file(user_dir_path / filename);
     }
     access_files.unlock();
+
+    // UPDATE BETAS (delete_file)
+
     access_devices.lock();
     {
         socket_download_other_device = devices->get_other_device_socket(username, socket_download);

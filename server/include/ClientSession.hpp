@@ -11,6 +11,7 @@
 #include <string>
 #include <Packet.hpp>
 #include <ClientsDevices.hpp>
+#include <BetaManager.hpp>
 #include <mutex>
 #include <thread>
 #include <memory>
@@ -20,8 +21,8 @@ namespace fs = std::filesystem;
 class ClientSession {
 
 public:
-    ClientSession(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, fs::path user_dir_path)
-        :   socket_cmd(socket_cmd), username(username), devices(devices), user_dir_path(user_dir_path) {};
+    ClientSession(int socket_cmd, std::string username, std::shared_ptr<ClientsDevices> devices, std::shared_ptr<BetaManager> betas, fs::path user_dir_path)
+        :   socket_cmd(socket_cmd), username(username), devices(devices), betas(betas), user_dir_path(user_dir_path) {};
         
     ~ClientSession() {
         close_sockets();
@@ -34,6 +35,8 @@ public:
 
 private:
     std::shared_ptr<ClientsDevices> devices;
+    std::shared_ptr<BetaManager> betas;
+    
     std::string username;
     std::string session_name;
     fs::path user_dir_path;
