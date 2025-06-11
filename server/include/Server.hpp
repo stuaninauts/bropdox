@@ -39,12 +39,15 @@ private:
     bool alfa;
 
     bool setup();
-    void handle_client(int socket);
+    void handle_client_session(int socket);
     void run_alfa();
     void run_beta();
+    void handle_beta_connection();
+    void handle_client_connection();
 
     std::shared_ptr<ClientsDevices> devices;
     fs::path server_dir_path = "./sync_dir_server";
+    
 };
 
 #endif // SERVER_HPP

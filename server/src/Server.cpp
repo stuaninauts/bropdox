@@ -6,7 +6,7 @@
 
 std::mutex accept_connections;
 
-void Server::handle_client(int socket) {
+void Server::handle_client_session(int socket) {
     char buffer[256];
     bzero(buffer, 256);
     std::string username = "";
@@ -63,29 +63,55 @@ bool Server::setup() {
     return true;
 }
 
-void Server::run_alfa() {
-    std::cout << "I'm ALFA" << std::endl;
-    
-    devices = std::make_shared<ClientsDevices>();
-    
-    // Handle clients
-    int client_socket;
-    struct sockaddr_in client_address;
-    socklen_t client_address_len = sizeof(struct sockaddr_in);
+void Server::handle_beta_connection() {
+    int beta_socket;
+    struct sockaddr_in beta_address;
+    socklen_t beta_address_len = sizeof(struct sockaddr_in);
+    std::cout << "Handling Beta Connections!!" << std::endl;
 
     while (true) {
-        client_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
+        beta_socket = accept(initial_socket, (struct sockaddr*) &beta_address, &beta_address_len);
 
-        if (client_socket == -1)
+        if (beta_socket == -1)
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
         
-        if (client_socket >= 0) {
-            accept_connections.lock();
-            std::cout << "Client connected" << std::endl; 
-            std::thread client_thread(&Server::handle_client, this, client_socket);
-            client_thread.detach();
+        if (beta_socket >= 0) {
+            // TODO
+            std::cout << "BETA Connected!" << std::endl;
         }
     }
+}
+
+void Server::handle_client_connection() {
+    int client_session_socket;
+    struct sockaddr_in client_address;
+    socklen_t client_address_len = sizeof(struct sockaddr_in);
+    std::cout << "Handling Alfa Connections!!" << std::endl;
+
+    while (true) {
+        client_session_socket = accept(initial_socket, (struct sockaddr*) &client_address, &client_address_len);
+
+        if (client_session_socket == -1)
+            std::cerr << "ERROR: Failed to accept new client" << std::endl;
+        
+        if (client_session_socket >= 0) {
+            accept_connections.lock();
+            std::cout << "Client connected" << std::endl; 
+            std::thread client_session_thread(&Server::handle_client_session, this, client_session_socket);
+            client_session_thread.detach();
+        }
+    }
+}
+
+void Server::run_alfa() {
+    std::cout << "I'm ALFA" << std::endl;
+    devices = std::make_shared<ClientsDevices>();
+
+    std::thread handle_beta_thread(&Server::handle_beta_connection, this);
+    std::thread handle_client_thread(&Server::handle_client_connection, this);
+    
+    handle_beta_thread.join();
+    handle_client_thread.join();    
 }
 
 void Server::run_beta() {
