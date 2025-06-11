@@ -25,7 +25,8 @@ namespace fs = std::filesystem;
 class Server {
 
 public:
-    Server(int port) : port(port), initial_socket(-1) {};
+    Server(int port) : port(port), initial_socket(-1), alfa(true) {};
+    Server(int port, std::string ip_primary_server) : port(port), ip_primary_server(ip_primary_server), alfa(false), initial_socket(-1) {};
 
     void run();
 
@@ -33,9 +34,14 @@ private:
 
     int initial_socket;
     int port;
+    std::string ip_primary_server;
+
+    bool alfa;
 
     bool setup();
     void handle_client(int socket);
+    void run_alfa();
+    void run_beta();
 
     std::shared_ptr<ClientsDevices> devices;
     fs::path server_dir_path = "./sync_dir_server";

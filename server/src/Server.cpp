@@ -63,12 +63,11 @@ bool Server::setup() {
     return true;
 }
 
-void Server::run() {
-    if (!setup())
-        exit(1);
-
+void Server::run_alfa() {
+    std::cout << "I'm ALFA" << std::endl;
+    
     devices = std::make_shared<ClientsDevices>();
-
+    
     // Handle clients
     int client_socket;
     struct sockaddr_in client_address;
@@ -87,4 +86,21 @@ void Server::run() {
             client_thread.detach();
         }
     }
+}
+
+void Server::run_beta() {
+    std::cout << "I'm BETA!" << std::endl;
+    std::cout << ip_primary_server << " is the ALFA!" << std::endl;
+}
+
+void Server::run() {
+    if (!setup())
+        exit(1);
+
+    if(alfa)
+        run_alfa();
+
+    if(!alfa)
+        run_beta();
+
 }
