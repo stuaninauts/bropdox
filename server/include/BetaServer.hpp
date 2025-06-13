@@ -38,7 +38,8 @@ private:
     int socket_fd;
     int port_alfa;
     std::string ip_alfa;
-    fs::path sync_dir_backup = "./sync_dir_backup/";
+    fs::path backup_dir_path;
+    
     bool connect_to_alfa();
     void sync();
     void handle_client_delete(const std::string filename, const std::string username);

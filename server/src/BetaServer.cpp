@@ -32,13 +32,15 @@ bool BetaServer::connect_to_alfa() {
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
     int socket_download_other_device;
     std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
-    Packet::receive_file(socket_fd, filename, sync_dir_backup / username, total_packets);
+    FileManager::create_directory(backup_dir_path / username);
+    Packet::receive_file(socket_fd, filename, backup_dir_path / username, total_packets);
 }
 
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
     int socket_download_other_device;
     std::cout << "[" << username << "]" << "handle_client_delete: " << filename << std::endl;
-    FileManager::delete_file(sync_dir_backup / username / filename);
+    FileManager::create_directory(backup_dir_path / username);
+    FileManager::delete_file(backup_dir_path / username / filename);
 }
 
 void BetaServer::sync() {
@@ -78,6 +80,9 @@ void BetaServer::run() {
     std::cout << "Setting up BETA server..." << std::endl;
     if(!connect_to_alfa())
         exit(1);
+
+    backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(socket_fd));
+    FileManager::create_directory(backup_dir_path);
 
     std::thread sync_thread = std::thread(&BetaServer::sync, this);
     std::cout << "Connected to ALFA server!" << std::endl;
