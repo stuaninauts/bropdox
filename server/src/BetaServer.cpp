@@ -29,9 +29,56 @@ bool BetaServer::connect_to_alfa() {
     return true;
 }
 
+void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
+    int socket_download_other_device;
+    std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
+    Packet::receive_file(socket_fd, filename, sync_dir_backup / username, total_packets);
+}
+
+void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
+    int socket_download_other_device;
+    std::cout << "[" << username << "]" << "handle_client_delete: " << filename << std::endl;
+    FileManager::delete_file(sync_dir_backup / username / filename);
+}
+
+void BetaServer::sync() {
+    try {
+        while (socket_fd > 0) {
+            Packet meta_packet = Packet::receive(socket_fd);
+
+            std::cout << "Received meta_packet from alfa server: " << meta_packet.payload << std::endl;
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cout << "Received ERROR packet: " << meta_packet.payload << std::endl;
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+                handle_client_delete(meta_packet.payload, "username");
+                continue;
+            }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+                handle_client_upload(meta_packet.payload, "username", meta_packet.total_size);
+                continue;
+            }
+            
+            throw std::runtime_error(
+                "Unexpected packet type " + std::to_string(meta_packet.type) + 
+                " received from alfa server (expected DATA, DELETE, or ERROR)"
+            );
+        }
+    } catch (const std::runtime_error& e) {
+        close(socket_fd);
+        exit(1);
+    }
+}
+
 void BetaServer::run() {
     std::cout << "Setting up BETA server..." << std::endl;
     if(!connect_to_alfa())
         exit(1);
+
+    std::thread sync_thread = std::thread(&BetaServer::sync, this);
     std::cout << "Connected to ALFA server!" << std::endl;
 }

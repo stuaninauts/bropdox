@@ -20,6 +20,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <Packet.hpp>
+#include <filesystem>
+#include <FileManager.hpp>
 
 namespace fs = std::filesystem;
 class BetaServer {
@@ -35,9 +38,12 @@ private:
     int socket_fd;
     int port_alfa;
     std::string ip_alfa;
+    fs::path sync_dir_backup = "./sync_dir_backup/";
     bool connect_to_alfa();
+    void sync();
+    void handle_client_delete(const std::string filename, const std::string username);
+    void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
 
-    
 };
 
 #endif // BETASERVER_HPP
