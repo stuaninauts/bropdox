@@ -40,7 +40,7 @@ void AlfaServer::handle_beta_connection() {
     int beta_session_socket;
     struct sockaddr_in beta_address;
     socklen_t beta_address_len = sizeof(struct sockaddr_in);
-    std::cout << "Handling Beta Connection..." << std::endl;
+    std::cout << "Handling BETA Connection..." << std::endl;
 
     while (true) {
         beta_session_socket = accept(initial_socket_beta, (struct sockaddr*) &beta_address, &beta_address_len);
@@ -49,7 +49,7 @@ void AlfaServer::handle_beta_connection() {
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
         
         if (beta_session_socket >= 0) {
-            std::cout << "Beta connected" << std::endl; 
+            std::cout << "BETA connected" << std::endl; 
             std::thread beta_session_thread(&AlfaServer::handle_beta_session, this, beta_session_socket);
             beta_session_thread.detach();
         }
@@ -60,7 +60,7 @@ void AlfaServer::handle_client_connection() {
     int client_session_socket;
     struct sockaddr_in client_address;
     socklen_t client_address_len = sizeof(struct sockaddr_in);
-    std::cout << "Handling Client Connection..." << std::endl;
+    std::cout << "Handling CLIENT Connection..." << std::endl;
 
     while (true) {
         client_session_socket = accept(initial_socket_client, (struct sockaddr*) &client_address, &client_address_len);
@@ -70,7 +70,7 @@ void AlfaServer::handle_client_connection() {
         
         if (client_session_socket >= 0) {
             accept_connections.lock();
-            std::cout << "Client connected" << std::endl; 
+            std::cout << "CLIENT connected" << std::endl; 
             std::thread client_session_thread(&AlfaServer::handle_client_session, this, client_session_socket);
             client_session_thread.detach();
         }

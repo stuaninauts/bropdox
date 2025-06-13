@@ -4,7 +4,6 @@
 bool BetaServer::connect_to_alfa() {
     struct hostent* server;
     struct sockaddr_in serv_addr{};
-    int socket_fd;
 
     if ((server = gethostbyname(ip_alfa.c_str())) == nullptr) {
         std::cerr << "ERROR: No such host\n";
@@ -86,4 +85,6 @@ void BetaServer::run() {
 
     std::thread sync_thread = std::thread(&BetaServer::sync, this);
     std::cout << "Connected to ALFA server!" << std::endl;
+
+    sync_thread.join();
 }

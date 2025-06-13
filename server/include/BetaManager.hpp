@@ -30,6 +30,5 @@ public:
     int delete_file();
     
 private:
-    std::vector<std::string, std::vector<int>> clients_sockets;
 };
 #endif // BETALIST_HPP
