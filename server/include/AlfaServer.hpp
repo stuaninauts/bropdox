@@ -29,7 +29,9 @@ public:
         port_client(port_client),
         port_beta(8081), // HARD CODED
         initial_socket_client(-1),
-        initial_socket_beta(-1) {};
+        initial_socket_beta(-1),
+        socket_first_beta(-1),
+        socket_last_beta(-1) {};
 
 
     void run();
@@ -41,8 +43,13 @@ private:
     int port_client;
     int port_beta;
 
+    int socket_first_beta;
+    int socket_last_beta;
+    std::string ip_first_beta;
+
+
     void handle_client_session(int socket_fd);
-    void handle_beta_session(int socket_fd);
+    void handle_beta_session(int socket_fd, struct sockaddr_in beta_address);
     void handle_beta_connection();
     void handle_client_connection();
     int setup_socket(int port);

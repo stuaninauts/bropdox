@@ -16,6 +16,8 @@ public:
         DELETE = 5, 
         EMPTY = 6,
         IP = 7,
+        USERNAME = 8,
+        SERVER = 9,
     };
 
     // Construtor

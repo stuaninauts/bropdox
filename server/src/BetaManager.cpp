@@ -40,7 +40,7 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     
     }
 
-    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     for (int socket_fd : sockets_copy) {
         username_packet.send(socket_fd);
         if (!Packet::send_file(socket_fd, filepath)) {
@@ -58,7 +58,7 @@ void BetaManager::send_client_device(const std::string ip, const std::string use
     
     }
 
-    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, ip.length(), ip.c_str());
     for (int socket_fd : sockets_copy) {
         username_packet.send(socket_fd);
@@ -73,7 +73,7 @@ void BetaManager::delete_file(const std::string filename, const std::string user
         sockets_copy = beta_sockets;
     }
 
-    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     Packet delete_packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.length(), filename.c_str());
     for (int socket_fd : sockets_copy) {
         username_packet.send(socket_fd);
