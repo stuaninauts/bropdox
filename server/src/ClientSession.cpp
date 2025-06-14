@@ -16,8 +16,6 @@ std::mutex access_download;
 void ClientSession::connect_sockets() {
     bool suicide;
 
-    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
-
     if(!connect_socket_to_client(&socket_upload, &port_upload)) {
         std::cerr << "Failed to connect upload socket" << std::endl;
         close_sockets();
@@ -52,6 +50,8 @@ void ClientSession::connect_sockets() {
             return;
         }
     }
+    
+    this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
 }
 
 void ClientSession::run() {
