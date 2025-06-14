@@ -1,13 +1,13 @@
 #include <BetaManager.hpp>
 
 void BetaManager::add_beta(int socket_fd) {
-    std::lock_guard<std::mutex> lock(access_beta_sockets);
+    std::unique_lock<std::shared_mutex> lock(access_beta_sockets);
     beta_sockets.push_back(socket_fd);
     std::cout << "Added BETA SOCKET: " << socket_fd << std::endl;
 }
 
 void BetaManager::remove_beta(int socket_fd) {
-    std::lock_guard<std::mutex> lock(access_beta_sockets);
+    std::lock_guard<std::shared_mutex> lock(access_beta_sockets);
     auto it = std::find(beta_sockets.begin(), beta_sockets.end(), socket_fd);
 
     if (it != beta_sockets.end()) {
@@ -22,7 +22,7 @@ void BetaManager::remove_beta(int socket_fd) {
 void BetaManager::print_beta_sockets() const {
     std::vector<int> sockets_copy;
     {
-        std::lock_guard<std::mutex> lock(access_beta_sockets);
+        std::shared_lock<std::shared_mutex> lock(access_beta_sockets);
         sockets_copy = beta_sockets;
     }
 
@@ -35,9 +35,11 @@ void BetaManager::print_beta_sockets() const {
 void BetaManager::send_file(const fs::path filepath, const std::string username) const {
     std::vector<int> sockets_copy;
     {
-        std::lock_guard<std::mutex> lock(access_beta_sockets);
+        std::shared_lock<std::shared_mutex> lock(access_beta_sockets);
         sockets_copy = beta_sockets;
+    
     }
+
     Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
     for (int socket_fd : sockets_copy) {
         username_packet.send(socket_fd);
@@ -50,7 +52,7 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
 void BetaManager::delete_file(const std::string filename, const std::string username) const {
     std::vector<int> sockets_copy;
     {
-        std::lock_guard<std::mutex> lock(access_beta_sockets);
+        std::shared_lock<std::shared_mutex> lock(access_beta_sockets);
         sockets_copy = beta_sockets;
     }
 

@@ -12,6 +12,7 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h>
 #include <mutex>
+#include <shared_mutex>
 #include <netinet/in.h>
 #include <thread> 
 #include <algorithm>
@@ -34,7 +35,7 @@ public:
 
 private:
     std::vector<int> beta_sockets;
-    mutable std::mutex access_beta_sockets;
+    mutable std::shared_mutex access_beta_sockets;
 
 };
 #endif // BETALIST_HPP
