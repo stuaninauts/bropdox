@@ -50,7 +50,7 @@ private:
     std::shared_ptr<ClientsDevices> devices;
     std::shared_ptr<BetaManager> betas;
     fs::path server_dir_path = "./sync_dir_server";
-    
+
 };
 
 #endif // ALFASERVER_HPP
