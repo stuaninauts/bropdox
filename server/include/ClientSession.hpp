@@ -51,6 +51,8 @@ private:
     int port_download;
     int port_cmd;
 
+    std::string client_ip;
+
     bool connect_socket_to_client(int *sockfd, int *port);
     void close_sockets();
 

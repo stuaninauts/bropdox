@@ -30,7 +30,7 @@ void ClientSession::connect_sockets() {
 
     access_devices.lock();
     {
-        suicide = !devices->add_client_socket(username, socket_download);
+        suicide = !devices->add_client(username, socket_download, client_ip);
     }
     access_devices.unlock();
     
@@ -191,6 +191,17 @@ bool ClientSession::connect_socket_to_client(int *sockfd, int *port) {
         std::cerr << "Failed to accept client" << std::endl;
         return false;
     }
+
+    char ip_buffer[INET_ADDRSTRLEN];
+
+    // We get the address from client_address.sin_addr.
+    if (inet_ntop(AF_INET, &client_address.sin_addr, ip_buffer, sizeof(ip_buffer)) == NULL) {
+        std::cerr << "Failed to convert client IP address" << std::endl;
+        return false;
+    }
+
+    client_ip = std::string(ip_buffer);
+    std::cout << "Successfully accepted connection from client with IP: " << client_ip << std::endl;
     return true;
 }
 
@@ -274,7 +285,7 @@ void ClientSession::handle_exit() {
     // Capture the download socket descriptor used for device registration before closing.
     // This assumes this->socket_download holds the relevant descriptor.
     // If close_sockets() has already run, this->socket_download might be 0.
-    // It's better if remove_client_socket could be called with the original descriptor
+    // It's better if remove_client could be called with the original descriptor
     // or if ClientsDevices handles already closed sockets gracefully.
     // For now, we rely on the fact that socket_download was added.
     int download_socket_id_for_removal = this->socket_download;
@@ -285,7 +296,7 @@ void ClientSession::handle_exit() {
         access_devices.lock();
         {
             if (devices) { // Ensure devices pointer is valid
-                devices->remove_client_socket(this->username, download_socket_id_for_removal);
+                devices->remove_client(this->username, download_socket_id_for_removal);
             }
         }
         access_devices.unlock();
