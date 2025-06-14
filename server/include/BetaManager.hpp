@@ -17,18 +17,24 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
+#include <filesystem>
+#include <Packet.hpp>
 
-using namespace std;
+namespace fs = std::filesystem;
 
 class BetaManager {
 
 public:
     BetaManager() = default;
-    bool add_beta(int sockfd);
+    void add_beta(int sockfd);
     void remove_beta(int sockfd);
-    int send_file();
-    int delete_file();
+    void send_file(const fs::path filepath) const;
+    void delete_file(const std::string filename) const;
+    void print_beta_sockets() const;
     
 private:
+    std::vector<int> beta_sockets;
+    mutable std::mutex access_beta_sockets;
+
 };
 #endif // BETALIST_HPP

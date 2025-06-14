@@ -6,15 +6,15 @@
 
 std::mutex accept_connections;
 
-void AlfaServer::handle_client_session(int socket) {
+void AlfaServer::handle_client_session(int socket_fd) {
     char buffer[256];
     bzero(buffer, 256);
     std::string username = "";
-    int n = read(socket, buffer, 255);
+    int n = read(socket_fd, buffer, 255);
     
     if(n <= 0) {
         std::cerr << "Error reading client's username" << std::endl;
-        close(socket);
+        close(socket_fd);
         accept_connections.unlock();
         return;
     }
@@ -22,7 +22,7 @@ void AlfaServer::handle_client_session(int socket) {
     std::cout << "Username: " << username << std::endl;
     std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
     
-    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket, username, devices, betas, user_dir_path);
+    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket_fd, username, devices, betas, user_dir_path);
 
     FileManager::create_directory(server_dir_path);
     FileManager::create_directory(user_dir_path);
@@ -32,8 +32,8 @@ void AlfaServer::handle_client_session(int socket) {
     client_session->run();
 }
 
-void AlfaServer::handle_beta_session(int socket) {
-    // TO DO
+void AlfaServer::handle_beta_session(int socket_fd) {
+    betas->add_beta(socket_fd);
 }
 
 void AlfaServer::handle_beta_connection() {
@@ -49,9 +49,10 @@ void AlfaServer::handle_beta_connection() {
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
         
         if (beta_session_socket >= 0) {
-            std::cout << "BETA connected" << std::endl; 
-            std::thread beta_session_thread(&AlfaServer::handle_beta_session, this, beta_session_socket);
-            beta_session_thread.detach();
+            std::cout << "BETA connected" << std::endl;
+            betas->add_beta(beta_session_socket);
+            // std::thread beta_session_thread(&AlfaServer::handle_beta_session, this, beta_session_socket);
+            // beta_session_thread.detach();
         }
     }
 }

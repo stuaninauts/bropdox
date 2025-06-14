@@ -41,8 +41,8 @@ private:
     int port_client;
     int port_beta;
 
-    void handle_client_session(int socket);
-    void handle_beta_session(int socket);
+    void handle_client_session(int socket_fd);
+    void handle_beta_session(int socket_fd);
     void handle_beta_connection();
     void handle_client_connection();
     int setup_socket(int port);
