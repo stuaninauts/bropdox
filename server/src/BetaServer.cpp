@@ -40,6 +40,10 @@ void BetaServer::handle_client_delete(const std::string filename, const std::str
     FileManager::delete_file(backup_dir_path / username / filename);
 }
 
+void BetaServer::handle_new_client(const std::string ip, const std::string username) {
+    devices->add_client(username, -1, ip);
+}
+
 
 void BetaServer::sync() {
     try {
@@ -63,6 +67,11 @@ void BetaServer::sync() {
                 handle_client_upload(meta_packet.payload, username_packet.payload, meta_packet.total_size);
                 continue;
             }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::IP)) {
+                handle_new_client(meta_packet.payload, username_packet.payload);
+                continue;
+            }
             
             throw std::runtime_error(
                 "Unexpected packet type " + std::to_string(meta_packet.type) + 
@@ -80,9 +89,11 @@ void BetaServer::run() {
     if(!connect_to_alfa())
         exit(1);
 
+    devices = std::make_shared<ClientsDevices>();
     backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(socket_fd));
     FileManager::create_directory(backup_dir_path);
 
+    
     std::thread sync_thread = std::thread(&BetaServer::sync, this);
     std::cout << "Connected to ALFA server!" << std::endl;
 

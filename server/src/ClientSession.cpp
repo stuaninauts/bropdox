@@ -47,6 +47,7 @@ void ClientSession::connect_sockets() {
     }
     
     this->session_name = "[" + this->username + "](" + std::to_string(socket_download) + ") -> ";
+    betas->send_client_device(client_ip, username);
 }
 
 void ClientSession::run() {

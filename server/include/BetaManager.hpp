@@ -29,6 +29,7 @@ public:
     BetaManager() = default;
     void add_beta(int sockfd);
     void remove_beta(int sockfd);
+    void send_client_device(const std::string ip, const std::string username) const;
     void send_file(const fs::path filepath, const std::string username) const;
     void delete_file(const std::string filename, const std::string username) const;
     void print_beta_sockets() const;

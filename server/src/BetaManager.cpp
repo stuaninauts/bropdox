@@ -49,6 +49,23 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     }
 }
 
+void BetaManager::send_client_device(const std::string ip, const std::string username) const {
+    std::cout << "sending client device, ip = " << ip << " | username " << username << std::endl;
+    std::vector<int> sockets_copy;
+    {
+        std::shared_lock<std::shared_mutex> lock(access_beta_sockets);
+        sockets_copy = beta_sockets;
+    
+    }
+
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
+    Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, ip.length(), ip.c_str());
+    for (int socket_fd : sockets_copy) {
+        username_packet.send(socket_fd);
+        ip_packet.send(socket_fd);
+    }
+}
+
 void BetaManager::delete_file(const std::string filename, const std::string username) const {
     std::vector<int> sockets_copy;
     {

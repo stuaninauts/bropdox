@@ -23,8 +23,10 @@
 #include <Packet.hpp>
 #include <filesystem>
 #include <FileManager.hpp>
+#include <ClientsDevices.hpp>
 
 namespace fs = std::filesystem;
+
 class BetaServer {
 
 public:
@@ -39,11 +41,13 @@ private:
     int port_alfa;
     std::string ip_alfa;
     fs::path backup_dir_path;
-    
+    std::shared_ptr<ClientsDevices> devices;
+
     bool connect_to_alfa();
     void sync();
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
+    void handle_new_client(const std::string ip, const std::string username);
 
 };
 

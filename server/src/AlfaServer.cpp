@@ -33,6 +33,8 @@ void AlfaServer::handle_client_session(int socket_fd) {
 
 void AlfaServer::handle_beta_session(int socket_fd) {
     betas->add_beta(socket_fd);
+
+    // while (true) listening to beta...
 }
 
 void AlfaServer::handle_beta_connection() {
@@ -49,9 +51,8 @@ void AlfaServer::handle_beta_connection() {
         
         if (beta_session_socket >= 0) {
             std::cout << "BETA connected" << std::endl;
-            betas->add_beta(beta_session_socket);
-            // std::thread beta_session_thread(&AlfaServer::handle_beta_session, this, beta_session_socket);
-            // beta_session_thread.detach();
+            std::thread beta_session_thread(&AlfaServer::handle_beta_session, this, beta_session_socket);
+            beta_session_thread.detach();
         }
     }
 }
