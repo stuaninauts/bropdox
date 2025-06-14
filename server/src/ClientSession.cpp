@@ -5,7 +5,6 @@
 #include <vector>
 #include <FileManager.hpp>
 
-std::mutex access_devices;
 std::mutex access_files;
 std::mutex access_download;
 
@@ -28,11 +27,7 @@ void ClientSession::connect_sockets() {
         return;
     }
 
-    access_devices.lock();
-    {
-        suicide = !devices->add_client(username, socket_download, client_ip);
-    }
-    access_devices.unlock();
+    suicide = !devices->add_client(username, socket_download, client_ip);
     
     if (suicide) {
         std::string error_msg = "USER_MAX_CONNECTIONS_REACHED";
@@ -225,11 +220,7 @@ void ClientSession::handle_client_upload(const std::string filename, uint32_t to
 
     betas->send_file(user_dir_path / filename, username);
 
-    access_devices.lock();
-    {
-        socket_download_other_device = devices->get_other_device_socket(username, socket_download);
-    }
-    access_devices.unlock();
+    socket_download_other_device = devices->get_other_device_socket(username, socket_download);
 
     std::cout << session_name << "get_other_device_socket " << socket_download_other_device << std::endl;
     if(socket_download_other_device == -1)
@@ -254,11 +245,8 @@ void ClientSession::handle_client_delete(const std::string filename) {
 
     betas->delete_file(filename, username);
 
-    access_devices.lock();
-    {
-        socket_download_other_device = devices->get_other_device_socket(username, socket_download);
-    }
-    access_devices.unlock();
+    socket_download_other_device = devices->get_other_device_socket(username, socket_download);
+    
     std::cout << session_name << "get_other_device_socket " << socket_download_other_device << std::endl;
     if(socket_download_other_device == -1)
         return;
@@ -293,13 +281,9 @@ void ClientSession::handle_exit() {
     close_sockets();
 
     if (download_socket_id_for_removal > 0) { // apenas tenta remover se é um socket válido
-        access_devices.lock();
-        {
-            if (devices) { // Ensure devices pointer is valid
-                devices->remove_client(this->username, download_socket_id_for_removal);
-            }
+        if (devices) { // Ensure devices pointer is valid
+            devices->remove_client(this->username, download_socket_id_for_removal);
         }
-        access_devices.unlock();
     }
 }
 
