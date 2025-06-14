@@ -31,12 +31,12 @@ void AlfaServer::handle_client_session(int socket_fd) {
     client_session->run();
 }
 
-void AlfaServer::handle_beta_session(int socket_fd, struct sockaddr_in beta_address) {
-    betas->add_beta(socket_fd);
+void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_address) {
+    betas->add_beta(new_beta_socket_fd);
     
     // Get the ip of the new beta server
     char ip_buffer[INET_ADDRSTRLEN];
-    if (inet_ntop(AF_INET, &beta_address.sin_addr, ip_buffer, sizeof(ip_buffer)) == NULL) {
+    if (inet_ntop(AF_INET, &new_beta_address.sin_addr, ip_buffer, sizeof(ip_buffer)) == NULL) {
         std::cerr << "Failed to convert BETA Server IP address" << std::endl;
         return;
     }
@@ -44,16 +44,16 @@ void AlfaServer::handle_beta_session(int socket_fd, struct sockaddr_in beta_addr
 
 
     if(socket_first_beta == -1 && socket_last_beta == -1) {
-        socket_first_beta = socket_fd;
-        socket_last_beta = socket_fd;
+        socket_first_beta = new_beta_socket_fd;
+        socket_last_beta = new_beta_socket_fd;
     } else {
         // Send the IP of the new beta server to the current last server in the ring
-        Packet server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, new_beta_ip.length(), new_beta_ip.c_str());
-        server_ip_packet.send(socket_last_beta);
+        Packet first_server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, new_beta_ip.length(), new_beta_ip.c_str());
+        first_server_ip_packet.send(socket_last_beta);
 
         // Send the IP of the current first server in the ring to the new beta server
-        Packet server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, ip_first_beta.length(), ip_first_beta.c_str());
-        server_ip_packet.send(socket_fd);
+        Packet last_server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, ip_first_beta.length(), ip_first_beta.c_str());
+        last_server_ip_packet.send(new_beta_socket_fd);
     }
     
     // Set the new beta server as the first server in the ring

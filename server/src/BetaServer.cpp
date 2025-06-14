@@ -44,38 +44,66 @@ void BetaServer::handle_new_client(const std::string ip, const std::string usern
     devices->add_client(username, -1, ip);
 }
 
+void BetaServer::handle_client_updates(std::string username) {
+    Packet update_meta_packet = Packet::receive(socket_fd);
+
+    std::cout << "Received meta_packet from alfa server: " << update_meta_packet.payload << std::endl;
+
+    if (update_meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+        std::cout << "Received ERROR packet: " << update_meta_packet.payload << std::endl;
+        return;
+    }
+
+    if (update_meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
+        handle_client_delete(update_meta_packet.payload, username);
+        return;
+    }
+
+    if (update_meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
+        handle_client_upload(update_meta_packet.payload, username, update_meta_packet.total_size);
+        return;
+    }
+
+    if (update_meta_packet.type == static_cast<uint16_t>(Packet::Type::IP)) {
+        handle_new_client(update_meta_packet.payload, username);
+        return;
+    }
+    
+    throw std::runtime_error(
+        "Unexpected packet type " + std::to_string(update_meta_packet.type) + 
+        " received from alfa server (expected DATA, DELETE, IP or ERROR)"
+    );
+}
+
+void BetaServer::connect_next_beta(std::string next_beta_ip) {
+    std::cout << "Connecting new next BETA Server: " << next_beta_ip << std::endl;
+    // TO DO
+}
+
 
 void BetaServer::sync() {
     try {
         while (socket_fd > 0) {
-            Packet username_packet = Packet::receive(socket_fd);
             Packet meta_packet = Packet::receive(socket_fd);
-
-            std::cout << "Received meta_packet from alfa server: " << meta_packet.payload << std::endl;
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
                 std::cout << "Received ERROR packet: " << meta_packet.payload << std::endl;
                 continue;
             }
 
-            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
-                handle_client_delete(meta_packet.payload, username_packet.payload);
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::USERNAME)) {
+                handle_client_updates(meta_packet.payload);
                 continue;
             }
 
-            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
-                handle_client_upload(meta_packet.payload, username_packet.payload, meta_packet.total_size);
-                continue;
-            }
-
-            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::IP)) {
-                handle_new_client(meta_packet.payload, username_packet.payload);
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::SERVER)) {
+                connect_next_beta(meta_packet.payload);
                 continue;
             }
             
             throw std::runtime_error(
                 "Unexpected packet type " + std::to_string(meta_packet.type) + 
-                " received from alfa server (expected DATA, DELETE, or ERROR)"
+                " received from alfa server (expected USERNAME, SERVER, or ERROR)"
             );
         }
     } catch (const std::runtime_error& e) {

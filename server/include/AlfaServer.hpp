@@ -49,7 +49,7 @@ private:
 
 
     void handle_client_session(int socket_fd);
-    void handle_beta_session(int socket_fd, struct sockaddr_in beta_address);
+    void handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_beta_address);
     void handle_beta_connection();
     void handle_client_connection();
     int setup_socket(int port);

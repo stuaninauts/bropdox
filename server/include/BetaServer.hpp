@@ -48,6 +48,8 @@ private:
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
     void handle_new_client(const std::string ip, const std::string username);
+    void handle_client_updates(std::string username);
+    void connect_next_beta(std::string next_beta_ip);
 
 };
 
