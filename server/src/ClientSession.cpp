@@ -212,7 +212,7 @@ void ClientSession::handle_client_upload(const std::string filename, uint32_t to
     }
     access_files.unlock();
 
-    // UPDATE BETAS (send_file)
+    betas->send_file(user_dir_path / filename, username);
 
     access_devices.lock();
     {
@@ -241,7 +241,7 @@ void ClientSession::handle_client_delete(const std::string filename) {
     }
     access_files.unlock();
 
-    // UPDATE BETAS (delete_file)
+    betas->delete_file(filename, username);
 
     access_devices.lock();
     {

@@ -29,22 +29,22 @@ bool BetaServer::connect_to_alfa() {
 }
 
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
-    int socket_download_other_device;
     std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
     FileManager::create_directory(backup_dir_path / username);
     Packet::receive_file(socket_fd, filename, backup_dir_path / username, total_packets);
 }
 
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
-    int socket_download_other_device;
     std::cout << "[" << username << "]" << "handle_client_delete: " << filename << std::endl;
     FileManager::create_directory(backup_dir_path / username);
     FileManager::delete_file(backup_dir_path / username / filename);
 }
 
+
 void BetaServer::sync() {
     try {
         while (socket_fd > 0) {
+            Packet username_packet = Packet::receive(socket_fd);
             Packet meta_packet = Packet::receive(socket_fd);
 
             std::cout << "Received meta_packet from alfa server: " << meta_packet.payload << std::endl;
@@ -55,12 +55,12 @@ void BetaServer::sync() {
             }
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DELETE)) {
-                handle_client_delete(meta_packet.payload, "username");
+                handle_client_delete(meta_packet.payload, username_packet.payload);
                 continue;
             }
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
-                handle_client_upload(meta_packet.payload, "username", meta_packet.total_size);
+                handle_client_upload(meta_packet.payload, username_packet.payload, meta_packet.total_size);
                 continue;
             }
             

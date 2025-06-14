@@ -32,30 +32,33 @@ void BetaManager::print_beta_sockets() const {
     }
 }
 
-void BetaManager::send_file(const fs::path filepath) const {
+void BetaManager::send_file(const fs::path filepath, const std::string username) const {
     std::vector<int> sockets_copy;
     {
         std::lock_guard<std::mutex> lock(access_beta_sockets);
         sockets_copy = beta_sockets;
     }
-
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
     for (int socket_fd : sockets_copy) {
+        username_packet.send(socket_fd);
         if (!Packet::send_file(socket_fd, filepath)) {
             Packet::send_error(socket_fd);
         }
     }
 }
 
-void BetaManager::delete_file(const std::string filename) const {
+void BetaManager::delete_file(const std::string filename, const std::string username) const {
     std::vector<int> sockets_copy;
     {
         std::lock_guard<std::mutex> lock(access_beta_sockets);
         sockets_copy = beta_sockets;
     }
 
-    Packet packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.length(), filename.c_str());
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, username.length(), username.c_str());
+    Packet delete_packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.length(), filename.c_str());
     for (int socket_fd : sockets_copy) {
-        packet.send(socket_fd);
+        username_packet.send(socket_fd);
+        delete_packet.send(socket_fd);
     }
 }
 
