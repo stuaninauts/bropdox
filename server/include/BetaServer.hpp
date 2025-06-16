@@ -12,7 +12,6 @@
 #include <sys/socket.h> 
 #include <arpa/inet.h>
 #include <mutex>
-#include <netinet/in.h>
 #include <thread> 
 #include <algorithm>
 #include <iostream>
@@ -24,6 +23,7 @@
 #include <filesystem>
 #include <FileManager.hpp>
 #include <ClientsDevices.hpp>
+#include <Network.hpp>
 
 namespace fs = std::filesystem;
 
@@ -37,11 +37,15 @@ public:
     void run();
 
 private:
-    int socket_fd;
+    int alfa_socket_fd;
     int port_alfa;
     std::string ip_alfa;
     fs::path backup_dir_path;
     std::shared_ptr<ClientsDevices> devices;
+
+    std::string ip_next_beta;
+    int next_beta_socket_fd;
+    int prev_beta_socket_fd;
 
     bool connect_to_alfa();
     void sync();

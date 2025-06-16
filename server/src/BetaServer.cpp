@@ -1,37 +1,11 @@
 #include <BetaServer.hpp>
 
-
-bool BetaServer::connect_to_alfa() {
-    struct hostent* server;
-    struct sockaddr_in serv_addr{};
-
-    if ((server = gethostbyname(ip_alfa.c_str())) == nullptr) {
-        std::cerr << "ERROR: No such host\n";
-        return false;
-    }
-    
-    if ((socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "ERROR: Opening socket\n";
-        return false;
-    }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port_alfa);
-    serv_addr.sin_addr = *((struct in_addr*)server->h_addr);
-    bzero(&(serv_addr.sin_zero), 8);
-
-    if (connect(socket_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "ERROR: Connecting to server\n";
-        return false;
-    }
-
-    return true;
-}
+#define PORT_NEXT_BETA
 
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
     std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
     FileManager::create_directory(backup_dir_path / username);
-    Packet::receive_file(socket_fd, filename, backup_dir_path / username, total_packets);
+    Packet::receive_file(alfa_socket_fd, filename, backup_dir_path / username, total_packets);
 }
 
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
@@ -45,7 +19,7 @@ void BetaServer::handle_new_client(const std::string ip, const std::string usern
 }
 
 void BetaServer::handle_client_updates(std::string username) {
-    Packet update_meta_packet = Packet::receive(socket_fd);
+    Packet update_meta_packet = Packet::receive(alfa_socket_fd);
 
     std::cout << "Received meta_packet from alfa server: " << update_meta_packet.payload << std::endl;
 
@@ -83,8 +57,8 @@ void BetaServer::connect_next_beta(std::string next_beta_ip) {
 
 void BetaServer::sync() {
     try {
-        while (socket_fd > 0) {
-            Packet meta_packet = Packet::receive(socket_fd);
+        while (alfa_socket_fd > 0) {
+            Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
                 std::cout << "Received ERROR packet: " << meta_packet.payload << std::endl;
@@ -107,18 +81,19 @@ void BetaServer::sync() {
             );
         }
     } catch (const std::runtime_error& e) {
-        close(socket_fd);
+        close(alfa_socket_fd);
         exit(1);
     }
 }
 
 void BetaServer::run() {
     std::cout << "Setting up BETA server..." << std::endl;
-    if(!connect_to_alfa())
+    alfa_socket_fd = Network::connect_socket(ip_alfa, port_alfa);
+    if(alfa_socket_fd < 0)
         exit(1);
 
     devices = std::make_shared<ClientsDevices>();
-    backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(socket_fd));
+    backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(alfa_socket_fd));
     FileManager::create_directory(backup_dir_path);
 
     

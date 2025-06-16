@@ -13,6 +13,7 @@
 #include <mutex>
 #include <set>
 #include <filesystem>
+#include <Network.hpp>
 
 using namespace std;
 
@@ -69,7 +70,6 @@ private:
 
     // connection setup
     bool send_username();
-    bool connect_socket_cmd();
     bool connect_socket_to_server(int sockfd, int* port);
     bool confirm_connection();
 };
