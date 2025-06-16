@@ -1,6 +1,6 @@
 #include <BetaServer.hpp>
 
-#define PORT_NEXT_BETA
+#define PORT_BETA 8085
 
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
     std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
@@ -88,7 +88,7 @@ void BetaServer::sync() {
 
 void BetaServer::run() {
     std::cout << "Setting up BETA server..." << std::endl;
-    alfa_socket_fd = Network::connect_socket(ip_alfa, port_alfa);
+    alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
     if(alfa_socket_fd < 0)
         exit(1);
 

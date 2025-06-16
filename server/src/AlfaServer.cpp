@@ -106,8 +106,8 @@ void AlfaServer::handle_client_connection() {
 void AlfaServer::run() {
     std::cout << "Setting up ALFA server..." << std::endl;
 
-    initial_socket_client = setup_socket(port_client);
-    initial_socket_beta = setup_socket(port_beta);
+    initial_socket_client = Network::setup_socket_ipv4(port_client);
+    initial_socket_beta = Network::setup_socket_ipv4(port_beta);
 
     if (initial_socket_beta == -1 || initial_socket_client == -1)
         exit(1);
@@ -122,35 +122,4 @@ void AlfaServer::run() {
     
     handle_beta_thread.join();
     handle_client_thread.join();    
-}
-
-
-int AlfaServer::setup_socket(int port) {
-    int new_socket;
-    struct sockaddr_in server_address;
-    
-    if ((new_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        std::cerr << "SETUP ERROR: Failed to open socket" << std::endl;
-        return false;
-    }
-
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(port);
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    bzero(&(server_address.sin_zero), 8);
-    std::cout << "Server listening on port " << port << std::endl;
-
-    if (bind(new_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0){
-        std::cerr << "SETUP ERROR: Failed to bind socket" << std::endl;
-        return -1;
-    }
-    
-    std::cout << "Server waiting for connections..." << std::endl;
-
-    if (listen(new_socket, 5) < 0) {
-        std::cerr << "SETUP ERROR: Failed to listen on socket" << std::endl;
-        return -1;
-    }
-
-    return new_socket;
 }

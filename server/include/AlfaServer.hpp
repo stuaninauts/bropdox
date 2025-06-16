@@ -20,6 +20,7 @@
 #include <ClientSession.hpp>
 #include <ClientsDevices.hpp>
 #include <BetaManager.hpp>
+#include <Network.hpp>
 
 namespace fs = std::filesystem;
 class AlfaServer {
@@ -52,7 +53,6 @@ private:
     void handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_beta_address);
     void handle_beta_connection();
     void handle_client_connection();
-    int setup_socket(int port);
 
     std::shared_ptr<ClientsDevices> devices;
     std::shared_ptr<BetaManager> betas;

@@ -11,7 +11,8 @@
 
 class Network {
 public:
-    static int connect_socket(std::string ip, int port);
+    static int connect_socket_ipv4(std::string ip, int port);
+    static int setup_socket_ipv4(int port, int backlog = 10);
 };
 
 #endif // NETWORK_HPP

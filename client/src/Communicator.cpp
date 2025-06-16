@@ -21,7 +21,7 @@ std::mutex access_ignored_files;
 bool Communicator::connect_to_server() {
     try {
         // Initialization of the main connection
-        socket_cmd = Network::connect_socket(server_ip, port_cmd);
+        socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
         if (socket_cmd == -1) {
             close_sockets();
             return false;
