@@ -78,3 +78,36 @@ int Network::setup_socket_ipv4(int port, int backlog) {
 
     return listen_fd;
 }
+
+int Network::get_available_port() {
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_fd == -1) {
+        std::cerr << "socket failed" << std::endl;
+        return -1;
+    }
+
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(0);
+
+    if (bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+        std::cerr << "bind failed" << std::endl;
+        close(socket_fd);
+        return -1;
+    }
+
+    socklen_t addr_len = sizeof(addr);
+    if (getsockname(socket_fd, (struct sockaddr*)&addr, &addr_len) == -1) {
+        std::cerr << "getsockname failed" <<  std::endl;
+        close(socket_fd);
+        return -1;
+    }
+
+    int assigned_port = ntohs(addr.sin_port);
+    close(socket_fd);
+
+    std::cout << "Available PORT: " << assigned_port << std::endl;
+
+    return assigned_port;
+}
