@@ -21,8 +21,8 @@ std::mutex access_ignored_files;
 bool Communicator::connect_to_server() {
     try {
         // Initialization of the main connection
-
-        if (!connect_socket_cmd()) {
+        socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
+        if (socket_cmd == -1) {
             close_sockets();
             return false;
         }
@@ -244,33 +244,6 @@ bool Communicator::send_username() {
         std::cerr << "ERROR: Writing username to socket\n";
         return false;
     }
-    return true;
-}
-
-bool Communicator::connect_socket_cmd() {
-    struct hostent* server;
-    struct sockaddr_in serv_addr{};
-
-    if ((server = gethostbyname(server_ip.c_str())) == nullptr) {
-        std::cerr << "ERROR: No such host\n";
-        return false;
-    }
-    
-    if ((socket_cmd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        std::cerr << "ERROR: Opening socket\n";
-        return false;
-    }
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port_cmd);
-    serv_addr.sin_addr = *((struct in_addr*)server->h_addr);
-    bzero(&(serv_addr.sin_zero), 8);
-
-    if (connect(socket_cmd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "ERROR: Connecting to server\n";
-        return false;
-    }
-
     return true;
 }
 

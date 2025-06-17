@@ -17,19 +17,28 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
+#include <shared_mutex>
 
 using namespace std;
+
+struct Device {
+    int socket_fd;
+    std::string ip;
+    Device(int socket_fd, std::string ip) : socket_fd(socket_fd), ip(ip) {}
+};
 
 class ClientsDevices {
 
 public:
     ClientsDevices() = default;
-    bool add_client_socket(const std::string& username, int sockfd);
-    void remove_client_socket(const std::string& username, int sockfd);
-    int get_other_device_socket(const std::string& username, int sockfd);
-    void print_clients_sockets();
+    bool add_client(const std::string& username, int socket_fd, const std::string ip);
+    void remove_client(const std::string& username, int socket_fd);
+    int get_other_device_socket(const std::string& username, int current_socket_fd) const;
+    void print_clients() const;
     
 private:
-    std::unordered_map<std::string, std::vector<int>> clients_sockets;
+    std::unordered_map<std::string, std::vector<Device>> clients;
+    mutable std::shared_mutex access_clients;
+    void print_clients_unlocked() const;
 };
 #endif // CLIENTSDEVICES_HPP
