@@ -46,14 +46,16 @@ private:
     std::string ip_next_beta;
     int next_beta_socket_fd;
     int prev_beta_socket_fd;
+    int ring_socket_fd;
+    int ring_port;
 
-    bool connect_to_alfa();
     void sync();
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
     void handle_new_client(const std::string ip, const std::string username);
     void handle_client_updates(std::string username);
     void connect_next_beta(std::string next_beta_ip);
+    void accept_ring_connection();
 
 };
 

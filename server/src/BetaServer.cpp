@@ -50,8 +50,10 @@ void BetaServer::handle_client_updates(std::string username) {
 }
 
 void BetaServer::connect_next_beta(std::string next_beta_ip) {
+    Packet port_packet = Packet::receive(alfa_socket_fd);
     std::cout << "Connecting new next BETA Server: " << next_beta_ip << std::endl;
-    // TO DO
+    next_beta_socket_fd = Network::connect_socket_ipv4(next_beta_ip, stoi(port_packet.payload.c_str()));
+    std::cout << "Conected to new BETA!" << std::endl;
 }
 
 
@@ -86,18 +88,45 @@ void BetaServer::sync() {
     }
 }
 
+void BetaServer::accept_ring_connection() {
+    int prev_beta_socket_fd_aux;
+    struct sockaddr_in prev_beta_address;
+    socklen_t prev_beta_address_len = sizeof(struct sockaddr_in);
+    std::cout << "Handling RING Connection..." << std::endl;
+
+    while (true) {
+        prev_beta_socket_fd_aux = accept(ring_socket_fd, (struct sockaddr*) &prev_beta_address, &prev_beta_address_len);
+
+        if (prev_beta_socket_fd_aux == -1) {
+            std::cerr << "ERROR: Failed to accept new BETA" << std::endl;
+        }
+        
+        if (prev_beta_socket_fd_aux >= 0) {
+            std::cout << "Accepted new BETA!" << std::endl;
+            close(prev_beta_socket_fd);
+            prev_beta_socket_fd = prev_beta_socket_fd_aux;
+        }
+    }
+}
+
 void BetaServer::run() {
     std::cout << "Setting up BETA server..." << std::endl;
     alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
-    if(alfa_socket_fd < 0)
+    ring_port = Network::get_available_port();
+    ring_socket_fd = Network::setup_socket_ipv4(ring_port);
+    if(alfa_socket_fd == -1 || ring_socket_fd == -1)
         exit(1);
+
+    Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
+    packet.send(alfa_socket_fd);
+    
 
     devices = std::make_shared<ClientsDevices>();
     backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(alfa_socket_fd));
     FileManager::create_directory(backup_dir_path);
 
-    
     std::thread sync_thread = std::thread(&BetaServer::sync, this);
+    std::thread ring_thread = std::thread(&BetaServer::accept_ring_connection, this);
     std::cout << "Connected to ALFA server!" << std::endl;
 
     sync_thread.join();

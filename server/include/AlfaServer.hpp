@@ -45,8 +45,10 @@ private:
     int port_beta;
 
     int socket_first_beta;
-    int socket_last_beta;
+    int port_first_beta;
     std::string ip_first_beta;
+
+    int socket_last_beta;
 
 
     void handle_client_session(int socket_fd);
