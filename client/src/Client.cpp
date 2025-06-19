@@ -11,7 +11,7 @@
 void Client::run(int initial_socket) {
     std::cout << "Connecting to server..." << std::endl;
 
-    initial_socket_new_alpha = Network::setup_socket_ipv4(port_new_alpha);
+    initial_socket_new_alpha = Network::setup_socket_ipv4(port_backup);
 
     if (!communicator.connect_to_server(initial_socket)) {
         std::cerr << "Error connecting to server" << std::endl;

@@ -10,21 +10,32 @@ void AlfaServer::handle_client_session(int socket_fd) {
     char buffer[256];
     bzero(buffer, 256);
     std::string username = "";
+    int port_backup = 0;
     int n = read(socket_fd, buffer, 255);
-    
+
     if(n <= 0) {
         std::cerr << "Error reading client's username" << std::endl;
         close(socket_fd);
         accept_connections.unlock();
         return;
     }
-    username = std::string(buffer); // <-- fixed: assignment instead of redeclaration
-    std::cout << "Username: " << username << std::endl;
+
+    std::istringstream iss(buffer);
+    iss >> username >> port_backup;
+
+    if (username.empty() || port_backup == 0) {
+        std::cerr << "Invalid client data received" << std::endl;
+        close(socket_fd);
+        accept_connections.unlock();
+        return;
+    }
+
+    std::cout << "Username: " << username << ", Port Beta: " << port_backup << std::endl;
     std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
 
     FileManager::create_directory(user_dir_path);
-    
-    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket_fd, username, devices, betas, user_dir_path);
+
+    std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(socket_fd, username, devices, betas, user_dir_path, port_backup);
 
     client_session->connect_sockets();
     accept_connections.unlock();

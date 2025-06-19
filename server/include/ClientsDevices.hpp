@@ -24,14 +24,15 @@ using namespace std;
 struct Device {
     int socket_fd;
     std::string ip;
-    Device(int socket_fd, std::string ip) : socket_fd(socket_fd), ip(ip) {}
+    int port_backup;
+    Device(int socket_fd, std::string ip, int port_backup) : socket_fd(socket_fd), ip(ip), port_backup(port_backup) {}
 };
 
 class ClientsDevices {
 
 public:
     ClientsDevices() = default;
-    bool add_client(const std::string& username, int socket_fd, const std::string ip);
+    bool add_client(const std::string& username, int socket_fd, const std::string ip, int port_backup);
     void remove_client(const std::string& username, int socket_fd);
     int get_other_device_socket(const std::string& username, int current_socket_fd) const;
     void print_clients() const;

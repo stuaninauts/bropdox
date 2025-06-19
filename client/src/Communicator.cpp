@@ -28,7 +28,7 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
                 return false;
             }
 
-            if (!send_username()) {
+            if (!send_initial_information()) {
                 close_sockets();
                 return false;
             }
@@ -242,10 +242,11 @@ void Communicator::send_command(const std::string command) {
     command_packet.send(socket_cmd);
 }
 
-bool Communicator::send_username() {
-    int n = write(socket_cmd, username.c_str(), username.length());
+bool Communicator::send_initial_information() {
+    std::string information = username + " " + std::to_string(port_backup);
+    int n = write(socket_cmd, information.c_str(), information.length());
     if (n < 0) {
-        std::cerr << "ERROR: Writing username to socket\n";
+        std::cerr << "ERROR: Writing initial information to socket\n";
         return false;
     }
     return true;

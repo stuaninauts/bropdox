@@ -102,7 +102,7 @@ void BetaServer::handle_client_delete(const std::string filename, const std::str
 }
 
 void BetaServer::handle_new_client(const std::string ip, const std::string username) {
-    devices->add_client(username, -1, ip);
+    devices->add_client(username, -1, ip, 4000);
 }
 
 void BetaServer::connect_next_beta(std::string next_beta_ip) {

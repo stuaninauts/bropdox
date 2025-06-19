@@ -23,15 +23,15 @@ namespace fs = std::filesystem;
 
 class Client {
 public:
-    Client(const std::string& server_ip, int port, const std::string& username, const std::string sync_dir_path)
+    Client(const std::string& server_ip, int port, const std::string& username, const std::string sync_dir_path, int port_backup)
           : sync_dir_path(sync_dir_path),
-            communicator(server_ip, port, username, sync_dir_path) {}
+            communicator(server_ip, port, username, sync_dir_path, port_backup) {}
 
     void run(int initial_socket = -1);
 
     Communicator communicator;
     int initial_socket_new_alpha = -1;
-    int port_new_alpha = 8002;
+    int port_backup;
 
     void sync_local();
     void sync_remote();

@@ -27,7 +27,7 @@ void ClientSession::connect_sockets() {
         return;
     }
 
-    suicide = !devices->add_client(username, socket_download, client_ip);
+    suicide = !devices->add_client(username, socket_download, client_ip, port_backup);
     
     if (suicide) {
         std::string error_msg = "USER_MAX_CONNECTIONS_REACHED";

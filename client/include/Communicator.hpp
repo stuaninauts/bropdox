@@ -26,8 +26,8 @@ public:
         close_sockets();
     }
 
-    Communicator(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path)
-        :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path),
+    Communicator(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path, int port_backup)
+        :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path), port_backup(port_backup),
             socket_upload(-1), socket_cmd(-1), socket_download(-1), port_upload(0), port_download(0) {};
 
     bool connect_to_server(int socket_new_alpha = -1);
@@ -47,6 +47,7 @@ public:
     int port_cmd;
     int port_upload;
     int port_download;
+    int port_backup;
 
     // sockets
     int socket_cmd;
@@ -68,7 +69,7 @@ public:
     void send_command(const std::string command);
 
     // connection setup
-    bool send_username();
+    bool send_initial_information();
     bool connect_socket_to_server(int sockfd, int* port);
     bool confirm_connection();
 };

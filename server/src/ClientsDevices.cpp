@@ -1,11 +1,11 @@
 #include <ClientsDevices.hpp>
 
-bool ClientsDevices::add_client(const std::string &username, int socket_fd, const std::string ip) {
+bool ClientsDevices::add_client(const std::string &username, int socket_fd, const std::string ip, int port_beta) {
     std::unique_lock<std::shared_mutex> lock(access_clients);
 
     auto it = clients.find(username);
     if (it == clients.end() || it->second.size() <= 1) {
-        clients[username].push_back(Device(socket_fd, ip));
+        clients[username].push_back(Device(socket_fd, ip, port_beta));
         print_clients_unlocked();
         return true;
     }

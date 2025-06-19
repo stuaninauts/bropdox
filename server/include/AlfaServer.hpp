@@ -34,6 +34,8 @@ public:
         socket_first_beta(-1),
         socket_last_beta(-1) {};
 
+    std::shared_ptr<ClientsDevices> devices;
+    std::shared_ptr<BetaManager> betas;
 
     void run();
 
@@ -56,8 +58,6 @@ private:
     void handle_beta_connection();
     void handle_client_connection();
 
-    std::shared_ptr<ClientsDevices> devices;
-    std::shared_ptr<BetaManager> betas;
     fs::path server_dir_path = "./sync_dir_server";
 
 };
