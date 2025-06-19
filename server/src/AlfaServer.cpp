@@ -5,6 +5,7 @@
 #include <FileManager.hpp>
 
 std::mutex accept_connections;
+std::mutex access_beta_sockets;
 
 void AlfaServer::handle_client_session(int socket_fd) {
     char buffer[256];
@@ -43,9 +44,13 @@ void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in 
     int new_beta_ring_port = stoi(new_beta_ring_port_packet.payload.c_str());
 
     std::cout << "New BETA: " << new_beta_ip << ":" << new_beta_ring_port << " | SOCKET: " << new_beta_socket_fd << std::endl;
-    betas->add_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port);
-    betas->send_all_betas_to_new_beta(new_beta_socket_fd);
-    devices->send_all_devices_to_beta(new_beta_socket_fd);
+
+    {
+        std::lock_guard<std::mutex> lock(access_beta_sockets);
+        betas->add_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port);
+        betas->send_all_betas_to_new_beta(new_beta_socket_fd);
+        devices->send_all_devices_to_beta(new_beta_socket_fd);
+    }
     
     // while (true) listening to beta...
 }

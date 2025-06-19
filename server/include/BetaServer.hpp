@@ -65,9 +65,9 @@ private:
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
-    void handle_new_client(const std::string ip, const std::string username);
-    void handle_client_updates(std::string username);
-    void handle_new_beta(const std::string ip);
+    void handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients);
+    void handle_client_updates(Packet meta_packet);
+    void handle_new_betas(Packet meta_packet);
     void accept_ring_connection();
     void handle_beta_updates();
 
