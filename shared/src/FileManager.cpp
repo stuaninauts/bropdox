@@ -6,7 +6,7 @@ bool FileManager::copy_file(const fs::path& source_path, const fs::path& destina
         fs::copy_file(source_path, destination_path, fs::copy_options::overwrite_existing);
         return true;
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error copying file: " << e.what() << '\n';
+        std::cerr << "[ FILE MANAGER ] " << "Error copying file: " << e.what() << '\n';
         return false;
     }
 }
@@ -15,7 +15,7 @@ bool FileManager::delete_file(const fs::path& file_path) {
     try {
         return fs::remove(file_path);
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error deleting file: " << e.what() << '\n';
+        std::cerr << "[ FILE MANAGER ] " << "Error deleting file: " << e.what() << '\n';
         return false;
     }
 }
@@ -23,7 +23,7 @@ bool FileManager::delete_file(const fs::path& file_path) {
 bool FileManager::delete_all_files_in_directory(const fs::path& directory_path) {
     try {
         if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
-            std::cerr << "Invalid path or not a directory: " << directory_path << '\n';
+            std::cerr << "[ FILE MANAGER ] " << "Invalid path or not a directory: " << directory_path << '\n';
             return false;
         }
 
@@ -34,7 +34,7 @@ bool FileManager::delete_all_files_in_directory(const fs::path& directory_path) 
         }
         return true;
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error deleting files from directory: " << e.what() << '\n';
+        std::cerr << "[ FILE MANAGER ] " << "Error deleting files from directory: " << e.what() << '\n';
         return false;
     }
 }
@@ -44,7 +44,7 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
 
     try {
         if (!fs::exists(directory_path) || !fs::is_directory(directory_path)) {
-            ss << "Invalid path or not a directory: " << directory_path << '\n';
+            ss << "[ FILE MANAGER ] " << "Invalid path or not a directory: " << directory_path << '\n';
             return ss.str();
         }
 
@@ -56,7 +56,7 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
             }
         }
     } catch (const fs::filesystem_error& e) {
-        ss << "Error listing files: " << e.what() << '\n';
+        ss << "[ FILE MANAGER ] " << "Error listing files: " << e.what() << '\n';
     }
 
     return ss.str();
@@ -65,14 +65,14 @@ std::string FileManager::get_formatted_file_list(const fs::path& directory_path)
 bool FileManager::create_directory(const fs::path& directory_path) {
     try {
         if (fs::create_directories(directory_path)) {
-            std::cout << "Directory created: " + directory_path.string() << std::endl;
+            std::cout << "[ FILE MANAGER ] " << "Directory created: " + directory_path.string() << std::endl;
             return true;
         } else {
-            std::cout << "Directory already exists: " + directory_path.string() << std::endl;
+            std::cout << "[ FILE MANAGER ] " << "Directory already exists: " + directory_path.string() << std::endl;
             return false;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error creating directory: " + std::string(e.what()) << std::endl;
+        std::cerr << "[ FILE MANAGER ] " << "Error creating directory: " + std::string(e.what()) << std::endl;
         return false;
     }
 }
@@ -80,14 +80,14 @@ bool FileManager::create_directory(const fs::path& directory_path) {
 bool FileManager::remove_directory(const fs::path& directory_path) {
     try {
         if (fs::remove(directory_path)) {
-            std::cout << "Directory removed: " + directory_path.string() << std::endl;
+            std::cout << "[ FILE MANAGER ] " << "Directory removed: " + directory_path.string() << std::endl;
             return true;
         } else {
-            std::cout << "Directory does not exist: " + directory_path.string() << std::endl;
+            std::cout << "[ FILE MANAGER ] " << "Directory does not exist: " + directory_path.string() << std::endl;
             return false;
         }
     } catch (const fs::filesystem_error& e) {
-        std::cerr << "Error removing directory: " + std::string(e.what()) << std::endl;
+        std::cerr << "[ FILE MANAGER ] " << "Error removing directory: " + std::string(e.what()) << std::endl;
         return false;
     }
 }
