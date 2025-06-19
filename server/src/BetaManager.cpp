@@ -81,3 +81,21 @@ void BetaManager::delete_file(const std::string filename, const std::string user
     }
 }
 
+void BetaManager::send_new_beta_server(const std::string ip, int ring_port) const {
+    std::vector<int> sockets_copy;
+    {
+        std::shared_lock<std::shared_mutex> lock(access_beta_sockets);
+        sockets_copy = beta_sockets;
+    }
+    std::string ring_port_str = std::to_string(ring_port);
+    std::string id_str = std::to_string(sockets_copy.size());
+
+    Packet ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, ip.length(), ip.c_str());
+    Packet ring_port_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, ring_port_str.length(), ring_port_str.c_str());
+    Packet id_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, id_str.length(), id_str.c_str());
+    for (int socket_fd : sockets_copy) {
+        ip_packet.send(socket_fd);
+        ring_port_packet.send(socket_fd);
+        id_packet.send(socket_fd);
+    }
+}

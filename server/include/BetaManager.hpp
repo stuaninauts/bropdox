@@ -33,6 +33,7 @@ public:
     void send_file(const fs::path filepath, const std::string username) const;
     void delete_file(const std::string filename, const std::string username) const;
     void print_beta_sockets() const;
+    void send_new_beta_server(const std::string ip, int ring_port) const;
 
 private:
     std::vector<int> beta_sockets;
