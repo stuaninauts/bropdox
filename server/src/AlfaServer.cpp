@@ -43,8 +43,6 @@ void AlfaServer::handle_client_session(int socket_fd) {
 }
 
 void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_address) {
-    betas->add_beta(new_beta_socket_fd);
-    
     // Get the ip and ring_port of the new beta server
     char ip_buffer[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &new_beta_address.sin_addr, ip_buffer, sizeof(ip_buffer)) == NULL) {
@@ -56,8 +54,9 @@ void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in 
     int new_beta_ring_port = stoi(new_beta_ring_port_packet.payload.c_str());
 
     std::cout << "New BETA: " << new_beta_ip << ":" << new_beta_ring_port << " | SOCKET: " << new_beta_socket_fd << std::endl;
-    
-    betas->send_new_beta_server(new_beta_ip, new_beta_ring_port);
+    betas->add_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port);
+    betas->send_all_betas_to_new_beta(new_beta_socket_fd);
+    devices->send_all_devices_to_beta(new_beta_socket_fd);
     
     // while (true) listening to beta...
 }
