@@ -86,7 +86,7 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
     }
 
     if (update_packet.type == static_cast<uint16_t>(Packet::Type::IP)) {
-        handle_new_clients(update_packet.payload, username_packet.payload, meta_packet.seqn);
+        handle_new_clients(update_packet.payload, username_packet.payload, meta_packet.total_size);
         return;
     }
     
@@ -109,6 +109,7 @@ void BetaServer::handle_client_delete(const std::string filename, const std::str
 }
 
 void BetaServer::handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients) {
+    std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
     devices->add_client(username_first_client, -1, ip_first_client);
     while(--total_clients > 0) {
         Packet username_packet = Packet::receive(alfa_socket_fd);
@@ -121,6 +122,7 @@ void BetaServer::handle_new_clients(const std::string ip_first_client, const std
             std::cout << "[ ALFA THREAD ] " << "ERROR: Client IP not received from alfa server" << std::endl;
             return;
         }
+        std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
         devices->add_client(username_packet.payload, -1, ip_packet.payload);
     }
 }
