@@ -21,10 +21,45 @@ void BetaServer::run() {
 
     std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
     std::thread ring_thread = std::thread(&BetaServer::accept_ring_connection, this);
+    std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
     std::cout << "[ SETUP ] " << "Setup finished!" << std::endl;
 
     sync_thread.join();
     ring_thread.join();
+    heartbeat_thread.join();
+}
+
+void BetaServer::heartbeat_timeout() {
+    Packet heartbeat_packet(static_cast<uint16_t>(Packet::Type::HEARTBEAT), 0, 0, 0, "");
+    bool ok;
+    std::cout << "[ HEARTBEAT THREAD ] " << "Starting heartbeat..." << std::endl;
+    try {
+        while (alfa_socket_fd > 0) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            heartbeat_packet.send(alfa_socket_fd);
+            {
+                std::unique_lock<std::mutex> lock(heartbeat_mutex);
+                ok = heartbeat_cv.wait_for(lock, std::chrono::seconds(2), [&]{ return heartbeat_received; });
+            }
+
+            if(!ok) {
+                std::cout << "[ HEARTBEAT THREAD ] " << "Alfa server is DOWN, STARTING ELECTION..." << std::endl;
+                return;
+            }
+            
+            if (heartbeat_packet.type == static_cast<uint16_t>(Packet::Type::HEARTBEAT)) {
+                std::cout << "[ HEARTBEAT THREAD ] " << "Alfa server is UP" << std::endl;
+                continue;
+            }
+            
+            throw std::runtime_error(
+                "[ ALFA THREAD ] Unexpected packet type " + std::to_string(heartbeat_packet.type) + 
+                " received from alfa server (expected USERNAME, SERVER, or ERROR)"
+            );
+        }
+    } catch (const std::runtime_error& e) {
+        close(alfa_socket_fd);
+    }
 }
 
 void BetaServer::handle_alfa_updates() {
@@ -47,6 +82,14 @@ void BetaServer::handle_alfa_updates() {
                 handle_new_betas(meta_packet);
                 continue;
             }
+
+            if (meta_packet.type == static_cast<uint16_t>(Packet::Type::HEARTBEAT)) {
+                {
+                    std::unique_lock<std::mutex> lock(heartbeat_mutex);
+                    heartbeat_received = true; 
+                }
+                continue;
+            }
             
             throw std::runtime_error(
                 "[ ALFA THREAD ] Unexpected packet type " + std::to_string(meta_packet.type) + 
@@ -55,7 +98,6 @@ void BetaServer::handle_alfa_updates() {
         }
     } catch (const std::runtime_error& e) {
         close(alfa_socket_fd);
-        exit(1);
     }
 }
 

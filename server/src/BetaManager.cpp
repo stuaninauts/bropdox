@@ -5,7 +5,7 @@ void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip
     BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, next_beta_id);
     send_new_beta_server(new_beta);
     {   
-        std::unique_lock<std::shared_mutex> lock(access_betas);
+        std::lock_guard<std::shared_mutex> lock(access_betas);
         betas.push_back(new_beta);
         std::cout << "Added BETA SOCKET: " << new_beta_socket_fd << std::endl;
     }
@@ -46,9 +46,9 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     {
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
-    
     }
 
+    std::lock_guard<std::mutex> lock(write_beta_socket);
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
     Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     for (BetaInfo& beta : betas_copy) {
@@ -68,7 +68,7 @@ void BetaManager::send_client_device(const std::string ip, const std::string use
         betas_copy = betas;
     
     }
-
+    std::lock_guard<std::mutex> lock(write_beta_socket);
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
     Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, ip.length(), ip.c_str());
@@ -85,7 +85,7 @@ void BetaManager::delete_file(const std::string filename, const std::string user
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
     }
-
+    std::lock_guard<std::mutex> lock(write_beta_socket);
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
     Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     Packet delete_packet(static_cast<uint16_t>(Packet::Type::DELETE), 0, 0, filename.length(), filename.c_str());
@@ -102,6 +102,7 @@ void BetaManager::send_new_beta_server(BetaInfo new_beta) const {
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
     }
+    std::lock_guard<std::mutex> lock(write_beta_socket);
     std::cout << "send new_beta_server" << std::endl;
     std::string ring_port_str = std::to_string(new_beta.ring_port);
     std::string id_str = std::to_string(new_beta.id);
@@ -118,12 +119,19 @@ void BetaManager::send_new_beta_server(BetaInfo new_beta) const {
     }
 }
 
+void BetaManager::send_heartbeat(int beta_socket_fd) const {
+    std::lock_guard<std::mutex> lock(write_beta_socket);
+    Packet heartbeat_packet(static_cast<uint16_t>(Packet::Type::HEARTBEAT), 0, 0, 0, "");
+    heartbeat_packet.send(beta_socket_fd);
+}
+
 void BetaManager::send_all_betas_to_new_beta(int new_beta_socket_fd) const {
     std::vector<BetaInfo> betas_copy;
     {
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
     }
+    std::lock_guard<std::mutex> lock(write_beta_socket);
     int seqn = 0;
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::SERVER), seqn, betas_copy.size(), 0, "");
     meta_packet.send(new_beta_socket_fd);

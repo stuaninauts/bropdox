@@ -5,7 +5,7 @@
 #include <FileManager.hpp>
 
 std::mutex accept_connections;
-std::mutex access_beta_sockets;
+std::mutex write_beta_sockets;
 
 void AlfaServer::handle_client_session(int socket_fd) {
     char buffer[256];
@@ -46,13 +46,39 @@ void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in 
     std::cout << "New BETA: " << new_beta_ip << ":" << new_beta_ring_port << " | SOCKET: " << new_beta_socket_fd << std::endl;
 
     {
-        std::lock_guard<std::mutex> lock(access_beta_sockets);
+        std::lock_guard<std::mutex> lock(write_beta_sockets);
         betas->add_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port);
         betas->send_all_betas_to_new_beta(new_beta_socket_fd);
         devices->send_all_devices_to_beta(new_beta_socket_fd);
     }
     
-    // while (true) listening to beta...
+    heartbeat(new_beta_socket_fd);
+}
+
+void AlfaServer::heartbeat(int beta_socket_fd) {
+    std::cout << "Starting heartbeat... Socket : " << beta_socket_fd << std::endl;
+    try {
+        while (beta_socket_fd > 0) {
+            Packet heartbeat_packet = Packet::receive(beta_socket_fd);
+
+            if (heartbeat_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
+                std::cout << "[ ALFA THREAD ] " << "Received ERROR packet: " << heartbeat_packet.payload << std::endl;
+                continue;
+            }
+
+            if (heartbeat_packet.type == static_cast<uint16_t>(Packet::Type::HEARTBEAT)) {
+                betas->send_heartbeat(beta_socket_fd);
+                continue;
+            }
+
+            throw std::runtime_error(
+                "[ ALFA THREAD ] Unexpected packet type " + std::to_string(heartbeat_packet.type) + 
+                " received from alfa server (expected ERROR or HEARTBEAT)"
+            );
+        }
+    } catch (const std::runtime_error& e) {
+        close(beta_socket_fd);
+    }
 }
 
 void AlfaServer::handle_beta_connection() {

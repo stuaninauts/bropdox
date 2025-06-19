@@ -44,6 +44,7 @@ private:
     void handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_beta_address);
     void handle_beta_connection();
     void handle_client_connection();
+    void heartbeat(int beta_socket_fd);
 
     std::shared_ptr<ClientsDevices> devices;
     std::shared_ptr<BetaManager> betas;

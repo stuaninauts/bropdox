@@ -24,6 +24,8 @@
 #include <FileManager.hpp>
 #include <ClientsDevices.hpp>
 #include <Network.hpp>
+#include <condition_variable>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -55,6 +57,11 @@ private:
     int next_beta_port;
     int next_beta_socket_fd;
 
+    // heartbeat variables
+    std::mutex heartbeat_mutex;
+    std::condition_variable heartbeat_cv;
+    bool heartbeat_received;
+
     // ring connection variables
     int ring_socket_fd;
     int ring_port;
@@ -70,6 +77,7 @@ private:
     void handle_new_betas(Packet meta_packet);
     void accept_ring_connection();
     void handle_beta_updates();
+    void heartbeat_timeout();
 
 };
 

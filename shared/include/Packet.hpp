@@ -21,6 +21,7 @@ public:
         CLIENT = 10,
         PORT = 11,
         ID = 12,
+        HEARTBEAT = 13,
     };
 
     // Construtor

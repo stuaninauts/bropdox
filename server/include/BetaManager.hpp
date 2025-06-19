@@ -43,10 +43,13 @@ public:
     void print_betas() const;
     void send_new_beta_server(BetaInfo new_beta) const;
     void send_all_betas_to_new_beta(int new_beta_socket_fd) const;
+    void send_heartbeat(int beta_socket_fd) const;
+    
 
 private:
     std::vector<BetaInfo> betas;
     mutable std::shared_mutex access_betas;
+    mutable std::mutex write_beta_socket;
     int next_beta_id;
 
 };
