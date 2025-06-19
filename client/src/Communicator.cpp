@@ -18,18 +18,22 @@ std::mutex access_ignored_files;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-bool Communicator::connect_to_server() {
+bool Communicator::connect_to_server(int initial_socket_new_alpha) {
     try {
         // Initialization of the main connection
-        socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
-        if (socket_cmd == -1) {
-            close_sockets();
-            return false;
-        }
+        if (initial_socket_new_alpha == -1) {
+            socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
+            if (socket_cmd == -1) {
+                close_sockets();
+                return false;
+            }
 
-        if (!send_username()) {
-            close_sockets();
-            return false;
+            if (!send_username()) {
+                close_sockets();
+                return false;
+            }
+        } else {
+            socket_cmd = initial_socket_new_alpha;
         }
 
         // Create upload socket
@@ -94,7 +98,7 @@ void Communicator::watch_directory() {
     const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
     char buffer[BUF_LEN];
     
-    while (true) {
+    while (socket_upload != -1) {
         int length = read(inotify_fd, buffer, BUF_LEN);
         if (length < 0) {
             std::cerr << "Error reading from inotify\n";
@@ -307,3 +311,4 @@ bool Communicator::confirm_connection() {
     }
     return true;
 }
+
