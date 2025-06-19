@@ -34,41 +34,20 @@ void AlfaServer::handle_client_session(int socket_fd) {
 void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_address) {
     betas->add_beta(new_beta_socket_fd);
     
-    // Get the ip of the new beta server
+    // Get the ip and ring_port of the new beta server
     char ip_buffer[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &new_beta_address.sin_addr, ip_buffer, sizeof(ip_buffer)) == NULL) {
         std::cerr << "Failed to convert BETA Server IP address" << std::endl;
         return;
     }
     std::string new_beta_ip(ip_buffer);
-    
-    Packet new_beta_port_packet = Packet::receive(new_beta_socket_fd);
-    int new_beta_port = stoi(new_beta_port_packet.payload.c_str());
+    Packet new_beta_ring_port_packet = Packet::receive(new_beta_socket_fd);
+    int new_beta_ring_port = stoi(new_beta_ring_port_packet.payload.c_str());
 
-    if(socket_first_beta == -1 && socket_last_beta == -1) {
-        socket_first_beta = new_beta_socket_fd;
-        socket_last_beta = new_beta_socket_fd;
-        port_first_beta = new_beta_port;
-    } else {
-        // Send the IP and the PORT of the new beta server to the current last server in the ring
-        Packet first_server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, new_beta_ip.length(), new_beta_ip.c_str());
-        Packet first_server_port_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(new_beta_port).length(), std::to_string(new_beta_port).c_str());
-        first_server_ip_packet.send(socket_last_beta);
-        first_server_port_packet.send(socket_last_beta);
-        
-        // Send the IP and the PORT of the current first server in the ring to the new beta server
-        Packet last_server_ip_packet(static_cast<uint16_t>(Packet::Type::SERVER), 0, 0, ip_first_beta.length(), ip_first_beta.c_str());
-        Packet last_server_port_packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(port_first_beta).length(), std::to_string(port_first_beta).c_str());
-        last_server_ip_packet.send(new_beta_socket_fd);
-        last_server_port_packet.send(new_beta_socket_fd);
-    }
+    std::cout << "New BETA: " << new_beta_ip << ":" << new_beta_ring_port << " | SOCKET: " << new_beta_socket_fd << std::endl;
     
-    // Set the new beta server as the first server in the ring
-    ip_first_beta = new_beta_ip;
-    port_first_beta = new_beta_port;
+    betas->send_new_beta_server(new_beta_ip, new_beta_ring_port);
     
-    std::cout << "New first BETA: " << ip_first_beta << ":" << port_first_beta << " | SOCKET: " << socket_last_beta << std::endl;
-
     // while (true) listening to beta...
 }
 

@@ -30,26 +30,15 @@ public:
         port_client(port_client),
         port_beta(8081), // HARD CODED
         initial_socket_client(-1),
-        initial_socket_beta(-1),
-        socket_first_beta(-1),
-        socket_last_beta(-1) {};
-
+        initial_socket_beta(-1) {};
 
     void run();
 
 private:
-
     int initial_socket_client;
     int initial_socket_beta;
     int port_client;
     int port_beta;
-
-    int socket_first_beta;
-    int port_first_beta;
-    std::string ip_first_beta;
-
-    int socket_last_beta;
-
 
     void handle_client_session(int socket_fd);
     void handle_beta_session(int new_beta_socket_fd, struct sockaddr_in new_beta_beta_address);

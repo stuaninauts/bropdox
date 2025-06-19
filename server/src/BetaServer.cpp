@@ -43,7 +43,7 @@ void BetaServer::handle_alfa_updates() {
             }
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::SERVER)) {
-                connect_next_beta(meta_packet.payload);
+                handle_new_beta(meta_packet.payload);
                 continue;
             }
             
@@ -105,11 +105,23 @@ void BetaServer::handle_new_client(const std::string ip, const std::string usern
     devices->add_client(username, -1, ip);
 }
 
-void BetaServer::connect_next_beta(std::string next_beta_ip) {
-    Packet port_packet = Packet::receive(alfa_socket_fd);
-    std::cout << "Connecting new next BETA Server: " << next_beta_ip << std::endl;
-    next_beta_socket_fd = Network::connect_socket_ipv4(next_beta_ip, stoi(port_packet.payload.c_str()));
-    std::cout << "Connected to new BETA!" << std::endl;
+void BetaServer::handle_new_beta(const std::string ip) {
+    Packet ring_port_packet = Packet::receive(alfa_socket_fd);
+    Packet ip_packet = Packet::receive(alfa_socket_fd);
+
+    int ring_port = stoi(ring_port_packet.payload);
+    int id = stoi(ip_packet.payload);
+
+    BetaAddress beta(ip, ring_port, id);
+    betas.push_back(beta);
+    std::cout << "NEW BETA ADDED" << std::endl;
+    std::cout << "[" << beta.id << "] = " << beta.ip << ":" << beta.ring_port << std::endl;
+
+    // print all betas
+    std::cout << "BETA ADDRESSES" << std::endl;
+    for (auto beta : betas) {
+        std::cout << "[" << beta.id << "] = " << beta.ip << ":" << beta.ring_port << std::endl;
+    }
 }
 
 void BetaServer::accept_ring_connection() {
