@@ -32,13 +32,8 @@ struct Device {
 class ClientsDevices {
 
 public:
-<<<<<<< HEAD
     ClientsDevices() = default;
     bool add_client(const std::string& username, int socket_fd, const std::string ip, int port_backup);
-=======
-    ClientsDevices() : device_count(0) {};
-    bool add_client(const std::string& username, int socket_fd, const std::string ip);
->>>>>>> work-torugo
     void remove_client(const std::string& username, int socket_fd);
     int get_other_device_socket(const std::string& username, int current_socket_fd) const;
     void print_clients() const;
