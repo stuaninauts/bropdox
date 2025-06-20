@@ -95,7 +95,7 @@ void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
     }
 
     int seqn = 0;
-    Packet meta_packet(static_cast<uint16_t>(Packet::Type::USERNAME), seqn, device_count, 0, "");
+    Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), seqn, device_count, 0, "");
     meta_packet.send(beta_socket_fd);
     for (const auto &pair : clients) {
         const std::string &username = pair.first;

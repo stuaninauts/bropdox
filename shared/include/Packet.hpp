@@ -18,6 +18,10 @@ public:
         IP = 7,
         USERNAME = 8,
         SERVER = 9,
+        CLIENT = 10,
+        PORT = 11,
+        ID = 12,
+        HEARTBEAT = 13,
     };
 
     // Construtor

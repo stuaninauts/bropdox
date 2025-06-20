@@ -24,6 +24,8 @@
 #include <FileManager.hpp>
 #include <ClientsDevices.hpp>
 #include <Network.hpp>
+#include <condition_variable>
+#include <chrono>
 
 namespace fs = std::filesystem;
 
@@ -39,7 +41,8 @@ class BetaServer {
 public:
     BetaServer(int port_alfa, std::string ip_alfa) :
         port_alfa(port_alfa),
-        ip_alfa(ip_alfa) {}
+        ip_alfa(ip_alfa),
+        heartbeat_received(false) {}
 
     void run();
 
@@ -55,6 +58,11 @@ private:
     int next_beta_port;
     int next_beta_socket_fd;
 
+    // heartbeat variables
+    std::mutex heartbeat_mutex;
+    std::condition_variable heartbeat_cv;
+    bool heartbeat_received;
+
     // ring connection variables
     int ring_socket_fd;
     int ring_port;
@@ -65,11 +73,12 @@ private:
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
-    void handle_new_client(const std::string ip, const std::string username);
-    void handle_client_updates(std::string username);
-    void handle_new_beta(const std::string ip);
+    void handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client = -1);
+    void handle_client_updates(Packet meta_packet);
+    void handle_new_betas(Packet meta_packet);
     void accept_ring_connection();
     void handle_beta_updates();
+    void heartbeat_timeout();
 
 };
 
