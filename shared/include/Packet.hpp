@@ -22,6 +22,7 @@ public:
         PORT = 11,
         ID = 12,
         HEARTBEAT = 13,
+        DIRECTORY = 14,
     };
 
     // Construtor

@@ -50,9 +50,24 @@ void AlfaServer::handle_beta_session(int new_beta_socket_fd, struct sockaddr_in 
         betas->add_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port);
         betas->send_all_betas_to_new_beta(new_beta_socket_fd);
         devices->send_all_devices_to_beta(new_beta_socket_fd);
+        send_server_files_to_new_beta(new_beta_socket_fd);
     }
     
     heartbeat(new_beta_socket_fd);
+}
+
+void AlfaServer::send_server_files_to_new_beta(int new_beta_socket_fd) {
+    std::vector<std::string> usernames = devices->get_all_usernames_connected();
+    Packet client_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 0, 0, "");
+    Packet directory_packet(static_cast<uint16_t>(Packet::Type::DIRECTORY), 0, 0, 0, "");
+    for (std::string& username : usernames) {
+        std::cout << "Sending " << username << " sync_dir" << std::endl;
+        Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
+        client_packet.send(new_beta_socket_fd);
+        username_packet.send(new_beta_socket_fd);
+        directory_packet.send(new_beta_socket_fd);
+        Packet::send_multiple_files(new_beta_socket_fd, server_dir_path / ("sync_dir_" + username));
+    }
 }
 
 void AlfaServer::heartbeat(int beta_socket_fd) {

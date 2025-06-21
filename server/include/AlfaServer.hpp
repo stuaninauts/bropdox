@@ -45,6 +45,7 @@ private:
     void handle_beta_connection();
     void handle_client_connection();
     void heartbeat(int beta_socket_fd);
+    void send_server_files_to_new_beta(int new_beta_socket_fd);
 
     std::shared_ptr<ClientsDevices> devices;
     std::shared_ptr<BetaManager> betas;

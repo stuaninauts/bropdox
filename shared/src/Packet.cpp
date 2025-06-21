@@ -127,8 +127,7 @@ string Packet::to_string() const {
     return ss.str();
 }
 
-bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
-    std::string dir_path = "./sync_dir_server/sync_dir_" + username;
+bool Packet::send_multiple_files(int socket_fd, const std::string& dir_path) {
 
     Packet empty_packet(
         static_cast<uint16_t>(Packet::Type::EMPTY),
@@ -142,11 +141,11 @@ bool Packet::send_multiple_files(int socket_fd, const std::string& username) {
         empty_packet.send(socket_fd);
         return true;
     }
-
+    bool result;
     bool all_sent = true;
     for (const auto& entry : fs::directory_iterator(dir_path)) {
         if (fs::is_regular_file(entry.path())) {
-            bool result = Packet::send_file(socket_fd, entry.path().string());
+            result = Packet::send_file(socket_fd, entry.path().string());
             if (!result) {
                 cerr << "Failed to send file: " << entry.path() << endl;
                 all_sent = false;

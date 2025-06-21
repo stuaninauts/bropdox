@@ -37,6 +37,7 @@ public:
     int get_other_device_socket(const std::string& username, int current_socket_fd) const;
     void print_clients() const;
     void send_all_devices_to_beta(int beta_socket_fd) const;
+    std::vector<std::string> get_all_usernames_connected() const;
     
 private:
     int device_count;
