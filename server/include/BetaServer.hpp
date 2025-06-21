@@ -26,6 +26,8 @@
 #include <Network.hpp>
 #include <condition_variable>
 #include <chrono>
+#include <atomic>
+#include <BetaManager.hpp>
 
 namespace fs = std::filesystem;
 
@@ -43,9 +45,14 @@ public:
         port_alfa(port_alfa),
         ip_alfa(ip_alfa),
         heartbeat_received(false),
+        running(true),
         my_id(-1) {}  // ID será definido quando receber do alfa
 
     void run();
+    void reconnect_to_alfa();
+
+    bool elected_to_alfa = true;
+    std::shared_ptr<ClientsDevices> devices;
 
     // public method for testing election
     void trigger_election() { start_election(); }
@@ -55,7 +62,8 @@ private:
     int port_alfa;
     std::string ip_alfa;
     fs::path backup_dir_path;
-    std::shared_ptr<ClientsDevices> devices;
+
+    std::vector<BetaAddress> betas;
 
     // ring next beta variables
     std::string ip_next_beta;
@@ -72,7 +80,7 @@ private:
     int ring_port;
 
     std::atomic<int> prev_beta_socket_fd{-1};
-    std::vector<BetaAddress> betas;
+    std::atomic<bool> running;
 
     // election variables
     std::atomic<bool> election_in_progress{false};
@@ -85,12 +93,13 @@ private:
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
     void handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets);
-    void handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients);
+    void handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client = -1);
     void handle_client_updates(Packet meta_packet);
     void handle_new_betas(Packet meta_packet);
     void accept_ring_connection();
     void handle_beta_updates();
     void heartbeat_timeout();
+    void close_sockets();
 
     // election methods
     void start_election();

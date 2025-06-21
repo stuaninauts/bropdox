@@ -2,30 +2,46 @@
 #include <Packet.hpp>
 #include <filesystem>
 #include <FileManager.hpp>
+#include <atomic>
 
 // ======================================== //
 // ================= PUBLIC =============== //
 // ======================================== //
 
-void Client::run() {
-
+void Client::run(int initial_socket) {
     std::cout << "Connecting to server..." << std::endl;
-    if (!communicator.connect_to_server()) {
-        std::cerr << "Error connecting to server" << endl;
+
+    if (!communicator.connect_to_server(initial_socket)) {
+        std::cerr << "Error connecting to server" << std::endl;
         exit(1);
     }
 
-    FileManager::delete_all_files_in_directory(sync_dir_path);
-    FileManager::create_directory(sync_dir_path);
-    communicator.get_sync_dir();
+    if (initial_socket < 0) {
+        FileManager::delete_all_files_in_directory(sync_dir_path);
+        FileManager::create_directory(sync_dir_path);
+        communicator.get_sync_dir();
+    }
+
+    // Só inicializa o socket de escuta se for a primeira execução (não reconexão)
+    if (initial_socket < 0) {
+        initial_socket_new_alpha = Network::setup_socket_ipv4(port_backup, SOMAXCONN);
+        if (initial_socket_new_alpha < 0) {
+            std::cerr << "Erro ao inicializar socket de escuta para ALPHA na porta " << port_backup << std::endl;
+            exit(1);
+        }
+    }
+
+    std::cout << "Client connected to server successfully." << std::endl;
 
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
     std::thread thread_user_interface(&Client::user_interface, this);
+    std::thread thread_new_alpha(&Client::handle_new_alpha_connection, this);
 
     thread_sync_remote.join();
     thread_sync_local.join();
     thread_user_interface.join();
+    thread_new_alpha.join();
 }
 
 // ========================================= //
@@ -41,7 +57,7 @@ void Client::sync_remote() {
 }
 
 void Client::user_interface() {
-    while (true) {
+    while (communicator.socket_upload != -1) {
         std::string input;
         std::cout << "> ";
         getline(cin, input);
@@ -107,5 +123,31 @@ void Client::process_command(const std::vector<string> &tokens) {
         std::cout << "# list_server" << std::endl;
         std::cout << "# list_client" << std::endl;
         std::cout << "# exit" << std::endl;
+    }
+}
+
+void Client::handle_new_alpha_connection() {
+    int new_alpha_socket;
+    struct sockaddr_in new_alpha_address;
+    socklen_t new_alpha_address_len = sizeof(struct sockaddr_in);
+    std::cout << "Handling new ALPHA connection in port " << port_backup << "..." << std::endl;
+
+    while (true) {
+        new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);
+
+        if (new_alpha_socket == -1) {
+            std::cerr << "ERROR: Failed to accept new client" << std::endl;
+            continue;
+        }
+
+        if (new_alpha_socket >= 0) {
+            std::cout << "Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
+            communicator.close_sockets();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            run(new_alpha_socket);
+
+            break;
+        }
     }
 }

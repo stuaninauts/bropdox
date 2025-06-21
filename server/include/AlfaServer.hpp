@@ -32,7 +32,13 @@ public:
         initial_socket_client(-1),
         initial_socket_beta(-1) {};
 
+    std::shared_ptr<ClientsDevices> devices;
+    std::shared_ptr<BetaManager> betas;
+
     void run();
+    void become_alfa(std::shared_ptr<ClientsDevices> devices, std::shared_ptr<BetaManager> betas);
+    void reconnect_betas(std::shared_ptr<BetaManager> old_betas);
+    void reconnect_clients(std::shared_ptr<ClientsDevices> old_devices);
 
 private:
     int initial_socket_client;
@@ -47,8 +53,6 @@ private:
     void heartbeat(int beta_socket_fd);
     void send_server_files_to_new_beta(int new_beta_socket_fd);
 
-    std::shared_ptr<ClientsDevices> devices;
-    std::shared_ptr<BetaManager> betas;
     fs::path server_dir_path = "./sync_dir_server";
 
 };

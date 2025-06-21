@@ -1,11 +1,11 @@
 #include <ClientsDevices.hpp>
 
-bool ClientsDevices::add_client(const std::string &username, int socket_fd, const std::string ip) {
+bool ClientsDevices::add_client(const std::string &username, int socket_fd, const std::string ip, int port_beta) {
     std::unique_lock<std::shared_mutex> lock(access_clients);
 
     auto it = clients.find(username);
     if (it == clients.end() || it->second.size() <= 1) {
-        clients[username].push_back(Device(socket_fd, ip));
+        clients[username].push_back(Device(socket_fd, ip, port_beta));
         print_clients_unlocked();
         device_count++;
         return true;
@@ -105,11 +105,17 @@ void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
             seqn++;
             Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
             Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, device.ip.length(), device.ip.c_str());
+            Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, std::to_string(device.port_backup).length(), std::to_string(device.port_backup).c_str());
             username_packet.send(beta_socket_fd);
             ip_packet.send(beta_socket_fd);
+            port_packet.send(beta_socket_fd);
         }
         std::cout << std::endl;
     }
+}
+
+const std::unordered_map<std::string, std::vector<Device>>& ClientsDevices::get_all_devices() const {
+    return clients;
 }
 
 std::vector<std::string> ClientsDevices::get_all_usernames_connected() const {

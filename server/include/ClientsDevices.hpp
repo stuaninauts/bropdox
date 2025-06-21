@@ -25,18 +25,20 @@ using namespace std;
 struct Device {
     int socket_fd;
     std::string ip;
-    Device(int socket_fd, std::string ip) : socket_fd(socket_fd), ip(ip) {}
+    int port_backup;
+    Device(int socket_fd, std::string ip, int port_backup) : socket_fd(socket_fd), ip(ip), port_backup(port_backup) {}
 };
 
 class ClientsDevices {
 
 public:
-    ClientsDevices() : device_count(0) {};
-    bool add_client(const std::string& username, int socket_fd, const std::string ip);
+    ClientsDevices() = default;
+    bool add_client(const std::string& username, int socket_fd, const std::string ip, int port_backup);
     void remove_client(const std::string& username, int socket_fd);
     int get_other_device_socket(const std::string& username, int current_socket_fd) const;
     void print_clients() const;
     void send_all_devices_to_beta(int beta_socket_fd) const;
+    const std::unordered_map<std::string, std::vector<Device>>& get_all_devices() const;
     std::vector<std::string> get_all_usernames_connected() const;
     
 private:
