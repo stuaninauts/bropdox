@@ -263,7 +263,7 @@ void ClientSession::handle_client_delete(const std::string filename) {
 void ClientSession::handle_get_sync_dir(){
     access_download.lock();
     {
-        if(!Packet::send_multiple_files(socket_download, username))
+        if(!Packet::send_multiple_files(socket_download, user_dir_path))
             std::cerr << "Failed to send multiple files" << std::endl;
     }
     access_download.unlock();

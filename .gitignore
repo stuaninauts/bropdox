@@ -63,3 +63,5 @@ build/*
 *.txt
 
 .vscode
+
+*.tmp

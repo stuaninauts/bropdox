@@ -7,6 +7,7 @@ bool ClientsDevices::add_client(const std::string &username, int socket_fd, cons
     if (it == clients.end() || it->second.size() <= 1) {
         clients[username].push_back(Device(socket_fd, ip));
         print_clients_unlocked();
+        device_count++;
         return true;
     }
 
@@ -32,6 +33,7 @@ void ClientsDevices::remove_client(const std::string &username, int socket_fd) {
         return device.socket_fd == socket_fd;
     });
     std::cout << "Socket " << socket_fd << " removed from user " << username << ".\n";
+    device_count--;
 
     if (user_devices.empty()) {
         clients.erase(it);
@@ -83,4 +85,38 @@ void ClientsDevices::print_clients_unlocked() const {
         std::cout << std::endl;
     }
     std::cout << "-------------------------" << std::endl;
+}
+
+void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
+    std::shared_lock<std::shared_mutex> lock(access_clients);
+    if (clients.empty()) {
+        std::cout << "The client map is empty!" << std::endl;
+        return;
+    }
+
+    int seqn = 0;
+    Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), seqn, device_count, 0, "");
+    meta_packet.send(beta_socket_fd);
+    for (const auto &pair : clients) {
+        const std::string &username = pair.first;
+        const auto &user_devices = pair.second;
+
+        for (const auto& device : user_devices) {
+            seqn++;
+            Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
+            Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, device.ip.length(), device.ip.c_str());
+            username_packet.send(beta_socket_fd);
+            ip_packet.send(beta_socket_fd);
+        }
+        std::cout << std::endl;
+    }
+}
+
+std::vector<std::string> ClientsDevices::get_all_usernames_connected() const {
+    std::shared_lock<std::shared_mutex> lock(access_clients);
+    std::vector<std::string> usernames;
+    for (const auto& pair : clients) {
+        usernames.push_back(pair.first);
+    }
+    return usernames;
 }
