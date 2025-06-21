@@ -39,6 +39,7 @@ public:
     void print_clients() const;
     void send_all_devices_to_beta(int beta_socket_fd) const;
     const std::unordered_map<std::string, std::vector<Device>>& get_all_devices() const;
+    std::vector<std::string> get_all_usernames_connected() const;
     
 private:
     int device_count;

@@ -115,3 +115,12 @@ void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
 const std::unordered_map<std::string, std::vector<Device>>& ClientsDevices::get_all_devices() const {
     return clients;
 }
+
+std::vector<std::string> ClientsDevices::get_all_usernames_connected() const {
+    std::shared_lock<std::shared_mutex> lock(access_clients);
+    std::vector<std::string> usernames;
+    for (const auto& pair : clients) {
+        usernames.push_back(pair.first);
+    }
+    return usernames;
+}

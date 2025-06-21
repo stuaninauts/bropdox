@@ -51,6 +51,7 @@ private:
     void handle_beta_connection();
     void handle_client_connection();
     void heartbeat(int beta_socket_fd);
+    void send_server_files_to_new_beta(int new_beta_socket_fd);
 
     fs::path server_dir_path = "./sync_dir_server";
 

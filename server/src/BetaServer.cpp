@@ -16,7 +16,6 @@ void BetaServer::run() {
     Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
     packet.send(alfa_socket_fd);
     
-
     devices = std::make_shared<ClientsDevices>();
     betas = std::make_shared<BetaManager>();
     backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(alfa_socket_fd));
@@ -98,7 +97,7 @@ void BetaServer::handle_alfa_updates() {
             
             throw std::runtime_error(
                 " Unexpected packet type " + std::to_string(meta_packet.type) + 
-                " received from alfa server (expected USERNAME, CLIENT, SERVER, HEARTBEAT, or ERROR)"
+                " received from alfa server (expected CLIENT, SERVER, HEARTBEAT, or ERROR)"
             );
         }
     } catch (const std::runtime_error& e) {
@@ -133,6 +132,13 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
         return;
     }
 
+    if (update_packet.type == static_cast<uint16_t>(Packet::Type::DIRECTORY)) {
+        fs::path user_sync_dir = backup_dir_path / ("sync_dir_" + username_packet.payload);
+        FileManager::delete_all_files_in_directory(user_sync_dir);
+        Packet::receive_multiple_files(alfa_socket_fd, user_sync_dir);
+        return;
+    }
+
     if (update_packet.type == static_cast<uint16_t>(Packet::Type::IP)) {
         Packet port_packet = Packet::receive(alfa_socket_fd);
 
@@ -142,24 +148,24 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
     
     throw std::runtime_error(
         " Unexpected packet type " + std::to_string(update_packet.type) + 
-        " received from alfa server (expected DATA, DELETE, IP or ERROR)"
+        " received from alfa server (expected DATA, DELETE, IP, DIRECTORY or ERROR)"
     );
 }
 
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
     std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
-    Packet::receive_file(alfa_socket_fd, filename, backup_dir_path / username, total_packets);
+    Packet::receive_file(alfa_socket_fd, filename, backup_dir_path / ("sync_dir_" + username), total_packets);
 }
 
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
     std::cout << "[ ALFA THREAD ] " << "[" << username << "] " << "handle_client_delete: " << filename << std::endl;
-    FileManager::delete_file(backup_dir_path / username / filename);
+    FileManager::delete_file(backup_dir_path / ("sync_dir_" + username) / filename);
 }
 
 void BetaServer::handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client) {
     std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
     devices->add_client(username_first_client, -1, ip_first_client, port_first_client);
-    FileManager::create_directory(backup_dir_path / username_first_client);
+    FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_first_client));
     while(--total_clients > 0) {
         Packet username_packet = Packet::receive(alfa_socket_fd);
         if (username_packet.type != static_cast<uint16_t>(Packet::Type::USERNAME))
@@ -178,7 +184,7 @@ void BetaServer::handle_new_clients(const std::string ip_first_client, const std
         
         std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
         devices->add_client(username_packet.payload, -1, ip_packet.payload, stoi(port_packet.payload));
-        FileManager::create_directory(backup_dir_path / username_packet.payload);
+        FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_packet.payload));
     }
 }
 
