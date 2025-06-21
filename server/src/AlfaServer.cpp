@@ -180,8 +180,9 @@ void AlfaServer::run() {
 
 void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::shared_ptr<BetaManager> old_betas) {
     devices = std::make_shared<ClientsDevices>();
+    betas = std::make_shared<BetaManager>();
 
-    reconnect_betas(old_betas);
+    // reconnect_betas(old_betas);
     reconnect_clients(old_devices);
 
     std::cout << "ALFA server is now active!" << std::endl;
