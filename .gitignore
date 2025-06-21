@@ -58,8 +58,6 @@ dump
 bin/*
 build/*
 
-*.mp4
-
 *.txt
 
 .vscode
