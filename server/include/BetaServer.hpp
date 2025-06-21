@@ -26,6 +26,8 @@
 #include <Network.hpp>
 #include <condition_variable>
 #include <chrono>
+#include <atomic>
+#include <BetaManager.hpp>
 
 namespace fs = std::filesystem;
 
@@ -42,16 +44,20 @@ public:
     BetaServer(int port_alfa, std::string ip_alfa) :
         port_alfa(port_alfa),
         ip_alfa(ip_alfa),
-        heartbeat_received(false) {}
+        heartbeat_received(false),
+        running(true) {}
 
     void run();
+
+    bool elected_to_alfa = true;
+    std::shared_ptr<ClientsDevices> devices;
+    std::shared_ptr<BetaManager> betas;
 
 private:
     int alfa_socket_fd;
     int port_alfa;
     std::string ip_alfa;
     fs::path backup_dir_path;
-    std::shared_ptr<ClientsDevices> devices;
 
     // ring next beta variables
     std::string ip_next_beta;
@@ -68,7 +74,7 @@ private:
     int ring_port;
 
     std::atomic<int> prev_beta_socket_fd{-1};
-    std::vector<BetaAddress> betas;
+    std::atomic<bool> running;
 
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
@@ -79,6 +85,7 @@ private:
     void accept_ring_connection();
     void handle_beta_updates();
     void heartbeat_timeout();
+    void close_sockets();
 
 };
 

@@ -25,7 +25,8 @@ class Client {
 public:
     Client(const std::string& server_ip, int port, const std::string& username, const std::string sync_dir_path, int port_backup)
           : sync_dir_path(sync_dir_path),
-            communicator(server_ip, port, username, sync_dir_path, port_backup) {}
+            communicator(server_ip, port, username, sync_dir_path, port_backup),
+            port_backup(port_backup) {} // inicializa port_backup
 
     void run(int initial_socket = -1);
 

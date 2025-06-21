@@ -111,3 +111,7 @@ void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
         std::cout << std::endl;
     }
 }
+
+const std::unordered_map<std::string, std::vector<Device>>& ClientsDevices::get_all_devices() const {
+    return clients;
+}

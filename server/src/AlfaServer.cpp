@@ -8,21 +8,26 @@ std::mutex accept_connections;
 std::mutex write_beta_sockets;
 
 void AlfaServer::handle_client_session(int socket_fd) {
-    char buffer[256];
-    bzero(buffer, 256);
     std::string username = "";
     int port_backup = 0;
-    int n = read(socket_fd, buffer, 255);
 
-    if(n <= 0) {
-        std::cerr << "Error reading client's username" << std::endl;
+    Packet username_packet = Packet::receive(socket_fd);
+    if (username_packet.type != static_cast<uint16_t>(Packet::Type::USERNAME)) {
+        std::cerr << "Error: USERNAME packet not received from client" << std::endl;
         close(socket_fd);
         accept_connections.unlock();
         return;
     }
+    username = username_packet.payload;
 
-    std::istringstream iss(buffer);
-    iss >> username >> port_backup;
+    Packet port_packet = Packet::receive(socket_fd);
+    if (port_packet.type != static_cast<uint16_t>(Packet::Type::PORT)) {
+        std::cerr << "Error: PORT packet not received from client" << std::endl;
+        close(socket_fd);
+        accept_connections.unlock();
+        return;
+    }
+    port_backup = std::stoi(port_packet.payload);
 
     if (username.empty() || port_backup == 0) {
         std::cerr << "Invalid client data received" << std::endl;
@@ -142,8 +147,12 @@ void AlfaServer::run() {
     if (initial_socket_beta == -1 || initial_socket_client == -1)
         exit(1);
 
-    devices = std::make_shared<ClientsDevices>();
-    betas = std::make_shared<BetaManager>();
+    if (!devices) {
+        devices = std::make_shared<ClientsDevices>();
+    }
+    if (!betas) {
+        betas = std::make_shared<BetaManager>();
+    }
 
     FileManager::create_directory(server_dir_path);
 
@@ -152,4 +161,51 @@ void AlfaServer::run() {
     
     handle_beta_thread.join();
     handle_client_thread.join();    
+}
+
+void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::shared_ptr<BetaManager> old_betas) {
+    devices = std::make_shared<ClientsDevices>();
+    std::cout << "[DEBUG] Dumping old_devices:" << std::endl;
+    const auto& all_old_devices = old_devices->get_all_devices();
+    for (const auto& [username, device_vec] : all_old_devices) {
+        std::cout << "Username: " << username << std::endl;
+        for (const auto& device_info : device_vec) {
+            std::cout << "  IP: " << device_info.ip << ", Port: " << device_info.port_backup << std::endl;
+        }
+    }
+
+    // Itera sobre todos os devices existentes
+    const auto& all_devices = old_devices->get_all_devices();
+    for (const auto& [username, device_vec] : all_devices) {
+        for (const auto& device_info : device_vec) {
+            std::string ip = device_info.ip;
+            int port = device_info.port_backup;
+
+            std::cout << "[DEBUG] Tentando conectar em " << ip << ":" << port << std::endl;
+            int client_session_socket = Network::connect_socket_ipv4(ip, port);
+            if (client_session_socket < 0) {
+                std::cerr << "Failed to connect to client " << username << " at " << ip << ":" << port << std::endl;
+                continue;
+            }
+
+            std::cout << "[ ALFA THREAD ] Re-adding client device: " << username << " at " << ip << ":" << port << std::endl;
+            devices->add_client(username, client_session_socket, ip, port);
+
+            std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
+            std::cout << "[DEBUG] Criando client_session para " << username << std::endl;
+            std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(client_session_socket, username, devices, betas, user_dir_path, port);
+            std::cout << "[DEBUG] Chamando connect_sockets para " << username << std::endl;
+            client_session->connect_sockets();
+            std::cout << "[DEBUG] Iniciando thread para " << username << std::endl;
+            std::thread([session = std::move(client_session)]() mutable {
+                session->run();
+            }).detach();
+        }
+    }
+
+    std::cout << "ALFA server is now active!" << std::endl;
+    std::cout << "Listening for client connections on port: " << port_client << std::endl;
+    std::cout << "Listening for beta connections on port: " << port_beta << std::endl;
+
+    run();
 }

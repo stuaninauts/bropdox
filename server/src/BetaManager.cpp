@@ -60,7 +60,7 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     }
 }
 
-void BetaManager::send_client_device(const std::string ip, const std::string username) const {
+void BetaManager::send_client_device(const std::string ip, const std::string username, int port) const {
     std::cout << "sending client device, ip = " << ip << " | username " << username << std::endl;
     std::vector<BetaInfo> betas_copy;
     {
@@ -72,10 +72,12 @@ void BetaManager::send_client_device(const std::string ip, const std::string use
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
     Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, ip.length(), ip.c_str());
+    Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, std::to_string(port).length(), std::to_string(port).c_str());
     for (BetaInfo& beta : betas_copy) {
         meta_packet.send(beta.socket_fd);
         username_packet.send(beta.socket_fd);
         ip_packet.send(beta.socket_fd);
+        port_packet.send(beta.socket_fd);
     }
 }
 

@@ -11,8 +11,6 @@
 void Client::run(int initial_socket) {
     std::cout << "Connecting to server..." << std::endl;
 
-    initial_socket_new_alpha = Network::setup_socket_ipv4(port_backup);
-
     if (!communicator.connect_to_server(initial_socket)) {
         std::cerr << "Error connecting to server" << std::endl;
         exit(1);
@@ -23,6 +21,17 @@ void Client::run(int initial_socket) {
         FileManager::create_directory(sync_dir_path);
         communicator.get_sync_dir();
     }
+
+    // Só inicializa o socket de escuta se for a primeira execução (não reconexão)
+    if (initial_socket < 0) {
+        initial_socket_new_alpha = Network::setup_socket_ipv4(port_backup, SOMAXCONN);
+        if (initial_socket_new_alpha < 0) {
+            std::cerr << "Erro ao inicializar socket de escuta para ALPHA na porta " << port_backup << std::endl;
+            exit(1);
+        }
+    }
+
+    std::cout << "Client connected to server successfully." << std::endl;
 
     std::thread thread_sync_remote(&Client::sync_remote, this);
     std::thread thread_sync_local(&Client::sync_local, this);
@@ -121,6 +130,7 @@ void Client::handle_new_alpha_connection() {
     int new_alpha_socket;
     struct sockaddr_in new_alpha_address;
     socklen_t new_alpha_address_len = sizeof(struct sockaddr_in);
+    std::cout << "Handling new ALPHA connection in port " << port_backup << "..." << std::endl;
 
     while (true) {
         new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);

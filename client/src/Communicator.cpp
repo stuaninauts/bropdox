@@ -243,12 +243,13 @@ void Communicator::send_command(const std::string command) {
 }
 
 bool Communicator::send_initial_information() {
-    std::string information = username + " " + std::to_string(port_backup);
-    int n = write(socket_cmd, information.c_str(), information.length());
-    if (n < 0) {
-        std::cerr << "ERROR: Writing initial information to socket\n";
-        return false;
-    }
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
+    username_packet.send(socket_cmd);
+
+    std::string port_str = std::to_string(port_backup);
+    Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, port_str.length(), port_str.c_str());
+    port_packet.send(socket_cmd);
+
     return true;
 }
 

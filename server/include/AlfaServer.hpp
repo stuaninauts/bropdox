@@ -36,6 +36,7 @@ public:
     std::shared_ptr<BetaManager> betas;
 
     void run();
+    void become_alfa(std::shared_ptr<ClientsDevices> devices, std::shared_ptr<BetaManager> betas);
 
 private:
     int initial_socket_client;

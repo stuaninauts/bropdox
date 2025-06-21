@@ -38,6 +38,7 @@ public:
     int get_other_device_socket(const std::string& username, int current_socket_fd) const;
     void print_clients() const;
     void send_all_devices_to_beta(int beta_socket_fd) const;
+    const std::unordered_map<std::string, std::vector<Device>>& get_all_devices() const;
     
 private:
     int device_count;
