@@ -39,23 +39,24 @@ public:
         port_alfa(port_alfa),
         ip_alfa(ip_alfa),
         heartbeat_received(false),
-        running(true),
+        become_alfa(false),
         my_id(-1) {}  // ID será definido quando receber do alfa
 
     void run(int new_socket_fd = -1);
-
+    bool become_alfa;
     std::shared_ptr<ClientsDevices> devices;
+    std::vector<BetaAddress> betas;
 
     // public method for testing election
     void trigger_election() { start_election(); }
 
 private:
+
     int alfa_socket_fd;
     int port_alfa;
     std::string ip_alfa;
     fs::path backup_dir_path;
 
-    std::vector<BetaAddress> betas;
 
     // ring next beta variables
     std::string ip_next_beta;

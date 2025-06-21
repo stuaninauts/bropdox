@@ -23,6 +23,13 @@ int main(int argc, char* argv[]) {
       ip_alfa = argv[2];
       BetaServer beta(port, ip_alfa);
       beta.run();
+
+      std::cout<< "Become Alfa: " << beta.become_alfa << std::endl;
+
+      if(beta.become_alfa) {
+         AlfaServer alfa(8088);
+         alfa.become_alfa(beta.devices, beta.betas);
+      }
       return 0;
    }
       

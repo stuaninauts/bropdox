@@ -25,6 +25,7 @@ void BetaServer::run(int new_socket_fd) {
     backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(this->alfa_socket_fd));
     FileManager::create_directory(backup_dir_path);
 
+    running.store(true);
     std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
     std::thread ring_thread = std::thread(&BetaServer::accept_ring_connection, this);
     std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
@@ -40,7 +41,7 @@ void BetaServer::heartbeat_timeout() {
     bool ok;
     std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Starting heartbeat..." << std::endl;
     try {
-        while (alfa_socket_fd > 0 && running) {
+        while (alfa_socket_fd > 0 && running.load()) {
 
             heartbeat_packet.send(alfa_socket_fd);
             {
@@ -67,7 +68,7 @@ void BetaServer::heartbeat_timeout() {
 void BetaServer::handle_alfa_updates() {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
     try {
-        while (alfa_socket_fd > 0 && running) {
+        while (alfa_socket_fd > 0 && running.load()) {
             Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
@@ -230,7 +231,7 @@ void BetaServer::accept_ring_connection() {
     socklen_t prev_beta_address_len = sizeof(struct sockaddr_in);
     std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Handling RING Connection..." << std::endl;
 
-    while (running) {
+    while (running.load()) {
         new_prev_beta_socket_fd = accept(ring_socket_fd, (struct sockaddr*) &prev_beta_address, &prev_beta_address_len);
 
         if (new_prev_beta_socket_fd == -1) {
@@ -256,7 +257,7 @@ void BetaServer::handle_beta_updates() {
     int my_socket = prev_beta_socket_fd.load();
     
     try {
-        while (my_socket > 0 && running) {
+        while (my_socket > 0 && running.load()) {
             if (prev_beta_socket_fd.load() != my_socket) {
                 std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "This beta connection was replaced, exiting thread" << std::endl;
                 break;
@@ -498,9 +499,9 @@ void BetaServer::become_coordinator() {
 void BetaServer::setup_as_alfa_server() {
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== SETTING UP AS NEW ALFA SERVER ===" << std::endl;
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "New ALFA server with ID: " << my_id << " is now active!" << std::endl;
-    running = false;
-    AlfaServer alfa(8088); // TO DO
+    close_sockets();
+    running.store(false);
+    become_alfa = true;
+    AlfaServer alfa(8088);
     alfa.become_alfa(devices, betas);
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ALFA server setup completed!" << std::endl;
-    //alfa.become_alfa(devices, betas);
 }
