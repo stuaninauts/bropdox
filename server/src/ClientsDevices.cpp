@@ -105,8 +105,10 @@ void ClientsDevices::send_all_devices_to_beta(int beta_socket_fd) const {
             seqn++;
             Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
             Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, device.ip.length(), device.ip.c_str());
+            Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, std::to_string(device.port_backup).length(), std::to_string(device.port_backup).c_str());
             username_packet.send(beta_socket_fd);
             ip_packet.send(beta_socket_fd);
+            port_packet.send(beta_socket_fd);
         }
         std::cout << std::endl;
     }
