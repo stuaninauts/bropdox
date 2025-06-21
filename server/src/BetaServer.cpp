@@ -8,7 +8,7 @@
 
 void BetaServer::run(int new_socket_fd) {
     if(new_socket_fd == -1){
-        std::cout << "[ SETUP ] " << "Setting up BETA server..." << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ SETUP ] " << "Setting up BETA server..." << std::endl;
         alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
         ring_port = Network::get_available_port();
         ring_socket_fd = Network::setup_socket_ipv4(ring_port);
@@ -28,7 +28,7 @@ void BetaServer::run(int new_socket_fd) {
     std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
     std::thread ring_thread = std::thread(&BetaServer::accept_ring_connection, this);
     std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
-    std::cout << "[ SETUP ] " << "Setup finished!" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ SETUP ] " << "Setup finished!" << std::endl;
 
     sync_thread.join();
     ring_thread.join();
@@ -38,7 +38,7 @@ void BetaServer::run(int new_socket_fd) {
 void BetaServer::heartbeat_timeout() {
     Packet heartbeat_packet(static_cast<uint16_t>(Packet::Type::HEARTBEAT), 0, 0, 0, "");
     bool ok;
-    std::cout << "[ HEARTBEAT THREAD ] " << "Starting heartbeat..." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Starting heartbeat..." << std::endl;
     try {
         while (alfa_socket_fd > 0 && running) {
 
@@ -50,7 +50,7 @@ void BetaServer::heartbeat_timeout() {
             }
 
             if(ok) {
-                std::cout << "[ HEARTBEAT THREAD ] " << "Alfa server is UP" << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Alfa server is UP" << std::endl;
                 continue;
             }
             // Se não recebeu heartbeat, considera alfa como caído
@@ -58,20 +58,20 @@ void BetaServer::heartbeat_timeout() {
         }
     } catch (const std::runtime_error& e) {
         close(alfa_socket_fd);
-        std::cerr << "[ ERROR ] [ HEARTBEAT THREAD ] " <<  e.what() << std::endl;
+        std::cerr << "[ BETA SERVER ] " << "[ ERROR ] [ HEARTBEAT THREAD ] " <<  e.what() << std::endl;
     }
-    std::cout << "[ HEARTBEAT THREAD ] " << "Alfa server is DOWN, STARTING ELECTION..." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Alfa server is DOWN, STARTING ELECTION..." << std::endl;
     start_election();
 }
 
 void BetaServer::handle_alfa_updates() {
-    std::cout << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
     try {
         while (alfa_socket_fd > 0 && running) {
             Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-                std::cout << "[ ALFA THREAD ] " << "Received ERROR packet: " << meta_packet.payload << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received ERROR packet: " << meta_packet.payload << std::endl;
                 continue;
             }
 
@@ -100,23 +100,23 @@ void BetaServer::handle_alfa_updates() {
         }
     } catch (const std::runtime_error& e) {
         close(alfa_socket_fd);
-        std::cerr << "[ ERROR ] [ ALFA THREAD ] " << e.what() << std::endl;
+        std::cerr << "[ BETA SERVER ] " << "[ ERROR ] [ ALFA THREAD ] " << e.what() << std::endl;
     }
 }
 
 void BetaServer::handle_client_updates(Packet meta_packet) {
     Packet username_packet = Packet::receive(alfa_socket_fd);
     if (username_packet.type != static_cast<uint16_t>(Packet::Type::USERNAME)) {
-        std::cout << "[ ALFA THREAD ] " << "ERROR: Client username not received from alfa server" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "ERROR: Client username not received from alfa server" << std::endl;
         return;
     }
 
     Packet update_packet = Packet::receive(alfa_socket_fd);
 
-    std::cout << "[ ALFA THREAD ] " << "Received update_packet from alfa server: " << update_packet.payload << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received update_packet from alfa server: " << update_packet.payload << std::endl;
 
     if (update_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-        std::cout << "[ ALFA THREAD ] " << "Received ERROR packet: " << update_packet.payload << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received ERROR packet: " << update_packet.payload << std::endl;
         return;
     }
 
@@ -151,36 +151,36 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
 }
 
 void BetaServer::handle_client_upload(const std::string filename, const std::string username, uint32_t total_packets) {
-    std::cout << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[" << username << "]" << "handle_client_upload: " << filename << std::endl;
     Packet::receive_file(alfa_socket_fd, filename, backup_dir_path / ("sync_dir_" + username), total_packets);
 }
 
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
-    std::cout << "[ ALFA THREAD ] " << "[" << username << "] " << "handle_client_delete: " << filename << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "[" << username << "] " << "handle_client_delete: " << filename << std::endl;
     FileManager::delete_file(backup_dir_path / ("sync_dir_" + username) / filename);
 }
 
 void BetaServer::handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client) {
-    std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
     devices->add_client(username_first_client, -1, ip_first_client, port_first_client);
     FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_first_client));
     while(--total_clients > 0) {
         Packet username_packet = Packet::receive(alfa_socket_fd);
         if (username_packet.type != static_cast<uint16_t>(Packet::Type::USERNAME))
             throw std::runtime_error("Client username not received from alfa server");
-        std::cout << "[ ALFA THREAD ] " << "Received new client username: " << username_packet.payload << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received new client username: " << username_packet.payload << std::endl;
         
         Packet ip_packet = Packet::receive(alfa_socket_fd);
         if (ip_packet.type != static_cast<uint16_t>(Packet::Type::IP))
             throw std::runtime_error("Client IP not received from alfa server");
-        std::cout << "[ ALFA THREAD ] " << "Received new client IP: " << ip_packet.payload << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received new client IP: " << ip_packet.payload << std::endl;
 
         Packet port_packet = Packet::receive(alfa_socket_fd);
         if (port_packet.type != static_cast<uint16_t>(Packet::Type::PORT))
             throw std::runtime_error("Client PORT not received from alfa server");
-        std::cout << "[ ALFA THREAD ] " << "Received new client PORT: " << port_packet.payload << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received new client PORT: " << port_packet.payload << std::endl;
         
-        std::cout << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
         devices->add_client(username_packet.payload, -1, ip_packet.payload, stoi(port_packet.payload));
         FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_packet.payload));
     }
@@ -188,7 +188,7 @@ void BetaServer::handle_new_clients(const std::string ip_first_client, const std
 
 void BetaServer::handle_new_betas(Packet meta_packet) {
     int total_betas = meta_packet.total_size;
-    std::cout << total_betas << std::endl;
+    std::cout << "[ BETA SERVER ] " << total_betas << std::endl;
     
     // debug - O primeiro beta na lista é sempre este servidor
     bool first_beta = true;
@@ -215,11 +215,11 @@ void BetaServer::handle_new_betas(Packet meta_packet) {
         // debug - Se é o primeiro beta e tem a mesma porta, é este servidor
         if (first_beta && ring_port == this->ring_port) {
             my_id = id;
-            std::cout << "[ ALFA THREAD ] " << "MY ID SET TO: " << my_id << " (port: " << ring_port << ")" << std::endl;
+            std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "MY ID SET TO: " << my_id << " (port: " << ring_port << ")" << std::endl;
             first_beta = false;
         }
         
-        std::cout << "[ ALFA THREAD ] " << "NEW BETA ADDED: " << "[" << beta.id << "] " << beta.ip << ":" << beta.ring_port << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "NEW BETA ADDED: " << "[" << beta.id << "] " << beta.ip << ":" << beta.ring_port << std::endl;
     }
 }
 
@@ -228,27 +228,27 @@ void BetaServer::accept_ring_connection() {
     int old_socket_fd;
     struct sockaddr_in prev_beta_address;
     socklen_t prev_beta_address_len = sizeof(struct sockaddr_in);
-    std::cout << "[ RING THREAD ] " << "Handling RING Connection..." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Handling RING Connection..." << std::endl;
 
     while (running) {
         new_prev_beta_socket_fd = accept(ring_socket_fd, (struct sockaddr*) &prev_beta_address, &prev_beta_address_len);
 
         if (new_prev_beta_socket_fd == -1) {
-            std::cerr << "[ RING THREAD ] " << "ERROR: Failed to accept new BETA" << std::endl;
+            std::cerr << "[ BETA SERVER ] " << "[ RING THREAD ] " << "ERROR: Failed to accept new BETA" << std::endl;
             continue;
         }
         
-        std::cout << "[ RING THREAD ] " << "Accepted new BETA!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Accepted new BETA!" << std::endl;
 
         old_socket_fd = prev_beta_socket_fd.exchange(new_prev_beta_socket_fd);
         if (old_socket_fd > 0) {
             close(old_socket_fd); // This will cause old thread to exit
-            std::cout << "[ RING THREAD ] " << "Closed old BETA connection" << std::endl;
+            std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Closed old BETA connection" << std::endl;
         }
 
         std::thread handle_new_betas_thread(&BetaServer::handle_beta_updates, this);
         handle_new_betas_thread.detach();
-        std::cout << "[ RING THREAD ] " << "NEW handle_new_betas thread" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "NEW handle_new_betas thread" << std::endl;
     }
 }
 
@@ -258,27 +258,27 @@ void BetaServer::handle_beta_updates() {
     try {
         while (my_socket > 0 && running) {
             if (prev_beta_socket_fd.load() != my_socket) {
-                std::cout << "[ RING THREAD ] " << "This beta connection was replaced, exiting thread" << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "This beta connection was replaced, exiting thread" << std::endl;
                 break;
             }
             
             Packet meta_packet = Packet::receive(my_socket);
             
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-                std::cout << "[ RING THREAD ] " << "Received ERROR packet: " << meta_packet.payload << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Received ERROR packet: " << meta_packet.payload << std::endl;
                 continue;
             }
             
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ELECTION)) {
                 int candidate_id = stoi(meta_packet.payload);
-                std::cout << "[ RING THREAD ] " << "Received ELECTION message with candidate ID: " << candidate_id << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Received ELECTION message with candidate ID: " << candidate_id << std::endl;
                 handle_election_message(candidate_id);
                 continue;
             }
             
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ELECTED)) {
                 int coordinator_id = stoi(meta_packet.payload);
-                std::cout << "[ RING THREAD ] " << "Received ELECTED message with coordinator ID: " << coordinator_id << std::endl;
+                std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Received ELECTED message with coordinator ID: " << coordinator_id << std::endl;
                 handle_elected_message(coordinator_id);
                 continue;
             }
@@ -291,14 +291,14 @@ void BetaServer::handle_beta_updates() {
             );
         }
     } catch (const std::runtime_error& e) {
-        std::cout << " [ ERROR ] [ RING THREAD ] " << e.what() << std::endl;
+        std::cout << "[ BETA SERVER ] " << " [ ERROR ] [ RING THREAD ] " << e.what() << std::endl;
         int expected = my_socket;
         if (prev_beta_socket_fd.compare_exchange_strong(expected, -1)) {
             close(my_socket);
         }
     }
     
-    std::cout << "[ RING THREAD ] " << "handle_new_betas thread exiting" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "handle_new_betas thread exiting" << std::endl;
 }
 
 void BetaServer::close_sockets() {
@@ -307,7 +307,7 @@ void BetaServer::close_sockets() {
     if (next_beta_socket_fd > 0) close(next_beta_socket_fd);
     int prev_fd = prev_beta_socket_fd.load();
     if (prev_fd > 0) close(prev_fd);
-    std::cout << "[ CLOSING ] " << "Closed all sockets" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ CLOSING ] " << "Closed all sockets" << std::endl;
 }
 
 // ========================================= //
@@ -317,10 +317,10 @@ void BetaServer::close_sockets() {
 void BetaServer::start_election() {
     std::lock_guard<std::mutex> lock(election_mutex);
     
-    std::cout << "[ ELECTION ] " << "Starting election with my ID: " << my_id << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Starting election with my ID: " << my_id << std::endl;
     
     if (election_in_progress.load()) {
-        std::cout << "[ ELECTION ] " << "Election already in progress, ignoring..." << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Election already in progress, ignoring..." << std::endl;
         return;
     }
     
@@ -329,43 +329,43 @@ void BetaServer::start_election() {
     elected_coordinator.store(-1);  // Reset coordinator
     
     send_election_message(my_id);
-    std::cout << "[ ELECTION ] " << "Sent initial election message with my ID: " << my_id << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Sent initial election message with my ID: " << my_id << std::endl;
 }
 
 void BetaServer::handle_election_message(int candidate_id) {
     std::lock_guard<std::mutex> lock(election_mutex);
     
-    std::cout << "[ ELECTION ] " << "Processing election message. Candidate: " << candidate_id << ", My ID: " << my_id << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Processing election message. Candidate: " << candidate_id << ", My ID: " << my_id << std::endl;
     
     if (candidate_id == my_id) {
-        std::cout << "[ ELECTION ] " << "My election message returned! I am the coordinator!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "My election message returned! I am the coordinator!" << std::endl;
         become_coordinator();
         return;
     }
     
     if (candidate_id > my_id) {
-        std::cout << "[ ELECTION ] " << "Candidate ID " << candidate_id << " > my ID " << my_id << ", forwarding message" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " > my ID " << my_id << ", forwarding message" << std::endl;
         send_election_message(candidate_id);
         return;
     }
     
     if (candidate_id < my_id && !is_participant.load()) {
-        std::cout << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " and I'm not participant, replacing with my ID" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " and I'm not participant, replacing with my ID" << std::endl;
         is_participant.store(true);
         send_election_message(my_id);
         return;
     }
     
-    std::cout << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " but I'm already participant, not forwarding" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " but I'm already participant, not forwarding" << std::endl;
 }
 
 void BetaServer::handle_elected_message(int coordinator_id) {
     std::lock_guard<std::mutex> lock(election_mutex);
     
-    std::cout << "[ ELECTION ] " << "Processing elected message. Coordinator: " << coordinator_id << ", My ID: " << my_id << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Processing elected message. Coordinator: " << coordinator_id << ", My ID: " << my_id << std::endl;
     
     if (coordinator_id == my_id) {
-        std::cout << "[ ELECTION ] " << "My elected message returned! Election finished!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "My elected message returned! Election finished!" << std::endl;
         election_in_progress.store(false);
         is_participant.store(false);
         return;
@@ -376,7 +376,7 @@ void BetaServer::handle_elected_message(int coordinator_id) {
     election_in_progress.store(false);
     is_participant.store(false);
     
-    std::cout << "[ ELECTION ] " << "New coordinator elected: " << coordinator_id << ". Forwarding elected message." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "New coordinator elected: " << coordinator_id << ". Forwarding elected message." << std::endl;
     send_elected_message(coordinator_id);
     accept_new_alfa_connection(coordinator_id);
 }
@@ -404,7 +404,7 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
 void BetaServer::send_election_message(int candidate_id) {
     int next_socket = get_next_beta_socket();
     if (next_socket <= 0) {
-        std::cout << "[ ELECTION ] " << "ERROR: No next beta socket available!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: No next beta socket available!" << std::endl;
         return;
     }
     
@@ -413,9 +413,9 @@ void BetaServer::send_election_message(int candidate_id) {
     
     try {
         election_packet.send(next_socket);
-        std::cout << "[ ELECTION ] " << "Sent election message with candidate ID: " << candidate_id << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Sent election message with candidate ID: " << candidate_id << std::endl;
     } catch (const std::exception& e) {
-        std::cout << "[ ELECTION ] " << "ERROR sending election message: " << e.what() << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR sending election message: " << e.what() << std::endl;
     }
     
     close(next_socket);
@@ -424,7 +424,7 @@ void BetaServer::send_election_message(int candidate_id) {
 void BetaServer::send_elected_message(int coordinator_id) {
     int next_socket = get_next_beta_socket();
     if (next_socket <= 0) {
-        std::cout << "[ ELECTION ] " << "ERROR: No next beta socket available!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: No next beta socket available!" << std::endl;
         return;
     }
     
@@ -433,9 +433,9 @@ void BetaServer::send_elected_message(int coordinator_id) {
     
     try {
         elected_packet.send(next_socket);
-        std::cout << "[ ELECTION ] " << "Sent elected message with coordinator ID: " << coordinator_id << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Sent elected message with coordinator ID: " << coordinator_id << std::endl;
     } catch (const std::exception& e) {
-        std::cout << "[ ELECTION ] " << "ERROR sending elected message: " << e.what() << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR sending elected message: " << e.what() << std::endl;
     }
     
     close(next_socket);
@@ -444,7 +444,7 @@ void BetaServer::send_elected_message(int coordinator_id) {
 int BetaServer::get_next_beta_socket() {
     // debug - Encontrar o próximo beta no anel
     if (betas.empty()) {
-        std::cout << "[ ELECTION ] " << "No betas available in ring!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "No betas available in ring!" << std::endl;
         return -1;
     }
     
@@ -458,7 +458,7 @@ int BetaServer::get_next_beta_socket() {
     }
     
     if (my_position == -1) {
-        std::cout << "[ ELECTION ] " << "Could not find myself in beta list!" << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Could not find myself in beta list!" << std::endl;
         return -1;
     }
 
@@ -468,14 +468,14 @@ int BetaServer::get_next_beta_socket() {
         int next_position = (my_position + i) % betas.size();
         BetaAddress& next_beta = betas[next_position];
         
-        std::cout << "[ ELECTION ] " << "Connecting to next beta [" << next_beta.id << "] " << next_beta.ip << ":" << next_beta.ring_port << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Connecting to next beta [" << next_beta.id << "] " << next_beta.ip << ":" << next_beta.ring_port << std::endl;
         
         next_socket = Network::connect_socket_ipv4(next_beta.ip, next_beta.ring_port);
         
         if (next_socket > 0) 
             break;
 
-        std::cout << "[ ELECTION ] " << "ERROR: Could not connect to next beta! Trial " << i << std::endl;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Could not connect to next beta! Trial " << i << std::endl;
         i++;
     } 
     
@@ -483,7 +483,7 @@ int BetaServer::get_next_beta_socket() {
 }
 
 void BetaServer::become_coordinator() {
-    std::cout << "[ ELECTION ] " << "=== BECOMING COORDINATOR ===" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== BECOMING COORDINATOR ===" << std::endl;
     
     is_coordinator.store(true);
     elected_coordinator.store(my_id);
@@ -491,16 +491,16 @@ void BetaServer::become_coordinator() {
     
     send_elected_message(my_id);
     
-    std::cout << "[ ELECTION ] " << "Setting up as new ALFA server..." << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Setting up as new ALFA server..." << std::endl;
     setup_as_alfa_server();
 }
 
 void BetaServer::setup_as_alfa_server() {
-    std::cout << "[ ELECTION ] " << "=== SETTING UP AS NEW ALFA SERVER ===" << std::endl;
-    std::cout << "[ ELECTION ] " << "New ALFA server with ID: " << my_id << " is now active!" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== SETTING UP AS NEW ALFA SERVER ===" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "New ALFA server with ID: " << my_id << " is now active!" << std::endl;
     running = false;
     AlfaServer alfa(8088); // TO DO
     alfa.become_alfa(devices, betas);
-    std::cout << "[ ELECTION ] " << "ALFA server setup completed!" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ALFA server setup completed!" << std::endl;
     //alfa.become_alfa(devices, betas);
 }
