@@ -34,6 +34,8 @@ struct BetaInfo {
 class BetaManager {
 
 public:
+    std::vector<BetaInfo> betas;
+
     BetaManager() : next_beta_id(0) {};
     void add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port);
     void remove_beta(int sockfd);
@@ -47,7 +49,6 @@ public:
     
 
 private:
-    std::vector<BetaInfo> betas;
     mutable std::shared_mutex access_betas;
     mutable std::mutex write_beta_socket;
     int next_beta_id;

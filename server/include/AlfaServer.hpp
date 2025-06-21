@@ -37,6 +37,8 @@ public:
 
     void run();
     void become_alfa(std::shared_ptr<ClientsDevices> devices, std::shared_ptr<BetaManager> betas);
+    void reconnect_betas(std::shared_ptr<BetaManager> old_betas);
+    void reconnect_clients(std::shared_ptr<ClientsDevices> old_devices);
 
 private:
     int initial_socket_client;

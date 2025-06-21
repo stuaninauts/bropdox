@@ -48,6 +48,7 @@ public:
         running(true) {}
 
     void run();
+    void reconnect_to_alfa();
 
     bool elected_to_alfa = true;
     std::shared_ptr<ClientsDevices> devices;

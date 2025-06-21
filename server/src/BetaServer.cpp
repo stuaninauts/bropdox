@@ -283,3 +283,31 @@ void BetaServer::close_sockets() {
     if (prev_fd > 0) close(prev_fd);
     std::cout << "[ CLOSING ] " << "Closed all sockets" << std::endl;
 }
+
+void BetaServer::reconnect_to_alfa() {
+    std::cout << "[ RECONNECT ] Encerrando threads e sockets antigos..." << std::endl;
+    running = false;
+    close_sockets();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    std::cout << "[ RECONNECT ] Reabrindo sockets de comunicação com o ALFA..." << std::endl;
+    running = true;
+    alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
+    ring_port = Network::get_available_port();
+    ring_socket_fd = Network::setup_socket_ipv4(ring_port);
+    if(alfa_socket_fd == -1 || ring_socket_fd == -1) {
+        std::cerr << "[ RECONNECT ] Falha ao reconectar sockets." << std::endl;
+        exit(1);
+    }
+
+    Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
+    packet.send(alfa_socket_fd);
+
+    std::cout << "[ RECONNECT ] Relançando threads de comunicação com o ALFA..." << std::endl;
+    std::thread sync_thread(&BetaServer::handle_alfa_updates, this);
+    std::thread ring_thread(&BetaServer::accept_ring_connection, this);
+    std::thread heartbeat_thread(&BetaServer::heartbeat_timeout, this);
+    sync_thread.detach();
+    ring_thread.detach();
+    heartbeat_thread.detach();
+}

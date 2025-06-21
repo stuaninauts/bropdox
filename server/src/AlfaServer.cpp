@@ -165,17 +165,52 @@ void AlfaServer::run() {
 
 void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::shared_ptr<BetaManager> old_betas) {
     devices = std::make_shared<ClientsDevices>();
+
+    reconnect_betas(old_betas);
+    reconnect_clients(old_devices);
+
+    std::cout << "ALFA server is now active!" << std::endl;
+    std::cout << "Listening for client connections on port: " << port_client << std::endl;
+    std::cout << "Listening for beta connections on port: " << port_beta << std::endl;
+
+    run();
+}
+
+void AlfaServer::reconnect_betas(std::shared_ptr<BetaManager> old_betas) {
+    std::cout << "[DEBUG] Dumping old_betas:" << std::endl;
+    old_betas->print_betas();
+
+    for (const auto& beta_info : old_betas->betas) {
+        std::string ip = beta_info.ip;
+        int port = beta_info.ring_port;
+
+        std::cout << "[DEBUG] Tentando conectar em " << ip << ":" << port << std::endl;
+        int beta_session_socket = Network::connect_socket_ipv4(ip, port);
+        if (beta_session_socket < 0) {
+            std::cerr << "Failed to connect to beta at " << ip << ":" << port << std::endl;
+            continue;
+        }
+
+        std::cout << "[ ALFA THREAD ] Re-adding beta: " << ip << ":" << port << std::endl;
+        betas->add_beta(beta_session_socket, ip, port);
+
+        std::thread([this, beta_session_socket]() {
+            heartbeat(beta_session_socket);
+        }).detach();
+    }
+}
+
+void AlfaServer::reconnect_clients(std::shared_ptr<ClientsDevices> old_devices) {
     std::cout << "[DEBUG] Dumping old_devices:" << std::endl;
-    const auto& all_old_devices = old_devices->get_all_devices();
-    for (const auto& [username, device_vec] : all_old_devices) {
+    const auto& all_devices = old_devices->get_all_devices();
+
+    for (const auto& [username, device_vec] : all_devices) {
         std::cout << "Username: " << username << std::endl;
         for (const auto& device_info : device_vec) {
             std::cout << "  IP: " << device_info.ip << ", Port: " << device_info.port_backup << std::endl;
         }
     }
 
-    // Itera sobre todos os devices existentes
-    const auto& all_devices = old_devices->get_all_devices();
     for (const auto& [username, device_vec] : all_devices) {
         for (const auto& device_info : device_vec) {
             std::string ip = device_info.ip;
@@ -192,20 +227,13 @@ void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::s
             devices->add_client(username, client_session_socket, ip, port);
 
             std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
-            std::cout << "[DEBUG] Criando client_session para " << username << std::endl;
             std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(client_session_socket, username, devices, betas, user_dir_path, port);
-            std::cout << "[DEBUG] Chamando connect_sockets para " << username << std::endl;
+            
             client_session->connect_sockets();
-            std::cout << "[DEBUG] Iniciando thread para " << username << std::endl;
+            
             std::thread([session = std::move(client_session)]() mutable {
                 session->run();
             }).detach();
         }
     }
-
-    std::cout << "ALFA server is now active!" << std::endl;
-    std::cout << "Listening for client connections on port: " << port_client << std::endl;
-    std::cout << "Listening for beta connections on port: " << port_beta << std::endl;
-
-    run();
 }
