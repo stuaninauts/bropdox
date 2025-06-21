@@ -1,8 +1,13 @@
 #include <BetaManager.hpp>
 
-void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port) {
-    next_beta_id++;
-    BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, next_beta_id);
+void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port, int new_beta_id) {
+    if(new_beta_id == -1) {
+        new_beta_id = next_beta_id++;
+    } else {
+        next_beta_id = std::max(next_beta_id, new_beta_id);  
+    }
+    
+    BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, new_beta_id);
     send_new_beta_server(new_beta);
     {   
         std::lock_guard<std::shared_mutex> lock(access_betas);

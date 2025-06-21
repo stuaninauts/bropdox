@@ -165,9 +165,7 @@ void AlfaServer::run() {
     if (!devices) {
         devices = std::make_shared<ClientsDevices>();
     }
-    if (!betas) {
-        betas = std::make_shared<BetaManager>();
-    }
+    betas = std::make_shared<BetaManager>();
 
     FileManager::create_directory(server_dir_path);
 
@@ -178,42 +176,17 @@ void AlfaServer::run() {
     handle_client_thread.join();    
 }
 
-void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::shared_ptr<BetaManager> old_betas) {
+void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::vector<BetaAddress> old_betas_addr) {
     devices = std::make_shared<ClientsDevices>();
-    betas = std::make_shared<BetaManager>();
 
-    // reconnect_betas(old_betas);
     reconnect_clients(old_devices);
+    devices->print_clients();
 
     std::cout << "ALFA server is now active!" << std::endl;
     std::cout << "Listening for client connections on port: " << port_client << std::endl;
     std::cout << "Listening for beta connections on port: " << port_beta << std::endl;
 
     run();
-}
-
-void AlfaServer::reconnect_betas(std::shared_ptr<BetaManager> old_betas) {
-    std::cout << "[DEBUG] Dumping old_betas:" << std::endl;
-    old_betas->print_betas();
-
-    for (const auto& beta_info : old_betas->betas) {
-        std::string ip = beta_info.ip;
-        int port = beta_info.ring_port;
-
-        std::cout << "[DEBUG] Tentando conectar em " << ip << ":" << port << std::endl;
-        int beta_session_socket = Network::connect_socket_ipv4(ip, port);
-        if (beta_session_socket < 0) {
-            std::cerr << "Failed to connect to beta at " << ip << ":" << port << std::endl;
-            continue;
-        }
-
-        std::cout << "[ ALFA THREAD ] Re-adding beta: " << ip << ":" << port << std::endl;
-        betas->add_beta(beta_session_socket, ip, port);
-
-        std::thread([this, beta_session_socket]() {
-            heartbeat(beta_session_socket);
-        }).detach();
-    }
 }
 
 void AlfaServer::reconnect_clients(std::shared_ptr<ClientsDevices> old_devices) {

@@ -6,19 +6,23 @@
 #define PORT_BETA 8085
 #define HEARTBEAT_TIMEOUT 5
 
-void BetaServer::run() {
-    std::cout << "[ SETUP ] " << "Setting up BETA server..." << std::endl;
-    alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
-    ring_port = Network::get_available_port();
-    ring_socket_fd = Network::setup_socket_ipv4(ring_port);
-    if(alfa_socket_fd == -1 || ring_socket_fd == -1)
-        exit(1);
+void BetaServer::run(int new_socket_fd) {
+    if(new_socket_fd == -1){
+        std::cout << "[ SETUP ] " << "Setting up BETA server..." << std::endl;
+        alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
+        ring_port = Network::get_available_port();
+        ring_socket_fd = Network::setup_socket_ipv4(ring_port);
+        if(alfa_socket_fd == -1 || ring_socket_fd == -1)
+            exit(1);
+    } else {
+        alfa_socket_fd = new_socket_fd;
+    }
 
     Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
-    packet.send(alfa_socket_fd);
+    packet.send(this->alfa_socket_fd);
     
     devices = std::make_shared<ClientsDevices>();
-    backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(alfa_socket_fd));
+    backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(this->alfa_socket_fd));
     FileManager::create_directory(backup_dir_path);
 
     std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
@@ -53,13 +57,8 @@ void BetaServer::heartbeat_timeout() {
             throw std::runtime_error("Heartbeat timeout");
         }
     } catch (const std::runtime_error& e) {
-        close_sockets();
+        close(alfa_socket_fd);
         std::cerr << "[ ERROR ] [ HEARTBEAT THREAD ] " <<  e.what() << std::endl;
-        // Sinaliza para a main que este beta deve se tornar alfa
-        elected_to_alfa = true;
-        running = false;
-        std:cout << "Heartbeat thread exiting" << std::endl;
-        return;
     }
     std::cout << "[ HEARTBEAT THREAD ] " << "Alfa server is DOWN, STARTING ELECTION..." << std::endl;
     start_election();
@@ -302,6 +301,15 @@ void BetaServer::handle_beta_updates() {
     std::cout << "[ RING THREAD ] " << "handle_new_betas thread exiting" << std::endl;
 }
 
+void BetaServer::close_sockets() {
+    if (alfa_socket_fd > 0) close(alfa_socket_fd);
+    if (ring_socket_fd > 0) close(ring_socket_fd);
+    if (next_beta_socket_fd > 0) close(next_beta_socket_fd);
+    int prev_fd = prev_beta_socket_fd.load();
+    if (prev_fd > 0) close(prev_fd);
+    std::cout << "[ CLOSING ] " << "Closed all sockets" << std::endl;
+}
+
 // ========================================= //
 // ============= ELECTION METHODS ========== //
 // ========================================= //
@@ -370,6 +378,27 @@ void BetaServer::handle_elected_message(int coordinator_id) {
     
     std::cout << "[ ELECTION ] " << "New coordinator elected: " << coordinator_id << ". Forwarding elected message." << std::endl;
     send_elected_message(coordinator_id);
+    accept_new_alfa_connection(coordinator_id);
+}
+
+void BetaServer::accept_new_alfa_connection(int coordinator_id) {
+    std::string coordinator_ip;
+    for (auto beta : betas ) {
+        if(beta.id == coordinator_id) {
+            coordinator_ip = beta.ip;
+            break;
+        }
+    }
+
+
+    int new_alpha_socket;
+
+    while (true) {
+        new_alpha_socket = Network::connect_socket_ipv4(coordinator_ip, port_alfa);
+
+        if (new_alpha_socket >= 0) break;
+    }
+    run(new_alpha_socket);
 }
 
 void BetaServer::send_election_message(int candidate_id) {
@@ -469,46 +498,9 @@ void BetaServer::become_coordinator() {
 void BetaServer::setup_as_alfa_server() {
     std::cout << "[ ELECTION ] " << "=== SETTING UP AS NEW ALFA SERVER ===" << std::endl;
     std::cout << "[ ELECTION ] " << "New ALFA server with ID: " << my_id << " is now active!" << std::endl;
-    
-    // TODO: setup
-    std::cout << "[ ELECTION ] " << "ALFA server setup completed!" << std::endl;
-    AlfaServer alfa(8088);
-    //alfa.become_alfa(devices, betas);
-}
-
-void BetaServer::close_sockets() {
-    if (alfa_socket_fd > 0) close(alfa_socket_fd);
-    if (ring_socket_fd > 0) close(ring_socket_fd);
-    if (next_beta_socket_fd > 0) close(next_beta_socket_fd);
-    int prev_fd = prev_beta_socket_fd.load();
-    if (prev_fd > 0) close(prev_fd);
-    std::cout << "[ CLOSING ] " << "Closed all sockets" << std::endl;
-}
-
-void BetaServer::reconnect_to_alfa() {
-    std::cout << "[ RECONNECT ] Encerrando threads e sockets antigos..." << std::endl;
     running = false;
-    close_sockets();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-    std::cout << "[ RECONNECT ] Reabrindo sockets de comunicação com o ALFA..." << std::endl;
-    running = true;
-    alfa_socket_fd = Network::connect_socket_ipv4(ip_alfa, port_alfa);
-    ring_port = Network::get_available_port();
-    ring_socket_fd = Network::setup_socket_ipv4(ring_port);
-    if(alfa_socket_fd == -1 || ring_socket_fd == -1) {
-        std::cerr << "[ RECONNECT ] Falha ao reconectar sockets." << std::endl;
-        exit(1);
-    }
-
-    Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
-    packet.send(alfa_socket_fd);
-
-    std::cout << "[ RECONNECT ] Relançando threads de comunicação com o ALFA..." << std::endl;
-    std::thread sync_thread(&BetaServer::handle_alfa_updates, this);
-    std::thread ring_thread(&BetaServer::accept_ring_connection, this);
-    std::thread heartbeat_thread(&BetaServer::heartbeat_timeout, this);
-    sync_thread.detach();
-    ring_thread.detach();
-    heartbeat_thread.detach();
+    AlfaServer alfa(8088); // TO DO
+    alfa.become_alfa(devices, betas);
+    std::cout << "[ ELECTION ] " << "ALFA server setup completed!" << std::endl;
+    //alfa.become_alfa(devices, betas);
 }

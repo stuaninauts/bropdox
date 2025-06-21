@@ -28,15 +28,9 @@
 #include <chrono>
 #include <atomic>
 #include <BetaManager.hpp>
+#include <BetaAddress.hpp>
 
 namespace fs = std::filesystem;
-
-struct BetaAddress {
-    std::string ip;
-    int ring_port;
-    int id;
-    BetaAddress(const std::string ip, int ring_port, int id) : ip(ip), ring_port(ring_port), id(id) {};
-};
 
 class BetaServer {
 
@@ -48,10 +42,8 @@ public:
         running(true),
         my_id(-1) {}  // ID será definido quando receber do alfa
 
-    void run();
-    void reconnect_to_alfa();
+    void run(int new_socket_fd = -1);
 
-    bool elected_to_alfa = true;
     std::shared_ptr<ClientsDevices> devices;
 
     // public method for testing election
@@ -100,6 +92,7 @@ private:
     void handle_beta_updates();
     void heartbeat_timeout();
     void close_sockets();
+    void accept_new_alfa_connection(int coordinator_id);
 
     // election methods
     void start_election();

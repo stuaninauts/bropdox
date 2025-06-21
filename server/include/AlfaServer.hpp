@@ -21,6 +21,7 @@
 #include <ClientsDevices.hpp>
 #include <BetaManager.hpp>
 #include <Network.hpp>
+#include <BetaAddress.hpp>
 
 namespace fs = std::filesystem;
 class AlfaServer {
@@ -36,7 +37,7 @@ public:
     std::shared_ptr<BetaManager> betas;
 
     void run();
-    void become_alfa(std::shared_ptr<ClientsDevices> devices, std::shared_ptr<BetaManager> betas);
+    void become_alfa(std::shared_ptr<ClientsDevices> devices, std::vector<BetaAddress> old_betas_addr);
     void reconnect_betas(std::shared_ptr<BetaManager> old_betas);
     void reconnect_clients(std::shared_ptr<ClientsDevices> old_devices);
 
