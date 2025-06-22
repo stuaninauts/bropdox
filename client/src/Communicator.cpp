@@ -24,17 +24,23 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
     try {
         // Initialization of the main connection
         if (initial_socket_new_alpha == -1) {
+            std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if " << socket_cmd << std::endl;
             socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
             if (socket_cmd == -1) {
+                std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if socket cmd " << socket_cmd << std::endl;
+
                 close_sockets();
                 return false;
             }
 
             if (!send_initial_information()) {
+                std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if send initial" << socket_cmd << std::endl;
+
                 close_sockets();
                 return false;
             }
         } else {
+            std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do else " << socket_cmd << std::endl;
             socket_cmd = initial_socket_new_alpha;
         }
 
