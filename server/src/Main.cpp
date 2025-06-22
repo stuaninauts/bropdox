@@ -26,11 +26,11 @@ int main(int argc, char* argv[]) {
 
       std::cout<< "Become Alfa: " << beta.become_alfa << std::endl;
 
-      if(beta.become_alfa) {
-         AlfaServer alfa(8088);
-         alfa.become_alfa(beta.clients, beta.betas);
-      }
-      return 0;
+      // if(beta.become_alfa) {
+      //    AlfaServer alfa(8088);
+      //    alfa.become_alfa(beta.devices, beta.betas);
+      // }
+      // return 0;
    }
       
    if (argc > 3) {
