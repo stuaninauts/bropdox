@@ -91,3 +91,33 @@ bool FileManager::remove_directory(const fs::path& directory_path) {
         return false;
     }
 }
+
+bool FileManager::move_files_between_directories(const fs::path& src_directory, const fs::path& dest_directory) {
+    try {
+        if (!fs::exists(src_directory) || !fs::is_directory(src_directory)) {
+            std::cerr << "[ FILE MANAGER ] " << "Source directory does not exist or is not a directory: " << src_directory << '\n';
+            return false;
+        }
+
+        if (!fs::exists(dest_directory)) {
+            fs::create_directories(dest_directory);
+        }
+
+        for (const auto& entry : fs::recursive_directory_iterator(src_directory)) {
+            const auto& src_path = entry.path();
+            auto relative_path = fs::relative(src_path, src_directory);
+            fs::path dest_path = dest_directory / relative_path;
+
+            if (fs::is_directory(src_path)) {
+                fs::create_directories(dest_path);
+            } else if (fs::is_regular_file(src_path)) {
+                fs::create_directories(dest_path.parent_path());
+                fs::copy_file(src_path, dest_path, fs::copy_options::overwrite_existing);
+            }
+        }
+        return true;
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "[ FILE MANAGER ] " << "Error copying files: " << e.what() << '\n';
+        return false;
+    }
+}

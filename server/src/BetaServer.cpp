@@ -602,6 +602,7 @@ void BetaServer::become_coordinator() {
     
     // Setup alfa server
     become_alfa = true;
+    FileManager::move_files_between_directories(backup_dir_path, fs::path("./sync_dir_server"));
     running.store(false);
     close_sockets();
 }
