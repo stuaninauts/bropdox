@@ -38,8 +38,9 @@ public:
     BetaServer(int port_alfa, std::string ip_alfa) :
         port_alfa(port_alfa),
         ip_alfa(ip_alfa),
-        heartbeat_received(false),
         become_alfa(false),
+        heartbeat_received(false),
+        running(true),
         my_id(-1) {}  // ID será definido quando receber do alfa
 
     void run(int new_socket_fd = -1);
@@ -82,6 +83,7 @@ private:
     std::atomic<bool> is_coordinator{false};   // Se este servidor é o coordenador
     int my_id;  // ID único deste servidor beta
     std::mutex election_mutex;
+    std::atomic<bool> reconnecting{false};  // Flag para controlar reconexão
 
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
@@ -103,8 +105,6 @@ private:
     void send_elected_message(int coordinator_id);
     int get_next_beta_socket();
     void become_coordinator();
-    void setup_as_alfa_server();
-
 };
 
 #endif // BETASERVER_HPP
