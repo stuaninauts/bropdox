@@ -369,34 +369,27 @@ void BetaServer::handle_election_message(int candidate_id) {
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Processing election message. Candidate: " << candidate_id << ", My ID: " << my_id << std::endl;
     
     if (candidate_id == my_id) {
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "My election message returned! I am the coordinator!" << std::endl;
         become_coordinator();
         return;
     }
     
     if (candidate_id > my_id) {
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " > my ID " << my_id << ", forwarding message" << std::endl;
         send_election_message(candidate_id);
         return;
     }
     
     if (candidate_id < my_id && !is_participant.load()) {
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " and I'm not participant, replacing with my ID" << std::endl;
         is_participant.store(true);
         send_election_message(my_id);
         return;
     }
     
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Candidate ID " << candidate_id << " < my ID " << my_id << " but I'm already participant, not forwarding" << std::endl;
 }
 
 void BetaServer::handle_elected_message(int coordinator_id) {
     std::lock_guard<std::mutex> lock(election_mutex);
     
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Processing elected message. Coordinator: " << coordinator_id << ", My ID: " << my_id << std::endl;
-    
     if (coordinator_id == my_id) {
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "My elected message returned! Election finished!" << std::endl;
         election_in_progress.store(false);
         is_participant.store(false);
         return;
@@ -415,10 +408,8 @@ void BetaServer::handle_elected_message(int coordinator_id) {
 void BetaServer::accept_new_alfa_connection(int coordinator_id) {
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Connecting to new coordinator with ID: " << coordinator_id << std::endl;
     
-    // Set reconnecting flag to signal old threads to stop
     reconnecting.store(true);
     
-    // Wait a moment for old threads to finish
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
     std::string coordinator_ip;
@@ -447,7 +438,6 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
         new_alpha_socket = Network::connect_socket_ipv4(coordinator_ip, port_alfa);
 
         if (new_alpha_socket >= 0) {
-            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Successfully connected to new coordinator!" << std::endl;
             
             if (alfa_socket_fd > 0) {
                 close(alfa_socket_fd);
@@ -456,23 +446,24 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
             
             alfa_socket_fd = new_alpha_socket;
             
-            // Send ring port to new alfa
             Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
             packet.send(this->alfa_socket_fd);
             
-            // Reset heartbeat state
             {
                 std::unique_lock<std::mutex> lock(heartbeat_mutex);
                 heartbeat_received = false;
             }
             
-            // Clear reconnecting flag before starting new threads
             reconnecting.store(false);
             
-            // Restart the threads for the new alfa connection
-            restart_alfa_threads();
+            // TODO: review
+            std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
+            std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
             
-            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Reconnected to new coordinator successfully and restarted threads" << std::endl;
+            sync_thread.detach();
+            heartbeat_thread.detach();
+            
+            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Successfully connected to new coordinator!" << std::endl;
             return;
         }
 
@@ -484,18 +475,6 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
 
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Failed to connect to new coordinator after " << max_attempts << " attempts" << std::endl;
     reconnecting.store(false);
-}
-
-void BetaServer::restart_alfa_threads() {
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Restarting alfa communication threads..." << std::endl;
-    
-    std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
-    std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
-    
-    sync_thread.detach();
-    heartbeat_thread.detach();
-    
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Alfa communication threads restarted successfully" << std::endl;
 }
 
 void BetaServer::send_election_message(int candidate_id) {
@@ -510,7 +489,6 @@ void BetaServer::send_election_message(int candidate_id) {
     
     try {
         election_packet.send(next_socket);
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Sent election message with candidate ID: " << candidate_id << std::endl;
     } catch (const std::exception& e) {
         std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR sending election message: " << e.what() << std::endl;
     }
@@ -530,7 +508,6 @@ void BetaServer::send_elected_message(int coordinator_id) {
     
     try {
         elected_packet.send(next_socket);
-        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Sent elected message with coordinator ID: " << coordinator_id << std::endl;
     } catch (const std::exception& e) {
         std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR sending elected message: " << e.what() << std::endl;
     }
@@ -584,19 +561,15 @@ int BetaServer::get_next_beta_socket() {
 
 void BetaServer::become_coordinator() {
     std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== BECOMING COORDINATOR ===" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Beta server with ID: " << my_id << " will become ALFA!" << std::endl;
     
     is_coordinator.store(true);
     elected_coordinator.store(my_id);
     is_participant.store(false);
     
     send_elected_message(my_id);
-    setup_as_alfa_server();
-}
-
-void BetaServer::setup_as_alfa_server() {
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== PREPARING TO BECOME ALFA SERVER ===" << std::endl;
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Beta server with ID: " << my_id << " will become ALFA!" << std::endl;
     
+    // Setup alfa server
     become_alfa = true;
     running.store(false);
     close_sockets();

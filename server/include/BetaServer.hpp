@@ -96,7 +96,6 @@ private:
     void heartbeat_timeout();
     void close_sockets();
     void accept_new_alfa_connection(int coordinator_id);
-    void restart_alfa_threads();
 
     // election methods
     void start_election();
@@ -106,8 +105,6 @@ private:
     void send_elected_message(int coordinator_id);
     int get_next_beta_socket();
     void become_coordinator();
-    void setup_as_alfa_server();
-
 };
 
 #endif // BETASERVER_HPP
