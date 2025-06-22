@@ -83,6 +83,7 @@ private:
     std::atomic<bool> is_coordinator{false};   // Se este servidor é o coordenador
     int my_id;  // ID único deste servidor beta
     std::mutex election_mutex;
+    std::atomic<bool> reconnecting{false};  // Flag para controlar reconexão
 
     void handle_alfa_updates();
     void handle_client_delete(const std::string filename, const std::string username);
@@ -95,6 +96,7 @@ private:
     void heartbeat_timeout();
     void close_sockets();
     void accept_new_alfa_connection(int coordinator_id);
+    void restart_alfa_threads();
 
     // election methods
     void start_election();
