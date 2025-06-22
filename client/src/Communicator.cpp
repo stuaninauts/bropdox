@@ -38,6 +38,8 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
             socket_cmd = initial_socket_new_alpha;
         }
 
+        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB " << socket_cmd << std::endl;
+
         // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Error creating upload socket" << std::endl;
@@ -221,6 +223,8 @@ void Communicator::exit_server() {
 
 void Communicator::list_server() {
     std::cout << "Listing files on server:" << std::endl;
+    std::cout << "AAAAAAAAAAAAAAAAAAAAAAA " << socket_cmd << std::endl;
+
     send_command("list_server");
     std::string file_list = "";
     Packet packet;
