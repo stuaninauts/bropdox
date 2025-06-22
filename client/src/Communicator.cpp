@@ -24,27 +24,33 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
     try {
         // Initialization of the main connection
         if (initial_socket_new_alpha == -1) {
-            std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if " << socket_cmd << std::endl;
+            // Conexão inicial normal
             socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
             if (socket_cmd == -1) {
-                std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if socket cmd " << socket_cmd << std::endl;
-
+                std::cerr << "---------- Failed to connect to server at " << server_ip << ":" << port_cmd << std::endl;
                 close_sockets();
                 return false;
             }
 
             if (!send_initial_information()) {
-                std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do if send initial" << socket_cmd << std::endl;
-
+                std::cerr << "---------- Failed to send initial information to server" << std::endl;
                 close_sockets();
                 return false;
             }
         } else {
-            std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB Dentro do else " << socket_cmd << std::endl;
+            // Reconexão com novo alfa - usa o socket já conectado
+            std::cout << "---------- Using provided socket for reconnection: " << initial_socket_new_alpha << std::endl;
             socket_cmd = initial_socket_new_alpha;
+            
+            // Envia informações iniciais para o novo alfa
+            if (!send_initial_information()) {
+                std::cerr << "---------- Failed to send initial information to new alpha server" << std::endl;
+                close_sockets();
+                return false;
+            }
         }
 
-        std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB " << socket_cmd << std::endl;
+        std::cout << "---------- Command socket established: " << socket_cmd << std::endl;
 
         // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -80,11 +86,12 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
             return false;
         }
 
+        std::cout << "---------- All sockets connected successfully" << std::endl;
         return true;
 
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        close_sockets(); // TODO: review
+        std::cerr << "---------- Exception in connect_to_server: " << e.what() << std::endl;
+        close_sockets();
         return false;
     }
 }
@@ -229,7 +236,6 @@ void Communicator::exit_server() {
 
 void Communicator::list_server() {
     std::cout << "Listing files on server:" << std::endl;
-    std::cout << "AAAAAAAAAAAAAAAAAAAAAAA " << socket_cmd << std::endl;
 
     send_command("list_server");
     std::string file_list = "";
@@ -237,7 +243,7 @@ void Communicator::list_server() {
     do {
         packet = Packet::receive(socket_cmd);
         file_list += packet.payload;
-    } while (packet.total_size <= packet.seqn);
+    } while (packet.seqn + 1 < packet.total_size);
     std::cout << file_list << std::endl;
 }
 
@@ -288,9 +294,19 @@ bool Communicator::send_initial_information() {
 }
 
 void Communicator::close_sockets() {
-    if (socket_cmd > 0) close(socket_cmd);
-    if (socket_download > 0) close(socket_download);
-    if (socket_upload > 0) close(socket_upload);
+    if (socket_cmd > 0) {
+        close(socket_cmd);
+        socket_cmd = -1;
+    }
+    if (socket_download > 0) {
+        close(socket_download);
+        socket_download = -1;
+    }
+    if (socket_upload > 0) {
+        close(socket_upload);
+        socket_upload = -1;
+    }
+    std::cout << "All sockets closed" << std::endl;
 }
 
 bool Communicator::connect_socket_to_server(int sockfd, int* port) {    

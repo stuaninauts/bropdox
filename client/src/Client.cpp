@@ -138,21 +138,50 @@ void Client::handle_new_alpha_connection() {
 
     while (running.load()) {
         new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);
-        communicator.server_ip = Network::get_ipv4(new_alpha_socket);
 
         if (new_alpha_socket == -1) {
-            std::cerr << "ERROR: Failed to accept new client" << std::endl;
+            std::cerr << "---------- ERROR: Failed to accept new alpha connection" << std::endl;
             continue;
         }
 
         if (new_alpha_socket >= 0) {
-            std::cout << "Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
-            communicator.close_sockets();
+            std::cout << "---------- Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
+            
+            // Atualiza o IP do novo servidor alfa
+            communicator.server_ip = Network::get_ipv4(new_alpha_socket);
+            
+            // Para todas as threads atuais
             running.store(false);
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-
-            run(new_alpha_socket);
-            break;
+            
+            // Fecha os sockets antigos
+            communicator.close_sockets();
+            
+            // Aguarda um pouco para as threads terminarem
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            
+            // Reinicia o cliente com o novo socket
+            running.store(true);
+            communicator.running_ptr = &running;
+            
+            if (!communicator.connect_to_server(new_alpha_socket)) {
+                std::cerr << "---------- Error reconnecting to new alpha server" << std::endl;
+                running.store(false);
+                return;
+            }
+            
+            std::cout << "---------- Client successfully reconnected to new alpha server." << std::endl;
+            
+            // Não precisa chamar get_sync_dir() na reconexão pois os arquivos já existem
+            
+            // Reinicia apenas as threads necessárias (sync_remote e sync_local)
+            // A thread user_interface e handle_new_alpha_connection continuam rodando
+            std::thread thread_sync_remote(&Client::sync_remote, this);
+            std::thread thread_sync_local(&Client::sync_local, this);
+            
+            thread_sync_remote.detach();
+            thread_sync_local.detach();
+            
+            std::cout << "---------- Client threads restarted after alpha reconnection." << std::endl;
         }
     }
 }
