@@ -42,12 +42,6 @@ bool Communicator::connect_to_server(int initial_socket_new_alpha) {
             std::cout << "---------- Using provided socket for reconnection: " << initial_socket_new_alpha << std::endl;
             socket_cmd = initial_socket_new_alpha;
             
-            // Envia informações iniciais para o novo alfa
-            if (!send_initial_information()) {
-                std::cerr << "---------- Failed to send initial information to new alpha server" << std::endl;
-                close_sockets();
-                return false;
-            }
         }
 
         std::cout << "---------- Command socket established: " << socket_cmd << std::endl;
