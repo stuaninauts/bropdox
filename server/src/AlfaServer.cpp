@@ -176,10 +176,11 @@ void AlfaServer::run() {
     handle_client_thread.join();    
 }
 
-void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::vector<BetaAddress> old_betas_addr) {
+void AlfaServer::become_alfa(std::vector<ClientAddress> old_clients_addr, std::vector<BetaAddress> old_betas_addr) {
+    betas = std::make_shared<BetaManager>();
     devices = std::make_shared<ClientsDevices>();
 
-    reconnect_clients(old_devices);
+    reconnect_clients(old_clients_addr);
     devices->print_clients();
 
     std::cout << "[ ALFA SERVER ] " << "ALFA server is now active!" << std::endl;
@@ -189,40 +190,24 @@ void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::v
     run();
 }
 
-void AlfaServer::reconnect_clients(std::shared_ptr<ClientsDevices> old_devices) {
-    std::cout << "[ ALFA SERVER ] " << "[DEBUG] Dumping old_devices:" << std::endl;
-    const auto& all_devices = old_devices->get_all_devices();
-
-    for (const auto& [username, device_vec] : all_devices) {
-        std::cout << "[ ALFA SERVER ] " << "Username: " << username << std::endl;
-        for (const auto& device_info : device_vec) {
-            std::cout << "[ ALFA SERVER ] " << "  IP: " << device_info.ip << ", Port: " << device_info.port_backup << std::endl;
+void AlfaServer::reconnect_clients(std::vector<ClientAddress> old_clients_addr) {
+    std::cout << "[ ALFA SERVER ] " << "[DEBUG] Dumping old_clients_addr:" << std::endl;
+    for (const auto& client : old_clients_addr) {
+        std::cout << "[ ALFA SERVER ] Username: " << client.username << ", IP: " << client.ip << ", Port: " << client.port << std::endl;
+        int client_session_socket = Network::connect_socket_ipv4(client.ip, client.port);
+        
+        if (client_session_socket < 0) {
+            std::cerr << "[ ALFA SERVER ] Failed to connect to client " << client.username << " at " << client.ip << ":" << client.port << std::endl;
+            continue;
         }
-    }
 
-    for (const auto& [username, device_vec] : all_devices) {
-        for (const auto& device_info : device_vec) {
-            std::string ip = device_info.ip;
-            int port = device_info.port_backup;
-
-            std::cout << "[ ALFA SERVER ] " << "[DEBUG] Tentando conectar em " << ip << ":" << port << std::endl;
-            int client_session_socket = Network::connect_socket_ipv4(ip, port);
-            if (client_session_socket < 0) {
-                std::cerr << "[ ALFA SERVER ] " << "Failed to connect to client " << username << " at " << ip << ":" << port << std::endl;
-                continue;
-            }
-
-            std::cout << "[ ALFA SERVER ] " << "[ ALFA THREAD ] Re-adding client device: " << username << " at " << ip << ":" << port << std::endl;
-            devices->add_client(username, client_session_socket, ip, port);
-
-            std::string user_dir_path = server_dir_path / ("sync_dir_" + username);
-            std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(client_session_socket, username, devices, betas, user_dir_path, port);
-            
-            client_session->connect_sockets();
-            
-            std::thread([session = std::move(client_session)]() mutable {
-                session->run();
-            }).detach();
-        }
+        std::cout << "[ ALFA SERVER ] [ ALFA THREAD ] Re-adding client device: " << client.username << " at " << client.ip << ":" << client.port << std::endl;
+        std::string user_dir_path = server_dir_path / ("sync_dir_" + client.username);
+        std::unique_ptr<ClientSession> client_session = std::make_unique<ClientSession>(client_session_socket, client.username, devices, betas, user_dir_path, client.port);
+        client_session->connect_sockets();
+        std::thread client_session_thread([session = std::move(client_session)]() mutable {
+            session->run();
+        });
+        client_session_thread.detach();
     }
 }

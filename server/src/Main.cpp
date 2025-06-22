@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 
       if(beta.become_alfa) {
          AlfaServer alfa(8088);
-         alfa.become_alfa(beta.devices, beta.betas);
+         alfa.become_alfa(beta.clients, beta.betas);
       }
       return 0;
    }

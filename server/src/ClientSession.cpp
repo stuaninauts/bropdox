@@ -219,13 +219,18 @@ void ClientSession::handle_client_upload(const std::string filename, uint32_t to
     }
     access_files.unlock();
 
+
     betas->send_file(user_dir_path / filename, username);
+
 
     socket_download_other_device = devices->get_other_device_socket(username, socket_download);
 
+
     std::cout << "[ ALFA SERVER ] " << session_name << "get_other_device_socket " << socket_download_other_device << std::endl;
-    if(socket_download_other_device == -1)
+    if(socket_download_other_device == -1) {
+        std::cout << "[ ALFA SERVER ] " << session_name << "No other device connected for user " << username << std::endl;
         return;
+    }
     access_download.lock();
     {
         if(!Packet::send_file(socket_download_other_device, user_dir_path / filename))

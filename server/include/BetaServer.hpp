@@ -28,7 +28,7 @@
 #include <chrono>
 #include <atomic>
 #include <BetaManager.hpp>
-#include <BetaAddress.hpp>
+#include <Addresses.hpp>
 
 namespace fs = std::filesystem;
 
@@ -44,7 +44,7 @@ public:
 
     void run(int new_socket_fd = -1);
     bool become_alfa;
-    std::shared_ptr<ClientsDevices> devices;
+    std::vector<ClientAddress> clients;
     std::vector<BetaAddress> betas;
 
     // public method for testing election

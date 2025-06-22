@@ -98,7 +98,7 @@ void Communicator::watch_directory() {
     const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
     char buffer[BUF_LEN];
     
-    while (socket_upload != -1) {
+    while (socket_upload != -1 && running_ptr && running_ptr->load()) {
         int length = read(inotify_fd, buffer, BUF_LEN);
         if (length < 0) {
             std::cerr << "Error reading from inotify\n";
@@ -148,7 +148,7 @@ void Communicator::watch_directory() {
 }
 
 void Communicator::handle_server_update() {
-    while (socket_upload != -1) {
+    while (socket_upload != -1 && running_ptr && running_ptr->load()) {
         try {
             std::cout << "Receiving server pushes" << std::endl;
             Packet meta_packet = Packet::receive(socket_download);

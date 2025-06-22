@@ -14,6 +14,7 @@
 #include <set>
 #include <filesystem>
 #include <Network.hpp>
+#include <atomic>
 
 using namespace std;
 
@@ -72,6 +73,12 @@ public:
     bool send_initial_information();
     bool connect_socket_to_server(int sockfd, int* port);
     bool confirm_connection();
+
+    // Ponteiro para o atomic<bool> running do Client
+    std::atomic<bool>* running_ptr = nullptr;
+
+    // Permite setar o ponteiro para running
+    void set_running_ptr(std::atomic<bool>* ptr) { running_ptr = ptr; }
 };
 
 #endif // COMMUNICATOR_HPP

@@ -21,7 +21,6 @@ void BetaServer::run(int new_socket_fd) {
     Packet packet = Packet(static_cast<uint16_t>(Packet::Type::DATA), 0, 0, std::to_string(ring_port).length(), std::to_string(ring_port).c_str());
     packet.send(this->alfa_socket_fd);
     
-    devices = std::make_shared<ClientsDevices>();
     backup_dir_path = fs::path("./sync_dir_backup_" + std::to_string(this->alfa_socket_fd));
     FileManager::create_directory(backup_dir_path);
 
@@ -163,7 +162,7 @@ void BetaServer::handle_client_delete(const std::string filename, const std::str
 
 void BetaServer::handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client) {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
-    devices->add_client(username_first_client, -1, ip_first_client, port_first_client);
+    clients.push_back(ClientAddress(username_first_client, ip_first_client, port_first_client));
     FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_first_client));
     while(--total_clients > 0) {
         Packet username_packet = Packet::receive(alfa_socket_fd);
@@ -182,7 +181,7 @@ void BetaServer::handle_new_clients(const std::string ip_first_client, const std
         std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received new client PORT: " << port_packet.payload << std::endl;
         
         std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Added new client device" << std::endl;
-        devices->add_client(username_packet.payload, -1, ip_packet.payload, stoi(port_packet.payload));
+        clients.push_back(ClientAddress(username_packet.payload, ip_packet.payload, std::stoi(port_packet.payload)));
         FileManager::create_directory(backup_dir_path / ("sync_dir_" + username_packet.payload));
     }
 }
@@ -502,6 +501,4 @@ void BetaServer::setup_as_alfa_server() {
     close_sockets();
     running.store(false);
     become_alfa = true;
-    AlfaServer alfa(8088);
-    alfa.become_alfa(devices, betas);
 }

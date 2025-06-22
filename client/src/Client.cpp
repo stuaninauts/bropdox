@@ -10,6 +10,8 @@
 
 void Client::run(int initial_socket) {
     std::cout << "Connecting to server..." << std::endl;
+    running.store(true);
+    communicator.running_ptr = &running;
 
     if (!communicator.connect_to_server(initial_socket)) {
         std::cerr << "Error connecting to server" << std::endl;
@@ -57,7 +59,7 @@ void Client::sync_remote() {
 }
 
 void Client::user_interface() {
-    while (communicator.socket_upload != -1) {
+    while (communicator.socket_upload != -1 && running.load()) {
         std::string input;
         std::cout << "> ";
         getline(cin, input);
@@ -132,7 +134,7 @@ void Client::handle_new_alpha_connection() {
     socklen_t new_alpha_address_len = sizeof(struct sockaddr_in);
     std::cout << "Handling new ALPHA connection in port " << port_backup << "..." << std::endl;
 
-    while (true) {
+    while (running.load()) {
         new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);
 
         if (new_alpha_socket == -1) {
@@ -143,8 +145,8 @@ void Client::handle_new_alpha_connection() {
         if (new_alpha_socket >= 0) {
             std::cout << "Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
             communicator.close_sockets();
+            running.store(false);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
             run(new_alpha_socket);
 
             break;
