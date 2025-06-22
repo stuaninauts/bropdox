@@ -52,10 +52,12 @@ void Client::run(int initial_socket) {
 
 void Client::sync_local() {
     communicator.watch_directory();
+    std::cout << "[INOTIFY] Quitting" << std::endl;
 }
 
 void Client::sync_remote() {
     communicator.handle_server_update();
+    std::cout << "[HANDLE SERVER UPDATE] Quitting" << std::endl;
 }
 
 void Client::user_interface() {
@@ -146,9 +148,9 @@ void Client::handle_new_alpha_connection() {
             std::cout << "Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
             communicator.close_sockets();
             running.store(false);
+            std::this_thread::sleep_for(std::chrono::seconds(3));
 
             run(new_alpha_socket);
-
             break;
         }
     }

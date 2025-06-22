@@ -5,9 +5,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <fcntl.h>        // Para fcntl, F_GETFL, F_SETFL, O_NONBLOCK
 #include <Packet.hpp>
 #include <filesystem>
 #include <sys/inotify.h>
+#include <sys/select.h>   // Para select, fd_set, FD_ZERO, FD_SET
 #include <limits.h>
 #include <sys/stat.h>
 #include <FileManager.hpp>
@@ -87,6 +89,9 @@ void Communicator::watch_directory() {
         return;
     }
     
+    int flags = fcntl(inotify_fd, F_GETFL, 0);
+    fcntl(inotify_fd, F_SETFL, flags | O_NONBLOCK);
+    
     int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO);
     if (wd < 0) {
         std::cerr << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
@@ -99,9 +104,28 @@ void Communicator::watch_directory() {
     char buffer[BUF_LEN];
     
     while (socket_upload != -1 && running_ptr && running_ptr->load()) {
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(inotify_fd, &rfds);
+        
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 2000; // 2ms
+        
+        int retval = select(inotify_fd + 1, &rfds, NULL, NULL, &tv);
+        if (retval == -1) {
+            std::cerr << "[ INOTIFY ] Error in select(): " << strerror(errno) << std::endl;
+            break;
+        } else if (retval == 0) {
+            continue;
+        }
         int length = read(inotify_fd, buffer, BUF_LEN);
+        
         if (length < 0) {
-            std::cerr << "Error reading from inotify\n";
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            std::cerr << "[ INOTIFY ] Error reading inotify: " << strerror(errno) << std::endl;
             break;
         }
         
