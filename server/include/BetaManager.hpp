@@ -46,6 +46,7 @@ public:
     void send_new_beta_server(BetaInfo new_beta) const;
     void send_all_betas_to_new_beta(int new_beta_socket_fd) const;
     void send_heartbeat(int beta_socket_fd) const;
+    void send_removed_client_device(const std::string ip, const std::string username, int reconnection_port) const;
     
 
 private:

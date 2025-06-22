@@ -154,3 +154,29 @@ void BetaManager::send_all_betas_to_new_beta(int new_beta_socket_fd) const {
         id_packet.send(new_beta_socket_fd);
     }
 }
+
+void BetaManager::send_removed_client_device(const std::string ip, const std::string username, int reconnection_port) const {
+    std::cout << "sending removed client device, ip = " << ip << " | username " << username << " | reconnection_port " << reconnection_port << std::endl;
+    std::vector<BetaInfo> betas_copy;
+    {
+        std::shared_lock<std::shared_mutex> lock(access_betas);
+        betas_copy = betas;
+
+    }
+    std::lock_guard<std::mutex> lock(write_beta_socket);
+
+    std::string reconnection_port_str = std::to_string(reconnection_port);
+    Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
+    Packet remove_packet(static_cast<uint16_t>(Packet::Type::REMOVE), 0, 0, ip.length(), ip.c_str());
+    Packet ip_packet(static_cast<uint16_t>(Packet::Type::IP), 0, 0, ip.length(), ip.c_str());
+    Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, reconnection_port_str.length(), reconnection_port_str.c_str());
+    for (BetaInfo& beta : betas_copy) {
+        meta_packet.send(beta.socket_fd);
+        username_packet.send(beta.socket_fd);
+        remove_packet.send(beta.socket_fd);
+        ip_packet.send(beta.socket_fd);
+        port_packet.send(beta.socket_fd);
+        std::cout << "sending client device, ip = " << ip << " | username " << username << " | reconnection_port " << reconnection_port << std::endl;
+    }
+}

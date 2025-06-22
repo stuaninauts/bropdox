@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <FileManager.hpp>
+#include <Addresses.hpp>
 
 std::mutex access_files;
 std::mutex access_download;
@@ -277,18 +278,19 @@ void ClientSession::handle_get_sync_dir(){
 void ClientSession::handle_exit() {
     // TODO: revisar
     // Capture the download socket descriptor used for device registration before closing.
-    // This assumes this->socket_download holds the relevant descriptor.
-    // If close_sockets() has already run, this->socket_download might be 0.
+    // This assumes this->socket_fd holds the relevant descriptor.
+    // If close_sockets() has already run, this->socket_fd might be 0.
     // It's better if remove_client could be called with the original descriptor
     // or if ClientsDevices handles already closed sockets gracefully.
-    // For now, we rely on the fact that socket_download was added.
-    int download_socket_id_for_removal = this->socket_download;
+    // For now, we rely on the fact that socket_fd was added.
+    int download_socket_id_for_removal = this->socket_cmd;
 
     close_sockets();
 
     if (download_socket_id_for_removal > 0) { // apenas tenta remover se é um socket válido
         if (devices) { // Ensure devices pointer is valid
-            devices->remove_client(this->username, download_socket_id_for_removal);
+            ClientAddress removed_client = devices->remove_client(this->username, download_socket_id_for_removal);
+            betas->send_removed_client_device(removed_client.ip, removed_client.username, removed_client.port);
         }
     }
 }

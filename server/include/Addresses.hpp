@@ -15,6 +15,7 @@ struct ClientAddress {
     std::string ip;
     int port;
     ClientAddress(const std::string username, const std::string ip, int port) : username(username), ip(ip), port(port) {};
+    ClientAddress() : username(""), ip(""), port(0) {};
 };
 
 #endif // BETAADDRESS_HPP

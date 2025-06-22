@@ -25,6 +25,7 @@ public:
         DIRECTORY = 14,
         ELECTION = 15,
         ELECTED = 16,
+        REMOVE = 17
     };
 
     // Construtor

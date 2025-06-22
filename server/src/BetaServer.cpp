@@ -137,16 +137,16 @@ void BetaServer::handle_alfa_updates() {
 void BetaServer::handle_client_updates(Packet meta_packet) {
     Packet username_packet = Packet::receive(alfa_socket_fd);
     if (username_packet.type != static_cast<uint16_t>(Packet::Type::USERNAME)) {
-        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "ERROR: Client username not received from alfa server" << std::endl;
+        std::cout << "[ ALFA THREAD ] " << "ERROR: Client username not received from alfa server" << std::endl;
         return;
     }
 
     Packet update_packet = Packet::receive(alfa_socket_fd);
 
-    std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received update_packet from alfa server: " << update_packet.payload << std::endl;
+    std::cout << "[ ALFA THREAD ] " << "Received update_packet from alfa server: " << update_packet.payload << std::endl;
 
     if (update_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
-        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Received ERROR packet: " << update_packet.payload << std::endl;
+        std::cout << "[ ALFA THREAD ] " << "Received ERROR packet: " << update_packet.payload << std::endl;
         return;
     }
 
@@ -157,6 +157,11 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
 
     if (update_packet.type == static_cast<uint16_t>(Packet::Type::DATA)) {
         handle_client_upload(update_packet.payload, username_packet.payload, update_packet.total_size);
+        return;
+    }
+
+    if (update_packet.type == static_cast<uint16_t>(Packet::Type::REMOVE)) {
+        handle_removed_client(username_packet.payload);
         return;
     }
 
@@ -173,10 +178,10 @@ void BetaServer::handle_client_updates(Packet meta_packet) {
         handle_new_clients(update_packet.payload, username_packet.payload, meta_packet.total_size, std::stoi(port_packet.payload));
         return;
     }
-    
+
     throw std::runtime_error(
         " Unexpected packet type " + std::to_string(update_packet.type) + 
-        " received from alfa server (expected DATA, DELETE, IP, DIRECTORY or ERROR)"
+        " received from alfa server (expected DATA, DELETE, IP or ERROR)"
     );
 }
 
@@ -188,6 +193,33 @@ void BetaServer::handle_client_upload(const std::string filename, const std::str
 void BetaServer::handle_client_delete(const std::string filename, const std::string username) {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "[" << username << "] " << "handle_client_delete: " << filename << std::endl;
     FileManager::delete_file(backup_dir_path / ("sync_dir_" + username) / filename);
+}
+
+void BetaServer::handle_removed_client(const std::string username) {
+    Packet ip_packet = Packet::receive(alfa_socket_fd);
+    if (ip_packet.type != static_cast<uint16_t>(Packet::Type::IP))
+        throw std::runtime_error("Beta server IP not received from alfa server");
+
+    Packet reconnection_port_packet = Packet::receive(alfa_socket_fd);
+    if (reconnection_port_packet.type != static_cast<uint16_t>(Packet::Type::PORT))
+        throw std::runtime_error("ERROR: Beta server ring PORT not received from alfa server");
+
+    std::string ip = ip_packet.payload;
+    int reconnection_port = stoi(reconnection_port_packet.payload);
+
+    auto new_end = std::remove_if(clients.begin(), clients.end(), [&](auto device) {
+        return device.username == username && 
+            device.ip == ip && 
+            device.port == reconnection_port;
+    });
+
+    std::cout << "[ ALFA THREAD ] " << "removed client device: " << username << " | " << ip << ":" << reconnection_port << std::endl;
+    clients.erase(new_end, clients.end());
+
+    std::cout << "DEVICESSSSSSSS" << std::endl;
+    for(int i = 0; i < clients.size(); i++) {
+        std::cout << "[" << i << "] " << clients[i].username << " | " << clients[i].ip << ":" << clients[i].port << std::endl; 
+    }
 }
 
 void BetaServer::handle_new_clients(const std::string ip_first_client, const std::string username_first_client, int total_clients, int port_first_client) {

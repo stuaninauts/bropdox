@@ -1,4 +1,5 @@
 #include <ClientsDevices.hpp>
+#include <Addresses.hpp>
 
 bool ClientsDevices::add_client(const std::string &username, int socket_fd, const std::string ip, int port_beta) {
     std::unique_lock<std::shared_mutex> lock(access_clients);
@@ -17,30 +18,45 @@ bool ClientsDevices::add_client(const std::string &username, int socket_fd, cons
     return false;
 }
 
-void ClientsDevices::remove_client(const std::string &username, int socket_fd) {
+ClientAddress ClientsDevices::remove_client(const std::string &username, int socket_fd) {
     std::unique_lock<std::shared_mutex> lock(access_clients);
 
-    auto it = clients.find(username);
+    auto user_it = clients.find(username);
 
-    if (it == clients.end()) {
+    if (user_it == clients.end()) {
         std::cout << "User " << username << " not found for removal." << std::endl;
         print_clients_unlocked();
-        return;
+        return ClientAddress(); 
     }
 
-    auto &user_devices = it->second;
-    std::erase_if(user_devices, [socket_fd] (const auto& device) {
-        return device.socket_fd == socket_fd;
-    });
+    auto &user_devices = user_it->second;
+
+    auto device_it = std::find_if(user_devices.begin(), user_devices.end(), 
+        [socket_fd](auto device) {
+            return device.socket_fd == socket_fd;
+        });
+
+    if (device_it == user_devices.end()) {
+        std::cout << "Socket " << socket_fd << " not found for user " << username << ".\n";
+        print_clients_unlocked();
+        return ClientAddress(); // Return a default-constructed address
+    }
+
+    ClientAddress removed_address(username, device_it->ip, device_it->port_backup);
+
+    user_devices.erase(device_it);
+
     std::cout << "Socket " << socket_fd << " removed from user " << username << ".\n";
     device_count--;
 
     if (user_devices.empty()) {
-        clients.erase(it);
+        clients.erase(user_it);
         std::cout << "User " << username << " removed from map (no active connections).\n";
     }
 
     print_clients_unlocked();
+
+    return removed_address;
 }
 
 
