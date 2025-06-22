@@ -38,8 +38,9 @@ public:
     BetaServer(int port_alfa, std::string ip_alfa) :
         port_alfa(port_alfa),
         ip_alfa(ip_alfa),
-        heartbeat_received(false),
         become_alfa(false),
+        heartbeat_received(false),
+        running(true),
         my_id(-1) {}  // ID será definido quando receber do alfa
 
     void run(int new_socket_fd = -1);

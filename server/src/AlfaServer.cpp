@@ -178,7 +178,7 @@ void AlfaServer::run() {
 
 void AlfaServer::become_alfa(std::shared_ptr<ClientsDevices> old_devices, std::vector<BetaAddress> old_betas_addr) {
     devices = std::make_shared<ClientsDevices>();
-
+    old_devices->print_clients();
     reconnect_clients(old_devices);
     devices->print_clients();
 
@@ -211,8 +211,8 @@ void AlfaServer::reconnect_clients(std::shared_ptr<ClientsDevices> old_devices) 
                 std::cerr << "[ ALFA SERVER ] " << "Failed to connect to client " << username << " at " << ip << ":" << port << std::endl;
                 continue;
             }
+            std::cout << "[ ALFA SERVER ] " << "[ ALFA THREAD ] Re-adding client device: " << username << " SOCKET: " << device_info.socket_fd << " at " << ip << ":" << port << std::endl;
 
-            std::cout << "[ ALFA SERVER ] " << "[ ALFA THREAD ] Re-adding client device: " << username << " at " << ip << ":" << port << std::endl;
             devices->add_client(username, client_session_socket, ip, port);
 
             std::string user_dir_path = server_dir_path / ("sync_dir_" + username);

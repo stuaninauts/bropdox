@@ -34,6 +34,14 @@ void BetaServer::run(int new_socket_fd) {
     sync_thread.join();
     ring_thread.join();
     heartbeat_thread.join();
+    
+    std::cout << "[ BETA SERVER ] " << "[ MAIN ] " << "All threads finished" << std::endl;
+    
+    if (become_alfa) {
+        std::cout << "[ BETA SERVER ] " << "[ MAIN ] " << "Transitioning to ALFA server..." << std::endl;
+        AlfaServer alfa(8088, 8090);
+        alfa.become_alfa(devices, betas);
+    }
 }
 
 void BetaServer::heartbeat_timeout() {
@@ -41,7 +49,7 @@ void BetaServer::heartbeat_timeout() {
     bool ok;
     std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Starting heartbeat..." << std::endl;
     try {
-        while (alfa_socket_fd > 0 && running.load()) {
+        while (alfa_socket_fd > 0 && running.load() && !become_alfa) {
 
             heartbeat_packet.send(alfa_socket_fd);
             {
@@ -61,6 +69,12 @@ void BetaServer::heartbeat_timeout() {
         close(alfa_socket_fd);
         std::cerr << "[ BETA SERVER ] " << "[ ERROR ] [ HEARTBEAT THREAD ] " <<  e.what() << std::endl;
     }
+    
+    if (become_alfa) {
+        std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Becoming ALFA, exiting heartbeat thread..." << std::endl;
+        return;
+    }
+    
     std::cout << "[ BETA SERVER ] " << "[ HEARTBEAT THREAD ] " << "Alfa server is DOWN, STARTING ELECTION..." << std::endl;
     start_election();
 }
@@ -68,7 +82,7 @@ void BetaServer::heartbeat_timeout() {
 void BetaServer::handle_alfa_updates() {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
     try {
-        while (alfa_socket_fd > 0 && running.load()) {
+        while (alfa_socket_fd > 0 && running.load() && !become_alfa) {
             Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
@@ -102,6 +116,10 @@ void BetaServer::handle_alfa_updates() {
     } catch (const std::runtime_error& e) {
         close(alfa_socket_fd);
         std::cerr << "[ BETA SERVER ] " << "[ ERROR ] [ ALFA THREAD ] " << e.what() << std::endl;
+    }
+    
+    if (become_alfa) {
+        std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Becoming ALFA, exiting alfa thread..." << std::endl;
     }
 }
 
@@ -231,7 +249,7 @@ void BetaServer::accept_ring_connection() {
     socklen_t prev_beta_address_len = sizeof(struct sockaddr_in);
     std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "Handling RING Connection..." << std::endl;
 
-    while (running.load()) {
+    while (running.load() && !become_alfa) {
         new_prev_beta_socket_fd = accept(ring_socket_fd, (struct sockaddr*) &prev_beta_address, &prev_beta_address_len);
 
         if (new_prev_beta_socket_fd == -1) {
@@ -257,7 +275,7 @@ void BetaServer::handle_beta_updates() {
     int my_socket = prev_beta_socket_fd.load();
     
     try {
-        while (my_socket > 0 && running.load()) {
+        while (my_socket > 0 && running.load() && !become_alfa) {
             if (prev_beta_socket_fd.load() != my_socket) {
                 std::cout << "[ BETA SERVER ] " << "[ RING THREAD ] " << "This beta connection was replaced, exiting thread" << std::endl;
                 break;
@@ -383,23 +401,58 @@ void BetaServer::handle_elected_message(int coordinator_id) {
 }
 
 void BetaServer::accept_new_alfa_connection(int coordinator_id) {
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Connecting to new coordinator with ID: " << coordinator_id << std::endl;
+    
     std::string coordinator_ip;
-    for (auto beta : betas ) {
+    bool found = false;
+    for (auto beta : betas) {
         if(beta.id == coordinator_id) {
             coordinator_ip = beta.ip;
+            found = true;
             break;
         }
     }
 
+    if (!found) {
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Coordinator IP not found for ID: " << coordinator_id << std::endl;
+        return;
+    }
+
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Attempting to connect to new coordinator at: " << coordinator_ip << ":" << "8090" << std::endl;
 
     int new_alpha_socket;
+    int max_attempts = 10;
+    int attempts = 0;
 
-    while (true) {
-        new_alpha_socket = Network::connect_socket_ipv4(coordinator_ip, port_alfa);
+    while (attempts < max_attempts) {
+        new_alpha_socket = Network::connect_socket_ipv4(coordinator_ip, 8090);
 
-        if (new_alpha_socket >= 0) break;
+        if (new_alpha_socket >= 0) {
+            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Successfully connected to new coordinator!" << std::endl;
+            
+            if (alfa_socket_fd > 0) {
+                close(alfa_socket_fd);
+                std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Closed old alfa connection" << std::endl;
+            }
+            
+            alfa_socket_fd = new_alpha_socket;
+            
+            {
+                std::unique_lock<std::mutex> lock(heartbeat_mutex);
+                heartbeat_received = false;
+            }
+            
+            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Reconnected to new coordinator successfully" << std::endl;
+            return;
+        }
+
+        attempts++;
+        std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Connection attempt " << attempts << " failed, retrying..." << std::endl;
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
-    run(new_alpha_socket);
+
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Failed to connect to new coordinator after " << max_attempts << " attempts" << std::endl;
 }
 
 void BetaServer::send_election_message(int candidate_id) {
@@ -464,8 +517,8 @@ int BetaServer::get_next_beta_socket() {
     }
 
     int i = 1;
-    int next_socket;
-    while (true) {
+    int next_socket = -1;
+    while (i <= betas.size()) {
         int next_position = (my_position + i) % betas.size();
         BetaAddress& next_beta = betas[next_position];
         
@@ -478,7 +531,12 @@ int BetaServer::get_next_beta_socket() {
 
         std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Could not connect to next beta! Trial " << i << std::endl;
         i++;
-    } 
+        
+        if (i > betas.size()) {
+            std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Failed to connect to any beta in the ring" << std::endl;
+            return -1;
+        }
+    }
     
     return next_socket;
 }
@@ -492,16 +550,16 @@ void BetaServer::become_coordinator() {
     
     send_elected_message(my_id);
     
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Setting up as new ALFA server..." << std::endl;
     setup_as_alfa_server();
 }
 
 void BetaServer::setup_as_alfa_server() {
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== SETTING UP AS NEW ALFA SERVER ===" << std::endl;
-    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "New ALFA server with ID: " << my_id << " is now active!" << std::endl;
-    close_sockets();
-    running.store(false);
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "=== PREPARING TO BECOME ALFA SERVER ===" << std::endl;
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Beta server with ID: " << my_id << " will become ALFA!" << std::endl;
+    
     become_alfa = true;
-    AlfaServer alfa(8088);
-    alfa.become_alfa(devices, betas);
+    running.store(false);
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Stopping beta server operations..." << std::endl;
+    close_sockets();
+    std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "Beta server stopped, will transition to ALFA in main thread" << std::endl;
 }

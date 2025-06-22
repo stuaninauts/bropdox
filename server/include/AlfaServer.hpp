@@ -33,6 +33,12 @@ public:
         initial_socket_client(-1),
         initial_socket_beta(-1) {};
 
+    AlfaServer(int port_client, int port_beta) :
+        port_client(port_client),
+        port_beta(port_beta),
+        initial_socket_client(-1),
+        initial_socket_beta(-1) {};
+
     std::shared_ptr<ClientsDevices> devices;
     std::shared_ptr<BetaManager> betas;
 
