@@ -138,6 +138,7 @@ void Client::handle_new_alpha_connection() {
 
     while (running.load()) {
         new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);
+        communicator.server_ip = Network::get_ipv4(new_alpha_socket);
 
         if (new_alpha_socket == -1) {
             std::cerr << "ERROR: Failed to accept new client" << std::endl;
