@@ -110,3 +110,28 @@ int Network::get_available_port() {
 
     return assigned_port;
 }
+
+std::string Network::get_ipv4(int socket_fd) {
+    sockaddr_in peer_addr;
+    socklen_t peer_addr_len = sizeof(peer_addr);
+
+    int result = getpeername(socket_fd, (struct sockaddr *)&peer_addr, &peer_addr_len);
+    if (result != 0) {
+        std::cerr <<"[ GET IPv4 ] getpeername() failed" << std::endl;
+        return "";
+    }
+
+    if (peer_addr.sin_family != AF_INET) {
+        std::cerr << "[ GET IPv4 ] Socket is not an IPv4 socket." << std::endl;
+        return "";
+    }
+
+    char ip_str[INET_ADDRSTRLEN];
+
+    if (inet_ntop(AF_INET, &peer_addr.sin_addr, ip_str, sizeof(ip_str)) == nullptr) {
+        std::cerr << "[ GET IPv4 ] inet_ntop() failed" << std::endl;
+        return "";
+    }
+
+    return std::string(ip_str);
+}

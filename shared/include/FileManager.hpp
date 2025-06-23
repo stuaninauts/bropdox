@@ -18,6 +18,10 @@ public:
     static std::string get_formatted_file_list(const fs::path& directory_path);
     static bool create_directory(const fs::path& directory_path);
     static bool remove_directory(const fs::path& directory_path);
+    static bool move_files_between_directories(
+        const fs::path& src_directory, 
+        const fs::path& dest_directory
+    );
 };
 
 #endif // FILE_MANAGER_HPP

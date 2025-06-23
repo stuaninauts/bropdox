@@ -14,6 +14,7 @@
 #include <set>
 #include <filesystem>
 #include <Network.hpp>
+#include <atomic>
 
 using namespace std;
 
@@ -26,11 +27,11 @@ public:
         close_sockets();
     }
 
-    Communicator(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path)
-        :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path),
-            socket_upload(-1), socket_download(-1), port_upload(0), port_download(0) {};
+    Communicator(const std::string& server_ip, int port, const std::string& username, const fs::path sync_dir_path, int port_backup)
+        :   server_ip(server_ip), port_cmd(port), username(username), sync_dir_path(sync_dir_path), port_backup(port_backup),
+            socket_upload(-1), socket_cmd(-1), socket_download(-1), port_upload(0), port_download(0) {};
 
-    bool connect_to_server();
+    bool connect_to_server(int socket_new_alpha = -1);
 
     void handle_server_update();
     void get_sync_dir();
@@ -38,7 +39,6 @@ public:
     void list_server();
     void watch_directory();
 
-private:
     void close_sockets();
     
     // ip
@@ -48,6 +48,7 @@ private:
     int port_cmd;
     int port_upload;
     int port_download;
+    int port_backup;
 
     // sockets
     int socket_cmd;
@@ -69,9 +70,15 @@ private:
     void send_command(const std::string command);
 
     // connection setup
-    bool send_username();
+    bool send_initial_information();
     bool connect_socket_to_server(int sockfd, int* port);
     bool confirm_connection();
+
+    // Ponteiro para o atomic<bool> running do Client
+    std::atomic<bool>* running_ptr = nullptr;
+
+    // Permite setar o ponteiro para running
+    void set_running_ptr(std::atomic<bool>* ptr) { running_ptr = ptr; }
 };
 
 #endif // COMMUNICATOR_HPP

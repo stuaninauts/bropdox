@@ -5,9 +5,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <fcntl.h>        // Para fcntl, F_GETFL, F_SETFL, O_NONBLOCK
 #include <Packet.hpp>
 #include <filesystem>
 #include <sys/inotify.h>
+#include <sys/select.h>   // Para select, fd_set, FD_ZERO, FD_SET
 #include <limits.h>
 #include <sys/stat.h>
 #include <FileManager.hpp>
@@ -18,19 +20,31 @@ std::mutex access_ignored_files;
 // ================ PUBLIC ================ //
 // ======================================== //
 
-bool Communicator::connect_to_server() {
+bool Communicator::connect_to_server(int initial_socket_new_alpha) {
     try {
         // Initialization of the main connection
-        socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
-        if (socket_cmd == -1) {
-            close_sockets();
-            return false;
+        if (initial_socket_new_alpha == -1) {
+            // Conexão inicial normal
+            socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
+            if (socket_cmd == -1) {
+                std::cerr << "---------- Failed to connect to server at " << server_ip << ":" << port_cmd << std::endl;
+                close_sockets();
+                return false;
+            }
+
+            if (!send_initial_information()) {
+                std::cerr << "---------- Failed to send initial information to server" << std::endl;
+                close_sockets();
+                return false;
+            }
+        } else {
+            // Reconexão com novo alfa - usa o socket já conectado
+            std::cout << "---------- Using provided socket for reconnection: " << initial_socket_new_alpha << std::endl;
+            socket_cmd = initial_socket_new_alpha;
+            
         }
 
-        if (!send_username()) {
-            close_sockets();
-            return false;
-        }
+        std::cout << "---------- Command socket established: " << socket_cmd << std::endl;
 
         // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -66,11 +80,12 @@ bool Communicator::connect_to_server() {
             return false;
         }
 
+        std::cout << "---------- All sockets connected successfully" << std::endl;
         return true;
 
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        close_sockets(); // TODO: review
+        std::cerr << "---------- Exception in connect_to_server: " << e.what() << std::endl;
+        close_sockets();
         return false;
     }
 }
@@ -83,6 +98,9 @@ void Communicator::watch_directory() {
         return;
     }
     
+    int flags = fcntl(inotify_fd, F_GETFL, 0);
+    fcntl(inotify_fd, F_SETFL, flags | O_NONBLOCK);
+    
     int wd = inotify_add_watch(inotify_fd, sync_dir_path.c_str(), IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO);
     if (wd < 0) {
         std::cerr << "Error adding watch for " << sync_dir_path << ": " << strerror(errno) << "\n";
@@ -94,10 +112,29 @@ void Communicator::watch_directory() {
     const size_t BUF_LEN = 1024 * (EVENT_SIZE + NAME_MAX + 1);
     char buffer[BUF_LEN];
     
-    while (true) {
+    while (socket_upload != -1 && running_ptr && running_ptr->load()) {
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(inotify_fd, &rfds);
+        
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 2000; // 2ms
+        
+        int retval = select(inotify_fd + 1, &rfds, NULL, NULL, &tv);
+        if (retval == -1) {
+            std::cerr << "[ INOTIFY ] Error in select(): " << strerror(errno) << std::endl;
+            break;
+        } else if (retval == 0) {
+            continue;
+        }
         int length = read(inotify_fd, buffer, BUF_LEN);
+        
         if (length < 0) {
-            std::cerr << "Error reading from inotify\n";
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            std::cerr << "[ INOTIFY ] Error reading inotify: " << strerror(errno) << std::endl;
             break;
         }
         
@@ -144,7 +181,7 @@ void Communicator::watch_directory() {
 }
 
 void Communicator::handle_server_update() {
-    while (socket_upload != -1) {
+    while (socket_upload != -1 && running_ptr && running_ptr->load()) {
         try {
             std::cout << "Receiving server pushes" << std::endl;
             Packet meta_packet = Packet::receive(socket_download);
@@ -193,13 +230,14 @@ void Communicator::exit_server() {
 
 void Communicator::list_server() {
     std::cout << "Listing files on server:" << std::endl;
+
     send_command("list_server");
     std::string file_list = "";
     Packet packet;
     do {
         packet = Packet::receive(socket_cmd);
         file_list += packet.payload;
-    } while (packet.total_size <= packet.seqn);
+    } while (packet.seqn + 1 < packet.total_size);
     std::cout << file_list << std::endl;
 }
 
@@ -238,19 +276,31 @@ void Communicator::send_command(const std::string command) {
     command_packet.send(socket_cmd);
 }
 
-bool Communicator::send_username() {
-    int n = write(socket_cmd, username.c_str(), username.length());
-    if (n < 0) {
-        std::cerr << "ERROR: Writing username to socket\n";
-        return false;
-    }
+bool Communicator::send_initial_information() {
+    Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
+    username_packet.send(socket_cmd);
+
+    std::string port_str = std::to_string(port_backup);
+    Packet port_packet(static_cast<uint16_t>(Packet::Type::PORT), 0, 0, port_str.length(), port_str.c_str());
+    port_packet.send(socket_cmd);
+
     return true;
 }
 
 void Communicator::close_sockets() {
-    if (socket_cmd > 0) close(socket_cmd);
-    if (socket_download > 0) close(socket_download);
-    if (socket_upload > 0) close(socket_upload);
+    if (socket_cmd > 0) {
+        close(socket_cmd);
+        socket_cmd = -1;
+    }
+    if (socket_download > 0) {
+        close(socket_download);
+        socket_download = -1;
+    }
+    if (socket_upload > 0) {
+        close(socket_upload);
+        socket_upload = -1;
+    }
+    std::cout << "All sockets closed" << std::endl;
 }
 
 bool Communicator::connect_socket_to_server(int sockfd, int* port) {    
@@ -307,3 +357,4 @@ bool Communicator::confirm_connection() {
     }
     return true;
 }
+

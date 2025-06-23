@@ -23,6 +23,9 @@ public:
         ID = 12,
         HEARTBEAT = 13,
         DIRECTORY = 14,
+        ELECTION = 15,
+        ELECTED = 16,
+        REMOVE = 17
     };
 
     // Construtor
