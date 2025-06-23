@@ -89,7 +89,6 @@ void BetaServer::handle_alfa_updates() {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
     try {
         while (alfa_socket_fd > 0 && running.load() && !become_alfa && !reconnecting.load()) {
-            std::cout << "ENTREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEI" << std::endl;
             Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
@@ -98,7 +97,6 @@ void BetaServer::handle_alfa_updates() {
             }
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::CLIENT)) {
-                std::cout << "CLIEEEEEEEEEEEEENT UPDATE" << std::endl;
                 handle_client_updates(meta_packet);
                 continue;
             }
@@ -218,7 +216,7 @@ void BetaServer::handle_removed_client(const std::string username) {
     std::cout << "[ ALFA THREAD ] " << "removed client device: " << username << " | " << ip << ":" << reconnection_port << std::endl;
     clients.erase(new_end, clients.end());
 
-    std::cout << "DEVICESSSSSSSS" << std::endl;
+    std::cout << "[ ALFA THREAD ] DEVICES" << std::endl;
     for(int i = 0; i < clients.size(); i++) {
         std::cout << "[" << i << "] " << clients[i].username << " | " << clients[i].ip << ":" << clients[i].port << std::endl; 
     }
@@ -497,7 +495,6 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
             
             reconnecting.store(false);
             
-            // TODO: review
             std::thread sync_thread = std::thread(&BetaServer::handle_alfa_updates, this);
             std::thread heartbeat_thread = std::thread(&BetaServer::heartbeat_timeout, this);
             

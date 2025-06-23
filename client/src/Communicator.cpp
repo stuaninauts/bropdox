@@ -22,69 +22,56 @@ std::mutex access_ignored_files;
 
 bool Communicator::connect_to_server(int initial_socket_new_alpha) {
     try {
-        // Initialization of the main connection
         if (initial_socket_new_alpha == -1) {
-            // Conexão inicial normal
             socket_cmd = Network::connect_socket_ipv4(server_ip, port_cmd);
             if (socket_cmd == -1) {
-                std::cerr << "---------- Failed to connect to server at " << server_ip << ":" << port_cmd << std::endl;
                 close_sockets();
                 return false;
             }
 
             if (!send_initial_information()) {
-                std::cerr << "---------- Failed to send initial information to server" << std::endl;
                 close_sockets();
                 return false;
             }
         } else {
-            // Reconexão com novo alfa - usa o socket já conectado
-            std::cout << "---------- Using provided socket for reconnection: " << initial_socket_new_alpha << std::endl;
             socket_cmd = initial_socket_new_alpha;
             
         }
 
-        std::cout << "---------- Command socket established: " << socket_cmd << std::endl;
-
-        // Create upload socket
         if ((socket_upload = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Error creating upload socket" << std::endl;
             close_sockets();
             return false;
         }
 
-        // Create download socket
         if ((socket_download = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
             std::cerr << "Error creating download socket" << std::endl;
             close_sockets();
             return false;
         }
 
-        // Connect upload socket
         if (!connect_socket_to_server(socket_upload, &port_upload)){
             std::cerr << "Error connecting upload socket" << std::endl;
             close_sockets();
             return false;
         }
 
-        // Connect download socket
         if (!connect_socket_to_server(socket_download, &port_download)){
             std::cerr << "Error connecting download socket" << std::endl;
             close_sockets();
             return false;
         }
 
-        // Error checking and connection confirmation
         if (!confirm_connection()) {
             close_sockets();
             return false;
         }
 
-        std::cout << "---------- All sockets connected successfully" << std::endl;
+        std::cout << "--- All sockets connected successfully ---" << std::endl;
         return true;
 
     } catch (const std::exception& e) {
-        std::cerr << "---------- Exception in connect_to_server: " << e.what() << std::endl;
+        std::cerr << "Exception in connect_to_server: " << e.what() << std::endl;
         close_sockets();
         return false;
     }

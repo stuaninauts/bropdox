@@ -140,36 +140,29 @@ void Client::handle_new_alpha_connection() {
         new_alpha_socket = accept(initial_socket_new_alpha, (struct sockaddr*) &new_alpha_address, &new_alpha_address_len);
 
         if (new_alpha_socket == -1) {
-            std::cerr << "---------- ERROR: Failed to accept new alpha connection" << std::endl;
+            std::cerr << "ERROR: Failed to accept new alpha connection" << std::endl;
             continue;
         }
 
         if (new_alpha_socket >= 0) {
-            std::cout << "---------- Nova conexão alfa recebida. Reinicializando cliente..." << std::endl;
-            
-            // Atualiza o IP do novo servidor alfa
             communicator.server_ip = Network::get_ipv4(new_alpha_socket);
             
-            // Para todas as threads atuais
             running.store(false);
             
-            // Fecha os sockets antigos
             communicator.close_sockets();
             
-            // Aguarda um pouco para as threads terminarem
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             
-            // Reinicia o cliente com o novo socket
             running.store(true);
             communicator.running_ptr = &running;
             
             if (!communicator.connect_to_server(new_alpha_socket)) {
-                std::cerr << "---------- Error reconnecting to new alpha server" << std::endl;
+                std::cerr << "Error reconnecting to new alpha server" << std::endl;
                 running.store(false);
                 return;
             }
             
-            std::cout << "---------- Client successfully reconnected to new alpha server." << std::endl;
+            std::cout << "Client successfully reconnected to new alpha server." << std::endl;
             
             // Não precisa chamar get_sync_dir() na reconexão pois os arquivos já existem
             
@@ -181,7 +174,7 @@ void Client::handle_new_alpha_connection() {
             thread_sync_remote.detach();
             thread_sync_local.detach();
             
-            std::cout << "---------- Client threads restarted after alpha reconnection." << std::endl;
+            std::cout << "Client threads restarted after alpha reconnection." << std::endl;
         }
     }
 }
