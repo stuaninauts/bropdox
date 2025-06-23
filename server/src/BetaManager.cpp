@@ -2,16 +2,20 @@
 
 void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port) {
     next_beta_id++;
-    
-    std::cout << "????? Adding new beta with ID: " << next_beta_id << std::endl;
+
+    std::cout << "Adding new beta with ID: " << next_beta_id << std::endl;
 
     BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, next_beta_id);
-    send_new_beta_server(new_beta);
-    {   
+    
+    send_all_betas_to_new_beta(new_beta_socket_fd);
+    
+    {
         std::lock_guard<std::shared_mutex> lock(access_betas);
         betas.push_back(new_beta);
         std::cout << "Added BETA SOCKET: " << new_beta_socket_fd << std::endl;
     }
+    
+    send_new_beta_server(new_beta);
 }
 
 void BetaManager::remove_beta(int socket_fd) {
@@ -49,6 +53,11 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     {
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
+    }
+
+    std::cout << "PRINTANDO BETAS: " << filepath << " to all betas" << std::endl;
+    for (const BetaInfo& beta : betas_copy) {
+        std::cout << "ID: " << beta.id << " Beta socket_fd: " << beta.socket_fd << std::endl;
     }
 
     std::lock_guard<std::mutex> lock(write_beta_socket);
