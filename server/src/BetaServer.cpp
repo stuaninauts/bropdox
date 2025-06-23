@@ -89,6 +89,7 @@ void BetaServer::handle_alfa_updates() {
     std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "Handling ALFA updates..." << std::endl;
     try {
         while (alfa_socket_fd > 0 && running.load() && !become_alfa && !reconnecting.load()) {
+            std::cout << "ENTREEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEI" << std::endl;
             Packet meta_packet = Packet::receive(alfa_socket_fd);
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::ERROR)) {
@@ -97,6 +98,7 @@ void BetaServer::handle_alfa_updates() {
             }
 
             if (meta_packet.type == static_cast<uint16_t>(Packet::Type::CLIENT)) {
+                std::cout << "CLIEEEEEEEEEEEEENT UPDATE" << std::endl;
                 handle_client_updates(meta_packet);
                 continue;
             }

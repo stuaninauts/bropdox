@@ -222,6 +222,7 @@ void ClientSession::handle_client_upload(const std::string filename, uint32_t to
 
 
     betas->send_file(user_dir_path / filename, username);
+    std::cout << "Arquivo: " << user_dir_path / filename << std::endl;
 
 
     socket_download_other_device = devices->get_other_device_socket(username, socket_download);
