@@ -283,6 +283,12 @@ void BetaServer::handle_new_betas(Packet meta_packet) {
         
         std::cout << "[ BETA SERVER ] " << "[ ALFA THREAD ] " << "NEW BETA ADDED: " << "[" << beta.id << "] " << beta.ip << ":" << beta.ring_port << std::endl;
     }
+
+    // print all betas
+    std::cout << "[ ALFA THREAD ] " << "BETA ADDRESSES:" << std::endl;
+    for (BetaAddress& beta : betas) {
+        std::cout << "[ ALFA THREAD ] " << "[" << beta.id << "] " << beta.ip << ":" << beta.ring_port << std::endl;
+    }
 }
 
 void BetaServer::accept_ring_connection() {
@@ -452,6 +458,8 @@ void BetaServer::accept_new_alfa_connection(int coordinator_id) {
             break;
         }
     }
+
+    betas = std::vector<BetaAddress>();
 
     if (!found) {
         std::cout << "[ BETA SERVER ] " << "[ ELECTION ] " << "ERROR: Coordinator IP not found for ID: " << coordinator_id << std::endl;
