@@ -37,7 +37,7 @@ public:
     std::vector<BetaInfo> betas;
 
     BetaManager() : next_beta_id(0) {};
-    void add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port);
+    void add_beta(int new_beta_socket_fd, const std::string& new_beta_ip, int new_beta_ring_port);
     void remove_beta(int sockfd);
     void send_client_device(const std::string ip, const std::string username, int port) const;
     void send_file(const fs::path filepath, const std::string username) const;

@@ -165,7 +165,10 @@ void AlfaServer::run() {
     if (!devices) {
         devices = std::make_shared<ClientsDevices>();
     }
-    betas = std::make_shared<BetaManager>();
+
+    if (!betas) {
+        betas = std::make_shared<BetaManager>();
+    }
 
     FileManager::create_directory(server_dir_path);
 

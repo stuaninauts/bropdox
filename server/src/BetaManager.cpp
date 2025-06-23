@@ -7,15 +7,13 @@ void BetaManager::add_beta(int new_beta_socket_fd, const std::string& new_beta_i
 
     BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, next_beta_id);
     
-    // send_all_betas_to_new_beta(new_beta_socket_fd);
+    send_new_beta_server(new_beta);
     
     {
         std::lock_guard<std::shared_mutex> lock(access_betas);
         betas.push_back(new_beta);
         std::cout << "Added BETA SOCKET: " << new_beta_socket_fd << std::endl;
     }
-    
-    send_new_beta_server(new_beta);
 }
 
 void BetaManager::remove_beta(int socket_fd) {
