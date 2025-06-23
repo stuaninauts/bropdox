@@ -22,6 +22,7 @@ ClientAddress ClientsDevices::remove_client(const std::string &username, int soc
     std::unique_lock<std::shared_mutex> lock(access_clients);
 
     auto user_it = clients.find(username);
+    std::cout << "Removing client " << username << " with socket " << socket_fd << std::endl;
 
     if (user_it == clients.end()) {
         std::cout << "User " << username << " not found for removal." << std::endl;
@@ -33,6 +34,8 @@ ClientAddress ClientsDevices::remove_client(const std::string &username, int soc
 
     auto device_it = std::find_if(user_devices.begin(), user_devices.end(), 
         [socket_fd](auto device) {
+            std::cout << "SOOOOCKET" << socket_fd << std::endl;
+            std::cout << "SOOOOCKET" << device.socket_fd << std::endl;
             return device.socket_fd == socket_fd;
         });
 

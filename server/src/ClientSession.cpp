@@ -283,7 +283,7 @@ void ClientSession::handle_exit() {
     // It's better if remove_client could be called with the original descriptor
     // or if ClientsDevices handles already closed sockets gracefully.
     // For now, we rely on the fact that socket_fd was added.
-    int download_socket_id_for_removal = this->socket_cmd;
+    int download_socket_id_for_removal = this->socket_download;
 
     close_sockets();
 

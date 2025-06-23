@@ -161,7 +161,6 @@ void BetaManager::send_removed_client_device(const std::string ip, const std::st
     {
         std::shared_lock<std::shared_mutex> lock(access_betas);
         betas_copy = betas;
-
     }
     std::lock_guard<std::mutex> lock(write_beta_socket);
 
