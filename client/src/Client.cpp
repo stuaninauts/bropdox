@@ -61,23 +61,14 @@ void Client::sync_remote() {
 }
 
 void Client::user_interface() {
-    while (communicator.socket_upload != -1) {
-        if (!running.load()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
-        }
-
+    while (communicator.socket_upload != -1 && running.load()) {
         std::string input;
         std::cout << "> ";
-
-        if (std::cin.rdbuf()->in_avail() > 0) {
-            getline(std::cin, input);
-            std::vector<string> tokens = split_command(input);
-            if (!tokens.empty()) {
-                process_command(tokens);
-            }
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        getline(cin, input);
+        
+        std::vector<string> tokens = split_command(input);
+        if (!tokens.empty()) {
+            process_command(tokens);
         }
     }
 }
