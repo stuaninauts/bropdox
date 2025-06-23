@@ -1,13 +1,11 @@
 #include <BetaManager.hpp>
 
-void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port, int new_beta_id) {
-    if(new_beta_id == -1) {
-        new_beta_id = next_beta_id++;
-    } else {
-        next_beta_id = std::max(next_beta_id, new_beta_id);  
-    }
+void BetaManager::add_beta(int new_beta_socket_fd, const std::string new_beta_ip, int new_beta_ring_port) {
+    next_beta_id++;
     
-    BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, new_beta_id);
+    std::cout << "????? Adding new beta with ID: " << next_beta_id << std::endl;
+
+    BetaInfo new_beta(new_beta_socket_fd, new_beta_ip, new_beta_ring_port, next_beta_id);
     send_new_beta_server(new_beta);
     {   
         std::lock_guard<std::shared_mutex> lock(access_betas);
@@ -57,6 +55,7 @@ void BetaManager::send_file(const fs::path filepath, const std::string username)
     Packet meta_packet(static_cast<uint16_t>(Packet::Type::CLIENT), 0, 1, 0, "");
     Packet username_packet(static_cast<uint16_t>(Packet::Type::USERNAME), 0, 0, username.length(), username.c_str());
     for (BetaInfo& beta : betas_copy) {
+        std::cout << "Sending file from " << filepath << " to beta with socket_fd: " << beta.socket_fd << std::endl;
         meta_packet.send(beta.socket_fd);
         username_packet.send(beta.socket_fd);
         if (!Packet::send_file(beta.socket_fd, filepath)) {
